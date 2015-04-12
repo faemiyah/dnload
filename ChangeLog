@@ -1,0 +1,61 @@
+r1?? (2015-??-??)
+  * Better Raspberry Pi support via VideoCore / EGL specifics.
+
+r193 (2015-02-11)
+  * Raspberry Pi (Linux-armel) support.
+  * Bugfixes (works on Python 3 again).
+
+r189 (2015-02-04)
+  * Use 'unsafe' DT_SYMTAB / DT_HASH location assumption from minas/Calodox.
+  * Only treat d_un pointers as offsets on FreeBSD.
+  * Make hashed symbol table order stable, decreases compressed size.
+  * Fix bugs that had crept into legacy compilation modes.
+  * Minor Python style improvements.
+
+r183 (2015-02-03)
+  * Default to debugger trap for terminating to save some space.
+  * Use fixed r_debug address trick from minas/Calodox.
+  * Preliminary support for using elfling by minas/Calodox for two-stage
+    compression. Actual elfling source not yet included.
+  * Do not create unnecessary .bss fields for required UND symbols.
+  * Fix errors in entry point crunching.
+  * Less offensively bad Python coding conventions.
+
+r174 (2014-09-24)
+  * Platform-dependant pick on compression header.
+  * Fix byte-by-byte section merging bug.
+  * Make quad example simpler and intro example more complex.
+  * Default to filedump header that does not look 'nice' to save some space.
+
+r152 (2014-08-17)
+  * Support DT_GNU_HASH in addition to DT_HASH on Linux.
+  * Add symbol definitions.
+  * New bsd_rand from up-to-date FreeBSD.
+
+r115 (2014-06-21)
+  * Additional GL function definitions (can now compile flow2).
+  * Better handling of GLAPIENTRY.
+  * Add NOMINMAX define so windows.h does not clobber std namespace max/min.
+
+r112 (2014-06-06)
+  * Allow compiler to assign values for system calls.
+  * Better header crunching on 64-bit.
+
+r106 (2014-06-05)
+  * Remove also unnecessary symbol definitions on non-FreeBSD platforms.
+  * Properly crunch amd64 entry point.
+  * Create DT_HASH in a generic manner.
+
+r99 (2014-06-04)
+  * Elf64 / amd64 support.
+  * Use empty DT_SYMTAB trick on Linux.
+  * Bugfixes.
+
+r83 (2014-05-31)
+  * Omit unnecessary 'environ' and '__progname' symbols on non-FreeBSD platforms.
+  * Construct .hash, .strtab and .symtab as needed.
+  * Enable changing entry point, use a better compressable one.
+  * Added README that points to the online documentation.
+
+r79 (2014-05-30)
+  * First public version.

@@ -1,0 +1,13 @@
+include_directories("${PROJECT_SOURCE_DIR}")
+
+add_executable(intro bsd_rand.c glsl_shader_source.cpp image_png.cpp intro.cpp main.cpp)
+target_link_libraries(intro ${BOOST_PROGRAM_OPTIONS_LIBRARY})
+target_link_libraries(intro ${PNG_LIBRARY})
+target_link_libraries(intro ${SDL_LIBRARY})
+if(RASPBERRY_PI_FOUND)
+  target_link_libraries(intro ${BCM_HOST_LIBRARY})
+  target_link_libraries(intro ${EGL_LIBRARY})
+  target_link_libraries(intro ${OPENGL_gl_LIBRARY})
+else()
+  target_link_libraries(intro ${GLEW_LIBRARY})
+endif()
