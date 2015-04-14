@@ -29,63 +29,63 @@ For compiling without size optimizations, GLEW and SDL development files are nee
 Supported operating systems (for binary compilation)
 ----------------------------------------------------
 
-  * ``FreeBSD``
-  * ``Linux``
-  * ``Windows`` (for preprocessing only)
+* ``FreeBSD``
+* ``Linux``
+* ``Windows`` (for preprocessing only)
 
 Supported architectures
 -----------------------
 
-  * ``amd64`` (x86_64)
-  * ``ia32`` (i386)
+* ``amd64`` (x86_64)
+* ``ia32`` (i386)
 
 Supported compilers
 -------------------
 
-  * ``clang++``
-  * ``cl.exe`` (for preprocessing only)
-  * ``g++``
+* ``clang++``
+* ``cl.exe`` (for preprocessing only)
+* ``g++``
 
 Usage
 =====
 
 The script is used for two purposes:
 
-  * Building size-limited binaries directly from C/C++ source on systems,
-    where compilation is supported.
-  * Generating a header file to hide the complexities of size-limited linking. 
-    This can be also be on systems where compilation is not supported. The 
-    main use of this feature is to allow demo developers to work on other 
-    platforms except the main targets. The generated header tries to preserve 
-    portability.
+* Building size-limited binaries directly from C/C++ source on systems,
+  where compilation is supported.
+* Generating a header file to hide the complexities of size-limited linking. 
+  This can be also be on systems where compilation is not supported. The 
+  main use of this feature is to allow demo developers to work on other 
+  platforms except the main targets. The generated header tries to preserve 
+  portability.
 
 Summary of operation
 --------------------
 
 When invoked, the script will:
 
-  * Probe for suitable compiler, usually `gcc` or `clang`, `cl.exe` on Windows.
-  * Search for header file it was supposed to generate. By default this is 
-    called `dnload.h`.
-  * Examine the location the header file was found in. If a source file was 
-    given on command line, only operate on it. Otherwise take all source files 
-    from this location.
-  * Preprocess the source files with the compiler found earlier.
-  * Examine preprocessor output and locate all function calls made with a 
-    specific prefix. By default this prefix is `dnload_`.
-  * Generate a loader code block that locates pointers to given functions.
-  * Write the header file.
+* Probe for suitable compiler, usually `gcc` or `clang`, `cl.exe` on Windows.
+* Search for header file it was supposed to generate. By default this is 
+  called `dnload.h`.
+* Examine the location the header file was found in. If a source file was 
+  given on command line, only operate on it. Otherwise take all source files 
+  from this location.
+* Preprocess the source files with the compiler found earlier.
+* Examine preprocessor output and locate all function calls made with a 
+  specific prefix. By default this prefix is `dnload_`.
+* Generate a loader code block that locates pointers to given functions.
+* Write the header file.
 
 If the script was invoked to additionally generate the binary:
 
-  * Search for usual binary utilities in addition to the compiler.
-  * Compile given source file with flags aiming for small code footprint.
-  * Perform a series on operations on the compiler output known to further 
-    reduce code footprint.
-  * Link an output binary.
-  * Possibly strip the generated binary.
-  * Compress the produced binary and concatenate it with a shell script that 
-    will decompress and execute it.
+* Search for usual binary utilities in addition to the compiler.
+* Compile given source file with flags aiming for small code footprint.
+* Perform a series on operations on the compiler output known to further 
+  reduce code footprint.
+* Link an output binary.
+* Possibly strip the generated binary.
+* Compress the produced binary and concatenate it with a shell script that 
+  will decompress and execute it.
 
 Example program
 ---------------
@@ -275,10 +275,10 @@ Compiler flags
 
 We can alter the compiler output to produce smaller binaries both by making it actually optimize for size and by altering the output to be more compressable. The command line options would fall into three categories:
 
-  * Options that decrease size of generated code or constants.
-  * Options that (either randomly or unintentionally) produce a smaller or 
-    better compressable binary.
-  * Options that disable language features, making output smaller.
+* Options that decrease size of generated code or constants.
+* Options that (either randomly or unintentionally) produce a smaller or 
+  better compressable binary.
+* Options that disable language features, making output smaller.
 
 Despite Clang being all the rage nowadays, gcc seems to still produce binaries that size-optimize better. In particular, the script will attempt to use whichever ``g++`` is currently the latest available on FreeBSD (``g++49`` at the time of writing).
 
@@ -286,35 +286,35 @@ Despite Clang being all the rage nowadays, gcc seems to still produce binaries t
 
 Using g++, the flags of the first type (just smaller) would be:
 
-  * ``-Os``
-  * ``-ffast-math``
-  * ``-fomit-frame-pointer``
-  * ``-fsingle-precision-constant``
-  * ``-fwhole-program``
+* ``-Os``
+* ``-ffast-math``
+* ``-fomit-frame-pointer``
+* ``-fsingle-precision-constant``
+* ``-fwhole-program``
 
 These are all self-explanatory. In general, mere ``-Os -ffast-math -fomit-frame-pointer`` seems to do an excellent job.
 
 The following options are of the second type, seeming to consistently produce code that compresses better:
 
-  * ``-march=<arch>``: Some subsets of the instruction set seem to yield 
-    better results. As an example, on i386 architecture, after permutating
-    through all available instruction sets with several different intros, 
-    Pentium 4 was usually the best choice.
-  * ``-mpreferred-stack-boundary=<align>``: Forces the compiler to attempt 
-    keeping the stack aligned at 2\^\<align\> bytes. It seems it's 
-    advantageous to keep this at the smallest possible value for any given 
-    architecture.
+* ``-march=<arch>``: Some subsets of the instruction set seem to yield 
+  better results. As an example, on i386 architecture, after permutating
+  through all available instruction sets with several different intros, 
+  Pentium 4 was usually the best choice.
+* ``-mpreferred-stack-boundary=<align>``: Forces the compiler to attempt 
+  keeping the stack aligned at 2\^\<align\> bytes. It seems it's 
+  advantageous to keep this at the smallest possible value for any given 
+  architecture.
 
 Some flags of the third type, which disable fancy language features, are:
 
-  * ``-fno-threadsafe-statics``: By default some code is generated to ensure 
-    thread-safe initialization of local static variables. This code seems to
-    get generated even if no statics actually exist.
-  * ``-fno-asynchronous-unwind-tables``: Disables generation of stack unwind 
-    information that could be used to debug stack contents at locations other
-    than at the function call boundary.
-  * ``-fno-exceptions``: Self-evident.
-  * ``-fno-rtti``: Self-evident.
+* ``-fno-threadsafe-statics``: By default some code is generated to ensure 
+  thread-safe initialization of local static variables. This code seems to
+  get generated even if no statics actually exist.
+* ``-fno-asynchronous-unwind-tables``: Disables generation of stack unwind 
+  information that could be used to debug stack contents at locations other
+  than at the function call boundary.
+* ``-fno-exceptions``: Self-evident.
+* ``-fno-rtti``: Self-evident.
 
 **Note:** One could ask why C++ to begin with if we're not using any of its features? The answer is, that it should never be detrimental. After manually disabling all the features that would increase code footprint, we can basically write C using a C++ compiler. In some cases the C++ syntax will be beneficial.
 
@@ -327,12 +327,12 @@ There are some other variants afterwards, but the first use of the modern one-li
 
 The concept of self-dumping shell script is to have the first n bytes of a file be plain text that will be executed by normal ``sh``-compatible shells. The shell code will:
 
-  * Extract the rest of the file using common `*`nix tools (the compressed 
-    data starts immediately after the script).
-  * Write the extracted data as a file into system temporary folder.
-  * Make the file executable.
-  * Run it.
-  * Remove the file after program exits, since that's the proper thing to do.
+* Extract the rest of the file using common `*`nix tools (the compressed 
+  data starts immediately after the script).
+* Write the extracted data as a file into system temporary folder.
+* Make the file executable.
+* Run it.
+* Remove the file after program exits, since that's the proper thing to do.
 
 The header in *Yellow Rose* looks like this::
 
@@ -385,11 +385,11 @@ This is 16 bytes per symbol. In addition the linker will generate linkage tables
 
 Luckily, using the forementioned two symbols, we can perform dynamic loading ourselves. *Yellow Rose* loaded only the GL functions this way, but using a clever arrangement of text, we can embed the library information in a text block at practically no cost:
 
-  * First string is a library name, terminated by zero.
-  * Successive strings are function names.
-  * Two successive zeroes revert to initial state, next string will again be a 
-    library name.
-  * Third successive zero stops loading.
+* First string is a library name, terminated by zero.
+* Successive strings are function names.
+* Two successive zeroes revert to initial state, next string will again be a 
+  library name.
+* Third successive zero stops loading.
 
 This produces the following loader (using `intro.cpp` example)::
 
@@ -513,12 +513,12 @@ In here, the element ``r_map`` will contain a pointer to a linked list of struct
 
 The field ``l_ld`` in this structure is a pointer to the particular .dynamic section of this shared object. Reading the ELF specification [#References [16]], we also know that:
 
-  * All symbols of the shared object are located in the section pointed by tag 
-    ``DT_SYMTAB``.
-  * All symbol names are located in the section pointed by tag ``DT_STRTAB``.
-  * Symbols names point to offsets from the start of ``DT_STRTAB`` section.
-  * The total number of symbols in a shared object is the number of chains in 
-    the hash table of the shared object.
+* All symbols of the shared object are located in the section pointed by tag 
+  ``DT_SYMTAB``.
+* All symbol names are located in the section pointed by tag ``DT_STRTAB``.
+* Symbols names point to offsets from the start of ``DT_STRTAB`` section.
+* The total number of symbols in a shared object is the number of chains in 
+  the hash table of the shared object.
 
 Using this information, we can simply go through the shared objects, one by one, then go through the symbols in these shared objects, one by one, only stopping when we find a name with a hash matching the hash we want. We can also use the symbol table format defined in the earlier section by storing these hashes at the same location the function pointer is going to get stored at. The only thing that remains to be done is to find a convenient hashing algorithm.
 
@@ -817,18 +817,18 @@ The process of interleaving the structs is automated. This produces, for example
 
 In this particular case, the merging takes advantage of:
 
-  * ``.interp`` section is aligned at one-byte boundary. This alignment is the 
-    last value of ``PT_INTERP`` phdr. Hash table containing only the symbols 
-    required by ``libc`` starts with number 1 (one chain).
-  * ``.dynamic`` section can start with many numbers. We put the ``PT_NEEDED`` 
-    library requirements at the top so it can correctly interleave with the 
-    last value of the hash table.
-  * ``.dynamic`` section ends with the ``PT_NULL`` terminator. Symbol table 
-    starts with the null symbol. Size of null terminator is 8 bytes plus 
-    varying amount (depends on byte order) of remaining null bytes from the 
-    earlier ``DT_DEBUG`` dynamic structure. These can be partially interleaved.
-  * ``.interp`` section ends with terminating zero for the interpreter string, 
-    and ``.strtab`` always starts with a zero as per specification.
+* ``.interp`` section is aligned at one-byte boundary. This alignment is the 
+  last value of ``PT_INTERP`` phdr. Hash table containing only the symbols 
+  required by ``libc`` starts with number 1 (one chain).
+* ``.dynamic`` section can start with many numbers. We put the ``PT_NEEDED`` 
+  library requirements at the top so it can correctly interleave with the 
+  last value of the hash table.
+* ``.dynamic`` section ends with the ``PT_NULL`` terminator. Symbol table 
+  starts with the null symbol. Size of null terminator is 8 bytes plus 
+  varying amount (depends on byte order) of remaining null bytes from the 
+  earlier ``DT_DEBUG`` dynamic structure. These can be partially interleaved.
+* ``.interp`` section ends with terminating zero for the interpreter string, 
+  and ``.strtab`` always starts with a zero as per specification.
 
 **Note:** Interleaving with ``DT_DEBUG`` is dangerous, as the structure will be filled on runtime as seen in `Import by hash - scouring ELF headers`_. In practice, it seems to not cause problems currently.
 
@@ -844,10 +844,10 @@ Minimal ``DT_HASH``
 
 If symbols are present in the object, a hash table must be present to allow the dynamic linker to look for symbols. Either a GNU hash table or the traditional SYSV ELF hash table could be used. GNU hash table however uses 16 bytes for the mere headers, and does not look all that promising. SYSV hash tables seem to be relatively small. They look like this (all values are unsigned 32-bit integers):
 
-  * Number of buckets.
-  * Number of chains.
-  * List of indices, size equal to number of buckets.
-  * List of indices, size equal to number of chains.
+* Number of buckets.
+* Number of chains.
+* List of indices, size equal to number of buckets.
+* List of indices, size equal to number of chains.
 
 In here, the number of buckets serves as the basis of the hashing. Symbol equates into a hash value, that is modulated by number of buckets. Value from given bucket points to an index to start iterating the chain array from. The FreeBSD ``rtld.c`` implementation looks like this::
 
@@ -865,14 +865,14 @@ In here, the number of buckets serves as the basis of the hashing. Symbol equate
 
 The obvious solution is to only have one bucket and point it at the end of the chain array, then have the chain array count down from this index, going through the symbols one by one. It is definitely ineffective, but that hardly matters. This results as a generation algorithm as follows:
 
-  * Write one integer, number of buckets (1).
-  * Write one integer, number of symbols plus one.
-  * Write one integer, pointing at the last symbol index, adding one for the 
-    obligatory empty symbol (``STN_UNDEF`` is 0).
-  * Write a zero, for padding.
-  * Write an increasing list of integers, starting from 0, ending at index of 
-    last symbol minus one (last symbol index was already at the only bucket we 
-    had).
+* Write one integer, number of buckets (1).
+* Write one integer, number of symbols plus one.
+* Write one integer, pointing at the last symbol index, adding one for the 
+  obligatory empty symbol (``STN_UNDEF`` is 0).
+* Write a zero, for padding.
+* Write an increasing list of integers, starting from 0, ending at index of 
+  last symbol minus one (last symbol index was already at the only bucket we 
+  had).
 
 The total cost of adding symbols would thus be ``8`` (for dynamic structure referencing ``DT_HASH``) ``+ (4 + numsymbols) * 4`` (for hash itself) ``+ (1 + numsymbols) * 16`` (for symbol structs plus one empty symbol struct) ``+ strlen(symnames)`` bytes.
 
@@ -968,24 +968,25 @@ Acknowledgements
 
 This script would not have been possible without the prior work done by various other parties. Especially the following entities deserve kudos for their efforts:
 
-  * **Marq/Fit** [ref1] for the original unpack header and dlopen/dlsym 
-    implementation.
-  * **Brian Raiter** for *A Whirlwind Tutorial on Creating Really Teensy ELF 
-    Executables for Linux* [ref2] and the insight of interleaving headers.
-  * **parcelshit** [ref3] and **las/Mercury** [ref4] for the original ELF32 
-    import-by hash algorithm.
-  * **Hymy** [ref5] and **Ye Olde Laptops Posse** [ref6] for earlier forays 
-    into manual ELF32 header construction.
-  * **Amand Tihon** [ref23] for *BOLD - The Byte Optimized Linker* [ref24] and 
-    noticing that ``DT_SYMTAB`` can be empty.
-  * **ts/TDA** [ref26] for ``INT 3`` exit, ``HOME=`` -shell script trick, and 
-    probably something else.
-  * **minas/calodox** [ref31] for *elfling* [ref32] and various symbol 
-    scouring tricks.
+* **Marq/Fit** [ref1] for the original unpack header and dlopen/dlsym 
+  implementation.
+* **Brian Raiter** for *A Whirlwind Tutorial on Creating Really Teensy ELF 
+  Executables for Linux* [ref2] and the insight of interleaving headers.
+* **parcelshit** [ref3] and **las/Mercury** [ref4] for the original ELF32 
+  import-by hash algorithm.
+* **Hymy** [ref5] and **Ye Olde Laptops Posse** [ref6] for earlier forays 
+  into manual ELF32 header construction.
+* **Amand Tihon** [ref23] for *BOLD - The Byte Optimized Linker* [ref24] and 
+  noticing that ``DT_SYMTAB`` can be empty.
+* **ts/TDA** [ref26] for ``INT 3`` exit, ``HOME=`` -shell script trick, and 
+  probably something else.
+* **minas/calodox** [ref31] for *elfling* [ref32] and various symbol 
+  scouring tricks.
 
 And:
-  * **viznut/PWP** [ref7] for the series *Experimental music from very short C 
-    programs* [ref8], a snipped of which is used in one of the examples.
+
+* **viznut/PWP** [ref7] for the series *Experimental music from very short C 
+  programs* [ref8], a snipped of which is used in one of the examples.
 
 The list might be missing some parties. Please notify me of any errors or omissions, so that people will get the credit they deserve.
 
@@ -998,7 +999,85 @@ Note that this licence only pertains to the code of the script(s) themselves. Th
 
 To be honest, even that doesn't really mean anything. Just do whatever you want, but if you improve on the mechanisms, I would prefer to incorporate the improvements.
 
+FAQ
+===
 
+No-one runs 32-bit FreeBSD anymore, especially if it's only for curiosities like this. Why bother?
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+Even on a 64-bit system, you should be able to execute the result file if the compatibility layer is set up correctly. The easiest way to do it is to just install a 32-bit jail [ref10] and point ``LD_32_LIBRARY_PATH`` environment variable to the ``/usr/local/lib`` of that jail. This has the added benefit of enabling full 32-bit compatibility and easy cross-compiling.
+
+There are probably easy ways to do the same on Linux, but they are out of the scope of this document.
+
+What about ELF64?
+'''''''''''''''''
+
+It turns out the techniques described in this document are suitable for 64-bit ELF with minor or no changes. No specific new tricks are required.
+
+The script supports ELF64 just the same way it supports ELF32, the description is kept in 32-bit particulars for simplicity of explanation.
+
+What does ``USE_LD`` stand for?
+'''''''''''''''''''''''''''''''
+
+The name ``USE_LD`` is legacy, which has preserved unchanged from earlier Faemiyah prods. You may change the definition with the ``-d`` or ``--definition`` command line argument when invoking the script.
+
+Do I need to use ``_start``?
+''''''''''''''''''''''''''''
+
+When manually creating the program headers, the symbol would not necessarily need to be named ``_start`` - it could be anything, and the name will be stripped out anyway. However, this is a known convention.
+
+What are ``environ`` and ``__progname``?
+''''''''''''''''''''''''''''''''''''''''
+
+You you looked into the generated header, you might have seen something like this::
+
+    #if defined(__FreeBSD__)
+    #if defined(__clang__)
+    void *environ;
+    void *__progname;
+    #else
+    void *environ __attribute__((externally_visible));
+    void *__progname __attribute__((externally_visible));
+    #endif
+    #endif
+
+These symbols might seem nonsensical, as they are not used anywhere in the program or the generated code. Taking a look into the standard C library (i.e. ``/lib/libc.so.7``) will clarify their purpose::
+
+    > readelf -a /lib/libc.so.7
+    ...
+    Symbol table '.dynsym' contains 3079 entries:
+       Num:    Value  Size Type    Bind   Vis      Ndx Name
+         0: 00000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+         1: 00000000     0 NOTYPE  WEAK   DEFAULT  UND _Jv_RegisterClasses
+         2: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND __progname
+         3: 00000000     0 NOTYPE  GLOBAL DEFAULT  UND environ
+    ...
+
+We do not need these symbols, but libc expects them to be present in the binary. In practice, the dynamic linking procedure will fail if the program symbol table does not contain them.
+
+**Note:** These symbols seem to be not needed on Linux.
+
+Why is there an attribute ``externally_visible`` specified for some symbols?
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+The suffix ``__attribute__((externally_visible))`` is present in some symbols defined, most notable in ``_start``. This is due to Gnu C Compiler semantics.
+
+When compiling for binary size, it is necessary to use the ``-fwhole-program`` flag to make g++ discard all irrelevant code. Unfortunately, unless the compiler finds something it needs, this will actually cause it to discard _everything_ within the source file as there is no ``main()`` present to start building a dependency graph from.
+
+This attribute explicitly marks functions as symbols to be externally visible, so the dependency graph build shall include them.
+
+**Note:** Clang does not seem to either require or support this attribute.
+
+TODO
+====
+
+  * Should probably create the header file in a smart(er) manner if it is not 
+    found.
+  * Add cross-compilation support, at the very least between \*nix systems at 
+    the "maximum" operation mode.
+  * Only SDL/OpenGL supported right now. Should probably also support GLFW.
+  * Perhaps there are more efficient ways to interleave the header structs? 
+    Perhaps this can be permutated?
 
 References
 ==========
