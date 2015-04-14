@@ -72,7 +72,7 @@ When invoked, the script will:
   from this location.
 * Preprocess the source files with the compiler found earlier.
 * Examine preprocessor output and locate all function calls made with a 
-  specific prefix. By default this prefix is `dnload_`.
+  specific prefix. By default this prefix is ``dnload_``.
 * Generate a loader code block that locates pointers to given functions.
 * Write the header file.
 
@@ -321,9 +321,9 @@ Some flags of the third type, which disable fancy language features, are:
 The self-dumping shell script
 -----------------------------
 
-Scouring old releases, the first instance of a \*nix 4k using a self-dumping shell script seems to be *helsinki-spiegelberg by tsygä* [ref12]_. However, instead of dumping an executable binary, this entry actually unpacks to a source and compiles before execution.
+Scouring old releases, the first instance of a \*nix 4k using a self-dumping shell script seems to be *helsinki-spiegelberg* by **tsygä** [ref12]_. However, instead of dumping an executable binary, this entry actually unpacks to a source and compiles before execution.
 
-There are some other variants afterwards, but the first use of the modern one-line filedump is found in *Yellow Rose of Texas by Fit & Bandwagon* [ref13]_. Consequently, this is also the first "big" Linux 4k intro.
+There are some other variants afterwards, but the first use of the modern one-line filedump is found in *Yellow Rose of Texas* by **Fit & Bandwagon** [ref13]_. Consequently, this is also the first "big" Linux 4k intro.
 
 The concept of self-dumping shell script is to have the first n bytes of a file be plain text that will be executed by normal ``sh``-compatible shells. The shell code will:
 
@@ -632,7 +632,9 @@ There are earlier examples, on manually writing Linux ELF32 headers byte [ref21]
 
 However, even if the examples themselves are not usable, they prove that manual hacks are least possible. What we need to do is, have some kind of access into the process of dynamic loading itself, and see what we can do to decrease space. This is all done for us already, quoting manpages of ``ld-elf.so``:
 
->*The ``ld-elf.so.1`` utility is a self-contained shared object providing run-time support for loading and link-editing shared objects into a process' address space. It is also commonly known as the dynamic linker.*
+  *The ``ld-elf.so.1`` utility is a self-contained shared object providing run-
+  time support for loading and link-editing shared objects into a process' 
+  address space. It is also commonly known as the dynamic linker.*
 
 Full operating system sources have already been provided in ``/usr/src``. Recompiling the dynamic linker is as easy as going there and building (but not installing) ``world`` by issuing::
 
@@ -806,7 +808,7 @@ All alignment takes space on disk. To prevent this, all alignment directives gre
 Merging headers
 ~~~~~~~~~~~~~~~
 
-As Brian Raiter already noted in *A Whirlwind Tutorial on Creating Really Teensy ELF Executables for Linux* [ref2]_, it does not really seem to matter if the ELF headers overlap. The structures will be assigned addresses exactly based on the offsets given, and they can freely overlap with other structs in memory.
+As **Brian Raiter** already noted in *A Whirlwind Tutorial on Creating Really Teensy ELF Executables for Linux* [ref2]_, it does not really seem to matter if the ELF headers overlap. The structures will be assigned addresses exactly based on the offsets given, and they can freely overlap with other structs in memory.
 
 The process of interleaving the structs is automated. This produces, for example, the following::
 
