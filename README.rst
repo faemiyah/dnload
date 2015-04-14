@@ -1003,31 +1003,31 @@ FAQ
 ===
 
 No-one runs 32-bit FreeBSD anymore, especially if it's only for curiosities like this. Why bother?
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+--------------------------------------------------------------------------------------------------
 
 Even on a 64-bit system, you should be able to execute the result file if the compatibility layer is set up correctly. The easiest way to do it is to just install a 32-bit jail [ref10] and point ``LD_32_LIBRARY_PATH`` environment variable to the ``/usr/local/lib`` of that jail. This has the added benefit of enabling full 32-bit compatibility and easy cross-compiling.
 
 There are probably easy ways to do the same on Linux, but they are out of the scope of this document.
 
 What about ELF64?
-'''''''''''''''''
+-----------------
 
 It turns out the techniques described in this document are suitable for 64-bit ELF with minor or no changes. No specific new tricks are required.
 
 The script supports ELF64 just the same way it supports ELF32, the description is kept in 32-bit particulars for simplicity of explanation.
 
 What does ``USE_LD`` stand for?
-'''''''''''''''''''''''''''''''
+-------------------------------
 
 The name ``USE_LD`` is legacy, which has preserved unchanged from earlier Faemiyah prods. You may change the definition with the ``-d`` or ``--definition`` command line argument when invoking the script.
 
 Do I need to use ``_start``?
-''''''''''''''''''''''''''''
+----------------------------
 
 When manually creating the program headers, the symbol would not necessarily need to be named ``_start`` - it could be anything, and the name will be stripped out anyway. However, this is a known convention.
 
 What are ``environ`` and ``__progname``?
-''''''''''''''''''''''''''''''''''''''''
+----------------------------------------
 
 You you looked into the generated header, you might have seen something like this::
 
@@ -1058,7 +1058,7 @@ We do not need these symbols, but libc expects them to be present in the binary.
 **Note:** These symbols seem to be not needed on Linux.
 
 Why is there an attribute ``externally_visible`` specified for some symbols?
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+----------------------------------------------------------------------------
 
 The suffix ``__attribute__((externally_visible))`` is present in some symbols defined, most notable in ``_start``. This is due to Gnu C Compiler semantics.
 
