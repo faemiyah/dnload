@@ -839,7 +839,7 @@ Entry point
 
 Default ELF entry point is fixed to address ``0x8048000``. This can be changed to a better compressable address.
 
-The only issue here is that specifying ``--entry`` to ``ld`` does not actually change the entry point (it probably would if ``ld`` would also construct the headers). We need to modify linker scripts. This is done the same way as in `Import by hash - scouring ELF32 headers`_ - make the linker export the full linker script and change the ``SEGMENT_START`` directives into a better constant (``0x2000000`` at the time of writing).
+The only issue here is that specifying ``--entry`` to ``ld`` does not actually change the entry point (it probably would if ``ld`` would also construct the headers). We need to modify linker scripts. This is done the same way as in `Import by hash - scouring ELF headers`_ - make the linker export the full linker script and change the ``SEGMENT_START`` directives into a better constant (``0x2000000`` at the time of writing).
 
 Minimal ``DT_HASH``
 ~~~~~~~~~~~~~~~~~~~
@@ -1118,4 +1118,4 @@ References
 .. [ref32] https://github.com/google/elfling elfling
 
 .. _dnload header: https://github.com/trilkk/dnload/blob/master/src/dnload.h
-.. _new BSD license: https://code.google.com/p/faemiyah-demoscene/source/browse/trunk/dnload/COPYING
+.. _new BSD license: https://github.com/trilkk/dnload/blob/master/LICENCE
