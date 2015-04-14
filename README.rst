@@ -458,7 +458,7 @@ Import by hash - scouring ELF headers
 
 Even if the cost of function name only is rather little, it still adds up for a large block of data, especially as using ``dlopen`` and ``dlsym`` requires us to have symbol definitions and all the PLT/GOT information required for them in the binary.
 
-Fortunately, there is a better way. In 2008, Pouet users *parcelshit* [ref3]_ and *las/Mercury* [ref4]_ published code to search for symbols in ELF32 shared objects by their hashed names. Some of the code linked in the discussion [ref19]_ seems to be unaccessible by now, but at least the original import-by-hash implementation [ref18]_ (used as proof-of-concept for our implementation) seems to still be available.
+Fortunately, there is a better way. In 2008, Pouet users **parcelshit** [ref3]_ and **las/Mercury** [ref4]_ published code to search for symbols in ELF32 shared objects by their hashed names. Some of the code linked in the discussion [ref19]_ seems to be unaccessible by now, but at least the original import-by-hash implementation [ref18]_ (used as proof-of-concept for our implementation) seems to still be available.
 
 The technique essentially takes advantage of the ``DT_DEBUG`` element in the ``.dynamic`` section (when present) that will contain information about linked shared libraries. We simply need to gain access to it.
 
@@ -885,7 +885,7 @@ Location of ``r_debug``
 
 When not constructing headers manually, the ``r_debug`` debugger structure containing the link map to iterate over linked shared libraries must be found by examining the program headers, starting right from the entry point.
 
-In his similar project [ref32]_, *minas/Calodox* uses the manually constructed headers to directly know the location into which the dynamic linker will write this address.
+In his similar project [ref32]_, **minas/Calodox** uses the manually constructed headers to directly know the location into which the dynamic linker will write this address.
 
 After adding a label into the header assembler code, accessing the link map is thus reduced from::
 
@@ -995,9 +995,9 @@ The list might be missing some parties. Please notify me of any errors or omissi
 Legalese
 ========
 
-All contained code is licenced under the `new BSD licence`_ [ref9]_.
+All contained code is licensed under the `new BSD license`_ [ref9]_.
 
-Note that this licence only pertains to the code of the script(s) themselves. There are no restrictions imposed on the end products of the script(s) just like there are no restrictions imposed on a binary built with a compiler.
+Note that this license only pertains to the code of the script(s) themselves. There are no restrictions imposed on the end products of the script(s) just like there are no restrictions imposed on a binary built with a compiler.
 
 To be honest, even that doesn't really mean anything. Just do whatever you want, but if you improve on the mechanisms, I would prefer to incorporate the improvements.
 
@@ -1092,7 +1092,7 @@ References
 .. [ref6] http://www.pouet.net/groups.php?which=11436 Ye Olde Laptops Posse in Pouet
 .. [ref7] http://www.pouet.net/user.php?who=2547 viznut/PWP in Pouet
 .. [ref8] https://www.youtube.com/watch?v=tCRPUv8V22o Music from very short programs - the 3rd iteration in Youtube
-.. [ref9] http://opensource.org/licenses/BSD-3-Clause New BSD licence
+.. [ref9] http://opensource.org/licenses/BSD-3-Clause New BSD license
 .. [ref10] http://www.freebsd.org/doc/handbook/jails.html Chapter 15. Jails in FreeBSD manual
 .. [ref11] http://www.freebsd.org/doc/en/books/developers-handbook/x86-system-calls.html Chapter 11.3. System Calls in FreeBSD manual
 .. [ref12] http://www.pouet.net/prod.php?which=5021 helsinki-spiegelberg by tsygä in Pouet
