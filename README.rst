@@ -5,7 +5,7 @@
  Minimal binary generator for \*nix operating systems
 ------------------------------------------------------
 
-.. contents:: Table of Contents
+.. contents::
     :depth: 3
 
 dnload.py
@@ -133,7 +133,7 @@ This should produce output somewhat akin to this::
 You should now have an up-to date header file, which can be used to build the program. You may take a look at the contents of the header, but it will be explained in detail [#The_quest_for_minimal_ELF_binaries later on].
 
 Building the example without size optimizations
------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Even when developing an intro, the programmer is hardly interested in building a size-optimized binary every time. For this purpose, everything in the generated header file is wrapped to compile-time guards that allow us to compile the program as normal from Makefiles, Autotools scripts, CMake or even Visual Studio projects.
 
@@ -147,7 +147,7 @@ Hello World!
 When ``USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and all calls made with the reserved ``dnload_`` prefix will simply call the functions as normal.
 
 Compiling the example as a size-optimized binary
-------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To invoke the script and perform full compilation, use::
 
@@ -1071,13 +1071,13 @@ This attribute explicitly marks functions as symbols to be externally visible, s
 TODO
 ====
 
-  * Should probably create the header file in a smart(er) manner if it is not 
-    found.
-  * Add cross-compilation support, at the very least between \*nix systems at 
-    the "maximum" operation mode.
-  * Only SDL/OpenGL supported right now. Should probably also support GLFW.
-  * Perhaps there are more efficient ways to interleave the header structs? 
-    Perhaps this can be permutated?
+* Should probably create the header file in a smart(er) manner if it is not 
+  found.
+* Add cross-compilation support, at the very least between \*nix systems at 
+  the "maximum" operation mode.
+* Only SDL/OpenGL supported right now. Should probably also support GLFW.
+* Perhaps there are more efficient ways to interleave the header structs? 
+  Perhaps this can be permutated?
 
 References
 ==========
