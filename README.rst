@@ -908,7 +908,7 @@ Into::
 Ordering of `DT_STRTAB` and ``DT_SYMTAB``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Logically, before iterating through the symbols in a library, their total amount would be interpreted from that library's hash table. This only takes a bit of space on FreeBSD where (easily interpretable) SYSV hash tables seem to be present in every library. On linux, some libraries only contain GNU hash tables the parsing of which significantly increases code footprint.
+Logically, before iterating through the symbols in a library, their total amount would be interpreted from that library's hash table. This only takes a bit of space on FreeBSD where (easily interpretable) SYSV hash tables seem to be present in every library. On Linux, some libraries only contain GNU hash tables the parsing of which significantly increases code footprint [ref25]_.
 
 Luckily, *minas/calodox* noticed that ``DT_STRTAB`` and ``DT_SYMTAB`` seem to have two interesting relations:
 
