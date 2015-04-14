@@ -92,11 +92,11 @@ Example program
 
 To understand how to use the script, a simple example will clarify the operation with more ease than any lengthy explanation would. This tutorial will cover a traditional hello world program.
 
-Use this command to clone the repository:
+Use this command to clone the repository::
 
     svn checkout http://faemiyah-demoscene.googlecode.com/svn/trunk/dnload
 
-The checked out repository will have the ``dnload.py`` script in the root folder. The minimal example is included in the ``src/`` folder and called ``hello_world.cpp``. The example looks like this (removing non-essential comments):
+The checked out repository will have the ``dnload.py`` script in the root folder. The minimal example is included in the ``src/`` folder and called ``hello_world.cpp``. The example looks like this (removing non-essential comments)::
 
     #include "dnload.h"
 
@@ -108,7 +108,6 @@ The checked out repository will have the ``dnload.py`` script in the root folder
     {
       dnload();
       dnload_puts("Hello World!");
-
     #if defined(USE_LD)
       return 0;
     #else
@@ -116,11 +115,11 @@ The checked out repository will have the ``dnload.py`` script in the root folder
     #endif
     }
 
-When beginning to work with a project, the first thing needed is to ensure that our header is up to date. To do this, run:
+When beginning to work with a project, the first thing needed is to ensure that our header is up to date. To do this, run::
 
     python dnload.py src/hello_world.cpp -v
 
-This should produce output somewhat akin to this:
+This should produce output somewhat akin to this::
 
     Header file 'dnload.h' found in path 'src/'.
     Trying binary 'g++49'... found
@@ -138,7 +137,7 @@ Building the example without size optimizations
 
 Even when developing an intro, the programmer is hardly interested in building a size-optimized binary every time. For this purpose, everything in the generated header file is wrapped to compile-time guards that allow us to compile the program as normal from Makefiles, Autotools scripts, CMake or even Visual Studio projects.
 
-To do this, we need to set the ``USE_LD`` flag, for example by (replace with your favorite compiler):
+To do this, we need to set the ``USE_LD`` flag, for example by (replace with your favorite compiler)::
 
     > clang++ -o src/hello_world src/hello_world.cpp -DUSE_LD -I/usr/local/include `sdl-config --cflags` -O2 -s && ./src/hello_world
 Hello World!
@@ -150,11 +149,11 @@ When ``USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and
 Compiling the example as a size-optimized binary
 ------------------------------------------------
 
-To invoke the script and perform full compilation, use:
+To invoke the script and perform full compilation, use::
 
     python dnload.py -v src/hello_world.cpp -o hello_world -lc
 
-You might notice the flags are similar to the conventions used in other binary utilities. This is intentional. The command should produce output somewhat similar to this:
+You might notice the flags are similar to the conventions used in other binary utilities. This is intentional. The command should produce output somewhat similar to this::
 
     Header file 'dnload.h' found in path 'src/'.
     Trying binary 'g++49'... found
@@ -192,7 +191,7 @@ You might notice the flags are similar to the conventions used in other binary u
     Executing command: xz --format=lzma --lzma1=preset=9e,lc=1,lp=0,pb=0 --stdout src/hello_world.stripped
     Wrote 'src/hello_world': 321 bytes
 
-The actual program output should be:
+The actual program output should be::
 
     > ./src/hello_world
     Hello World!
@@ -200,13 +199,13 @@ The actual program output should be:
 Including dnload into your project
 ----------------------------------
 
-First of all, all programs wanting to use the loader will have to include the generated header file.
+First of all, all programs wanting to use the loader will have to include the generated header file::
 
     #include "dnload.h"
 
 This will internally include the relevant loader and some other header(s) present in the `src/` subdirectory into the project. The user may of course include any other source files necessary, but all function calls should be done through the interface wrapped herein.
 
-To understand what the script does, we will look at the main function:
+To understand what the script does, we will look at the main function::
 
     #if defined(USE_LD)
     int main()
@@ -223,23 +222,22 @@ To understand what the script does, we will look at the main function:
     #endif
     }
 
-If the macro ``USE_LD`` would be defined, all this would simply evaluate to a self-explanatory hello world program:
+If the macro ``USE_LD`` would be defined, all this would simply evaluate to a self-explanatory hello world program::
 
     int main()
     {
       puts("Hello World!")
-    
       return 0;
     }
 
 If ``USE_LD`` is not defined, the program instead uses an entry point named ``_start``. This is because even if using ``main()`` normally, it is not the real entry point into the program. In practice, the linker will generate code that will perform initialization of global variables, environment, etc., and only afterwards pass the control to the main function created by the programmer. The actual entry point generated by the compiler/linker system is traditionally called ``_start``. Since we're aiming for a small binary, we will not be using any automatically generated entry point code, and declare it ourselves.
 
-The two first lines of main function comprise the actual program:
+The two first lines of main function comprise the actual program::
 
     dnload();
     dnload_puts("Hello World!");
 
-This will perform of dynamic loading of all required symbols (here: only ``puts``) and call the appropriate function pointer. After saying our hellos, the only thing left to do is to exit the program:
+This will perform of dynamic loading of all required symbols (here: only ``puts``) and call the appropriate function pointer. After saying our hellos, the only thing left to do is to exit the program::
 
     #if defined(USE_LD)
       return 0;
@@ -247,9 +245,7 @@ This will perform of dynamic loading of all required symbols (here: only ``puts`
       asm_exit();
     #endif
 
-Since we already abandoned the default ``main`` procedure, no-one is going to terminate our program. We could make it "return" but that would normally only pass control to the shell provided by the system, we now have nowhere to return to. Thus, we must make a system call [Ref11]_ to terminate the program ourselves. The code that will do this is written into the `dnload header`_ directly as inline assembler. On i386 architecture, it will evaluate into the following single instruction:
-
-.. _dnload header: https://github.com/trilkk/dnload/blob/master/src/dnload.h
+Since we already abandoned the default ``main`` procedure, no-one is going to terminate our program. We could make it "return" but that would normally only pass control to the shell provided by the system, we now have nowhere to return to. Thus, we must make a system call [Ref11]_ to terminate the program ourselves. The code that will do this is written into the `dnload header`_ directly as inline assembler. On i386 architecture, it will evaluate into the following single instruction::
 
     int $3
 
@@ -313,3 +309,5 @@ References
 .. [ref30] http://x86.renejeschke.de/html/file_module_x86_id_142.html INT 3 instruction at René Jeschke's x86 instruction set reference mirror
 .. [ref31] http://www.pouet.net/user.php?who=6102 minas/calodox in Pouet
 .. [ref32] https://github.com/google/elfling elfling
+
+.. _dnload header: https://github.com/trilkk/dnload/blob/master/src/dnload.h
