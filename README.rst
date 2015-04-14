@@ -951,7 +951,7 @@ Empty ``DT_SYMTAB`` (Linux)
 
 Linux ``libc`` does not require the user program to define ``environ`` and ``__progname``. I was initially just leaving the ``hash`` and ``symtab`` segments blank. A blank ``symtab`` consists of just one empty (``NULL``) symbol, which already saves quite a lot of space.
 
-However, as Amand Tihon [ref23]_ points in his own similar project [ref24]_, on Linux the whole of symbol table can be omitted. This is done by having the ``DT_SYMTAB`` dynamic structure entry point to address value ``0`` and by omitting ``DT_HASH`` completely. All in all, this means that size-optimized binaries on Linux are 99 bytes (`Minimal ``DT_HASH```_) smaller than on FreeBSD. Interleaving of headers takes away some of this advantage, in practice it seems to be about 30 compressed bytes.
+However, as Amand Tihon [ref23]_ points in his own similar project [ref24]_, on Linux the whole of symbol table can be omitted. This is done by having the ``DT_SYMTAB`` dynamic structure entry point to address value ``0`` and by omitting ``DT_HASH`` completely. All in all, this means that size-optimized binaries on Linux are 99 bytes (`Minimal \`\`DT_HASH\`\``_) smaller than on FreeBSD. Interleaving of headers takes away some of this advantage, in practice it seems to be about 30 compressed bytes.
 
 Final sizes
 ~~~~~~~~~~~
