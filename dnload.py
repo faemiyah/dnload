@@ -2640,6 +2640,30 @@ def check_executable(op):
     return True
   return True
 
+def collect_libraries(libraries, symbols, compilation_mode):
+  """Collect libraries to link against from symbols given."""
+  if not libraries:
+    if "dlfcn" == compilation_mode:
+      raise RuntimeError("cannot autodetect libraries for compilation mode '%s'" % compilation_mode)
+    library_set = set()
+    for ii in symbols:
+      library_set = library_set.union(set([ii.get_library().get_name()]))
+    libraries = list(library_set)
+    output_message = "Autodetected libraries to link against: "
+  else:
+    output_message = "Linking against libraries: "
+  # Reorder libraries to ensure there is no problems with library scouring and UND symbols.
+  problematic_libraries = ["c", "m", "bcm_host"] # Order is important.
+  front = []
+  for ii in problematic_libraries:
+    if ii in libraries:
+      libraries.remove(ii)
+      front += [ii]
+  ret = front + sorted(libraries)
+  if is_verbose:
+    print("%s%s" % (output_message, str(ret)))
+  return ret
+
 def compress_file(compression, pretty, src, dst):
   """Compress a file to be a self-extracting file-dumping executable."""
   str_tail = "sed 1d"
@@ -2994,16 +3018,6 @@ def readelf_truncate(src, dst):
     wfd.write(rfd.read(truncate_size))
     rfd.close()
     wfd.close()
-
-def reorder_libraries(lst):
-  """Reorder libraries to ensure there is no problems with library scouring and UND symbols."""
-  problematic_libraries = ["c", "m", "bcm_host"] # Order is important.
-  front = []
-  for ii in problematic_libraries:
-    if ii in lst:
-      lst.remove(ii)
-      front += [ii]
-  return front + sorted(lst)
 
 def run_command(lst, decode_output = True):
   """Run program identified by list of command line parameters."""
@@ -3377,9 +3391,7 @@ def main():
       if output_basename == output_file:
         output_path = target_path
       output_file = os.path.normpath(os.path.join(output_path, output_basename))
-    libraries = reorder_libraries(libraries)
-    if is_verbose():
-      print("Linking against libraries: %s" % (str(libraries)))
+    libraries = collect_libraries(libraries, real_symbols, compilation_mode)
     compiler.generate_compiler_flags()
     compiler.generate_linker_flags()
     compiler.set_libraries(libraries)

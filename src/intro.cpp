@@ -86,8 +86,10 @@ static uint8_t g_flag_developer = 0;
 #endif
 
 //######################################
-// Music ###############################
+// Random ##############################
 //######################################
+
+#if 0
 
 /** \brief Random float value.
  *
@@ -98,6 +100,8 @@ static float frand(float op)
 {
   return static_cast<float>(dnload_rand() & 0xFFFF) * ((1.0f / 65535.0f) * op);
 }
+
+#endif
 
 //######################################
 // Music ###############################
