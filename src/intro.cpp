@@ -327,8 +327,9 @@ GLuint create_program(const char *vertex, const char *fragment)
 static GLuint program_attach(GLenum type, const char *source, GLuint pipeline, GLbitfield mask)
 {
   GlslShaderSource glsl_source(source);
-  const GLchar *pretty_source = glsl_source.c_str();
-  GLuint ret = dnload_glCreateShaderProgramv(type, 1, &pretty_source);
+  std::string pretty_source = glsl_source.str();
+  const GLchar *pretty_source_c_str = pretty_source.c_str();
+  GLuint ret = dnload_glCreateShaderProgramv(type, 1, &pretty_source_c_str);
 
   dnload_glUseProgramStages(pipeline, mask, ret);
 

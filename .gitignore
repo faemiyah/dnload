@@ -1,0 +1,14 @@
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+intro
+src/intro
+src/quad
+src/hello_world
+src/*.bin
+src/*.ld
+src/*.o
+src/*.S
+src/*.stripped
+src/*.unprocessed

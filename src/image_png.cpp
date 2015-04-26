@@ -514,16 +514,18 @@ namespace gfx
   void image_png_save_extended(const std::string &filename, unsigned pw, unsigned ph, unsigned pd, unsigned pb,
       uint8_t *pdata)
   {
-    uint8_t color_type = bpp_to_png_color_type(pb);
     if((0 >= pw) || (0 >= ph))
     {
       std::stringstream sstr;
       sstr << "invalid image dimensions: " << pw << "x" << ph;
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
+
+    uint8_t color_type = bpp_to_png_color_type(pb);
+    unsigned logical_height = ph;
     if(pd > 0)
     {
-      ph *= pd;
+      logical_height *= ph;
     }
 
     FILE *fd = fopen(filename.c_str(), "wb");
@@ -535,13 +537,13 @@ namespace gfx
     }
 
     PngWriter writer(fd);
-    boost::scoped_array<uint8_t*> row_pointers(new uint8_t*[ph]);
+    boost::scoped_array<uint8_t*> row_pointers(new uint8_t*[logical_height]);
     {
-      uint8_t *iter = pdata + pw * ph * pb / 8;
+      uint8_t *iter = pdata + pw * logical_height * pb / 8;
       unsigned iter_sub = (pw * pb / 8);
 
       // PNG and OpenGL scanlines are in different order
-      for(ptrdiff_t ii = 0; (ii < static_cast<ptrdiff_t>(ph)); ++ii)
+      for(ptrdiff_t ii = 0; (static_cast<ptrdiff_t>(logical_height) > ii); ++ii)
       {
         iter -= iter_sub;
         row_pointers[ii] = iter;
@@ -556,7 +558,8 @@ namespace gfx
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
 
-    writer.write(pw, ph, pd, color_type, row_pointers.get());
+    // Multiply ph again to prevent it being clobbered by longjmp.
+    writer.write(pw, ph * ((pd <= 0) ? 1 : pd), pd, color_type, row_pointers.get());
   }
 
   void image_png_save(const std::string &filename, unsigned pw, unsigned ph, unsigned pb, uint8_t *pdata)
