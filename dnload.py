@@ -667,20 +667,23 @@ class AssemblerSection:
   def minimal_align(self):
     """Remove all .align declarations, replace with desired alignment."""
     desired = int(PlatformVar("align"))
+    adjustments = []
     for ii in range(len(self.__content)):
       line = self.__content[ii]
       match = re.match(r'.*\.align\s+(\d+).*', line)
       if match:
         align = int(match.group(1))
+        self.__content[ii] = "  .balign %i\n" % (desired)
         # Due to GNU AS compatibility modes, .align may mean different things.
-        if osarch_is_amd64 or osarch_is_ia32():
+        if osarch_is_amd64() or osarch_is_ia32():
           if desired != align:
-            if is_verbose():
-              print("Replacing %i-byte alignment with %i-byte alignment." % (align, desired))
-            self.__content[ii] = "  .balign %i\n" % (desired)
+            adjustments += ["%i -> %i" % (align, desired)]
         else:
-          print("Replacing low-order bit alignment %i with %i-byte alignment." % (align, desired))
-          self.__content[ii] = "  .balign %i\n" % (desired)
+          align = 1 << align
+          if desired != align:
+            adjustments += ["%i -> %i" % (align, desired)]
+    if is_verbose() and adjustments:
+      print("Alignment adjustment(%s): %s" % (self.get_name(), ", ".join(adjustments)))
 
   def replace_entry_point(self, op):
     """Replaces an entry point with given entry point name from this section, should it exist."""
