@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(stub)
+project(intro)
 
 enable_language(C)
 enable_language(CXX)
@@ -32,6 +32,7 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 add_executable(intro "src/bsd_rand.c" "src/glsl_shader_source.cpp" "src/image_png.cpp" "src/intro.cpp" "src/main.cpp")
 if(${MSVC})
   target_link_libraries(intro "WINMM")
+  target_link_libraries(intro ${OPENGL_gl_LIBRARY})
   target_link_libraries(intro debug ${GLEW_LIBRARY_DEBUG})
   target_link_libraries(intro debug ${PNG_LIBRARY_DEBUG})
   target_link_libraries(intro debug ${SDL_LIBRARY_DEBUG})

@@ -304,7 +304,7 @@ void GlslShaderSource::add(const std::string &op)
       case '}':
         --m_indent;
         m_source << '\r' << create_indent(m_indent) << "}";
-        if(!regex_space_plus_alpha_plus_semicolon(ii + 1, ee) && (ii + 1 != ee))
+        if((ii + 1 != ee) && !regex_space_plus_alpha_plus_semicolon(ii + 1, ee))
         {
           m_source << std::endl << create_indent(m_indent);
         }
