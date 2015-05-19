@@ -22,6 +22,4 @@ src/*.unprocessed
 *.sdf
 *.sln
 *.suo
-*.vcxproj
-*.vcxproj.filters
-*.vcxproj.user
+*.vcxproj*
