@@ -1419,9 +1419,9 @@ class Linker:
       dynamic_linker = str(PlatformVar("interp"))
       if dynamic_linker.startswith("\"") and dynamic_linker.endswith("\""):
         dynamic_linker = dynamic_linker[1:-1]
-      elif dynamic_linker.startswith("0x"):
-        dynamic_linker = ""
-      self.__linker_flags += ["-nostdlib", "--strip-all", "--dynamic-linker=%s" % (dynamic_linker)]
+      else:
+        raise RuntimeError("dynamic liner definition '%s' should be quoeted" % (dynamic_linker))
+      self.__linker_flags += ["-nostartfiles", "-nostdlib", "--strip-all", "--dynamic-linker=%s" % (dynamic_linker)]
     else:
       raise RuntimeError("compilation not supported with compiler '%s'" % (op))
 
