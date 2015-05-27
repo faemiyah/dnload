@@ -608,7 +608,9 @@ else()
   check_cxx_flag("-Werror=unknown-warning-option" HAS_CXX_FLAG_WERROR_UNKNOWN_WARNING_OPTION)
 
   check_c_flag("-std=c99" HAS_C_FLAG_STD_C99)
-  check_cxx_flag("-std=c++11" HAS_CXX_FLAG_STD_CXX11)
+  if(NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") # Boost fails with g++/c++11
+    check_cxx_flag("-std=c++11" HAS_CXX_FLAG_STD_CXX11)
+  endif()
 
   check_c_flag("-Werror=return-type" HAS_C_FLAG_WERROR_RETURN_TYPE)
   check_cxx_flag("-Werror=return-type" HAS_CXX_FLAG_WERROR_RETURN_TYPE)
