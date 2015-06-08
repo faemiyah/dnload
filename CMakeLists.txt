@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.6)
-
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 project(intro)
 
 enable_language(C)
@@ -19,14 +19,13 @@ if(${RASPBERRY_PI_FOUND})
   set(OPENGL_gl_LIBRARY "GLESv2")
 else()
   find_opengl(TRUE)
-  find_glew(TRUE STATIC)
+  find_glew(TRUE)
 endif()
 
 add_definitions(-DUSE_LD)
 
 output_flags("DEBUG" on)
 
-include_directories("${PROJECT_SOURCE_DIR}")
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
 add_executable(intro "src/bsd_rand.c" "src/glsl_shader_source.cpp" "src/image_png.cpp" "src/intro.cpp" "src/main.cpp")
