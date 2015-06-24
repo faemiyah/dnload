@@ -19,7 +19,8 @@ import textwrap
 (g_osname, g_osignore1, g_osignore2, g_osignore3, g_osarch, g_osignore4) = platform.uname()
 g_verbose = False
 
-VERSION = "r193"
+VERSION_REVISION = "r12"
+VERSION_DATE = "20150624"
 
 ELFLING_OUTPUT = "elfling_output"
 ELFLING_PADDING = 10
@@ -3215,7 +3216,7 @@ def main():
   if args.verbose:
     g_verbose = True
   if args.version:
-    print(VERSION)
+    print("%s %s" % (VERSION_REVISION, VERSION_DATE))
     return 0
 
   definition_ld = args.define
