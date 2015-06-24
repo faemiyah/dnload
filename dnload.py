@@ -1421,7 +1421,7 @@ class Linker:
         dynamic_linker = dynamic_linker[1:-1]
       else:
         raise RuntimeError("dynamic liner definition '%s' should be quoeted" % (dynamic_linker))
-      self.__linker_flags += ["-nostartfiles", "-nostdlib", "--strip-all", "--dynamic-linker=%s" % (dynamic_linker)]
+      self.__linker_flags += ["-nostdlib", "--strip-all", "--dynamic-linker=%s" % (dynamic_linker)]
     else:
       raise RuntimeError("compilation not supported with compiler '%s'" % (op))
 
@@ -1571,7 +1571,7 @@ class Compiler(Linker):
     """Generate compiler flags."""
     self.__compiler_flags = []
     if self.command_basename_startswith("g++") or self.command_basename_startswith("gcc"):
-      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-enforce-eh-specs", "-fno-exceptions", "-fno-implicit-templates", "-fno-rtti", "-fno-use-cxa-atexit", "-fno-threadsafe-statics", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt", "-fomit-frame-pointer", "-fsingle-precision-constant", "-fvisibility=hidden", "-fwhole-program", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
+      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-enforce-eh-specs", "-fno-exceptions", "-fno-implicit-templates", "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt", "-fomit-frame-pointer", "-fsingle-precision-constant", "-fvisibility=hidden", "-fwhole-program", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
       # Some flags are platform-specific.
       stack_boundary = int(PlatformVar("mpreferred-stack-boundary"))
       if 0 < stack_boundary:
@@ -1634,10 +1634,10 @@ extern "C" {
 #endif\n
 #if defined(__clang__)
 /** Program entry point. */
-void _start();
+void _start() __attribute__((visibility("default")));
 #else
 /** Program entry point. */
-void _start() __attribute__((externally_visible));
+void _start() __attribute__((externally_visible,visibility("default")));
 #endif\n
 /** Jump point after decompression. */
 extern void %s();\n
@@ -1981,6 +1981,7 @@ library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glProgramUniform2fv", "GLuint", "GLint", "GLsizei", "const GLfloat*"),
   ("void", "glProgramUniform3fv", "GLuint", "GLint", "GLsizei", "const GLfloat*"),
   ("void", "glProgramUniform4fv", "GLuint", "GLint", "GLsizei", "const GLfloat*"),
+  ("void", "glProgramUniformMatrix3fv", "GLuint", "GLint", "GLsizei", "GLboolean", "const GLfloat*"),
   ("void", "glRectf", "GLfloat", "GLfloat", "GLfloat", "GLfloat"),
   ("void", "glRecti", "GLint", "GLint", "GLint", "GLint"),
   ("void", "glRects", "GLshort", "GLshort", "GLshort", "GLshort"),
@@ -2209,10 +2210,10 @@ extern "C" {
 #if !defined(USE_LD)
 #if defined(__clang__)
 /** Program entry point. */
-void _start();
+void _start() __attribute__((visibility("default")));
 #else
 /** Program entry point. */
-void _start() __attribute__((externally_visible));
+void _start() __attribute__((externally_visible,visibility("default")));
 #endif
 #endif
 """
@@ -2222,14 +2223,14 @@ template_und_symbols = """
 #if defined(__FreeBSD__)
 #if defined(__clang__)
 /** Symbol required by libc. */
-void *environ;
+void *environ __attribute__((visibility("default")));
 /** Symbol required by libc. */
-void *__progname;
+void *__progname __attribute__((visibility("default")));
 #else
 /** Symbol required by libc. */
-void *environ __attribute__((externally_visible));
+void *environ __attribute__((externally_visible,visibility("default")));
 /** Symbol required by libc. */
-void *__progname __attribute__((externally_visible));
+void *__progname __attribute__((externally_visible,visibility("default")));
 #endif
 #endif
 #endif

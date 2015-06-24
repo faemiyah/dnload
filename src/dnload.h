@@ -146,10 +146,10 @@ extern "C" {
 #if !defined(USE_LD)
 #if defined(__clang__)
 /** Program entry point. */
-void _start();
+void _start() __attribute__((visibility("default")));
 #else
 /** Program entry point. */
-void _start() __attribute__((externally_visible));
+void _start() __attribute__((externally_visible,visibility("default")));
 #endif
 #endif
 
