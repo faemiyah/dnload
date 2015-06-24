@@ -1623,7 +1623,7 @@ class Compiler(Linker):
 # Elfling ##############################
 ########################################
 
-template_elfling_source = """#include "elfling_unpack.hpp"
+g_template_elfling_source = """#include "elfling_unpack.hpp"
 %s\n
 /** Working memory area. */
 extern uint8_t %s[];\n
@@ -1632,18 +1632,14 @@ extern uint8_t %s[];\n
 #if defined(__cplusplus)
 extern "C" {
 #endif\n
-#if defined(__clang__)
-/** Program entry point. */
-void _start() __attribute__((visibility("default")));
-#else
-/** Program entry point. */
-void _start() __attribute__((externally_visible,visibility("default")));
-#endif\n
 /** Jump point after decompression. */
 extern void %s();\n
 #if defined(__cplusplus)
 }
-#endif\n
+#endif
+"""
+
+g_template_elfling_main = """
 void _start()
 {
   elfling_unpack(elfling_weights, elfling_contexts, %i, %s, elfling_input + %i, %s, %i);
@@ -1744,9 +1740,12 @@ class Elfling:
       ret += ", %i" % (ii)
     return ret + "\n};"
 
-  def generate_c_source(self):
+  def generate_c_source(self, definition):
     """Generate the C uncompressor source."""
-    return template_elfling_source % (self.generate_c_data_block(), ELFLING_WORK, ELFLING_OUTPUT, ELFLING_UNCOMPRESSED, len(self.__contexts), ELFLING_WORK, self.get_input_offset(), ELFLING_OUTPUT, self.get_uncompressed_size(), ELFLING_UNCOMPRESSED)
+    ret = g_template_elfling_source % (self.generate_c_data_block(), ELFLING_WORK, ELFLING_OUTPUT, ELFLING_UNCOMPRESSED)
+    ret += g_template_entry_point % (definition)
+    ret += g_template_elfling_main % (len(self.__contexts), ELFLING_WORK, self.get_input_offset(), ELFLING_OUTPUT, self.get_uncompressed_size(), ELFLING_UNCOMPRESSED)
+    return ret
 
   def get_contexts(self):
     """Get contexts. Contains dummy data until compression has been ran."""
@@ -1773,10 +1772,10 @@ class Elfling:
     """Tell if compression has been done."""
     return ([0] != self.__contexts) and ([0] != self.__weights)
 
-  def write_c_source(self, dst):
+  def write_c_source(self, dst, definition):
     """Write elfling uncompressor source into given location."""
     wfd = open(dst, "wt")
-    wfd.write(self.generate_c_source())
+    wfd.write(self.generate_c_source(definition))
     wfd.close()
 
 ########################################
@@ -1905,7 +1904,7 @@ class LibraryDefinition:
     """Accessor."""
     return str(self.__name)
 
-library_definition_c = LibraryDefinition("c", (
+g_library_definition_c = LibraryDefinition("c", (
   ("void", "free", "void*"),
   ("void*", "malloc", "size_t"),
   ("void*", "memset", "void*", "int", "size_t"),
@@ -1919,7 +1918,7 @@ library_definition_c = LibraryDefinition("c", (
   ("void", ("srand", "bsd_srand"), "unsigned int"),
   ("void", "srandom", "unsigned int"),
   ))
-library_definition_bcm_host = LibraryDefinition("bcm_host", (
+g_library_definition_bcm_host = LibraryDefinition("bcm_host", (
   ("void", "bcm_host_init"),
   ("DISPMANX_DISPLAY_HANDLE_T", "vc_dispmanx_display_open", "uint32_t"),
   ("DISPMANX_ELEMENT_HANDLE_T", "vc_dispmanx_element_add", "DISPMANX_UPDATE_HANDLE_T", "DISPMANX_DISPLAY_HANDLE_T", "int32_t", "const VC_RECT_T*", "DISPMANX_RESOURCE_HANDLE_T", "const VC_RECT_T*", "DISPMANX_PROTECTION_T", "VC_DISPMANX_ALPHA_T*", "DISPMANX_CLAMP_T*", "DISPMANX_TRANSFORM_T"),
@@ -1927,7 +1926,7 @@ library_definition_bcm_host = LibraryDefinition("bcm_host", (
   ("int", "vc_dispmanx_update_submit_sync", "DISPMANX_UPDATE_HANDLE_T"),
   ("int32_t", "graphics_get_display_size", "const uint16_t", "uint32_t*", "uint32_t*"),
   ))
-library_definition_egl = LibraryDefinition("EGL", (
+g_library_definition_egl = LibraryDefinition("EGL", (
   ("EGLBoolean", "eglChooseConfig", "EGLDisplay", "EGLint const*", "EGLConfig*", "EGLint", "EGLint*"),
   ("EGLContext", "eglCreateContext", "EGLDisplay", "EGLConfig", "EGLContext", "EGLint const*"),
   ("EGLSurface", "eglCreateWindowSurface", "EGLDisplay", "EGLConfig", "EGLNativeWindowType", "EGLint const*"),
@@ -1938,7 +1937,7 @@ library_definition_egl = LibraryDefinition("EGL", (
   ("EGLBoolean", "eglSwapBuffers", "EGLDisplay", "EGLSurface"),
   ("EGLBoolean", "eglTerminate", "EGLDisplay"),
   ))
-library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
+g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glActiveTexture", "GLenum"),
   ("void", "glAttachShader", "GLuint", "GLuint"),
   ("void", "glBindBuffer", "GLenum", "GLuint"),
@@ -2013,10 +2012,10 @@ library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glVertexAttribPointer", "GLuint", "GLint", "GLenum", "GLboolean", "GLsizei", "const GLvoid*"),
   ("void", "glViewport", "GLint", "GLint", "GLsizei", "GLsizei"),
   ))
-library_definition_glu = LibraryDefinition("GLU", (
+g_library_definition_glu = LibraryDefinition("GLU", (
   ("GLint", "gluBuild3DMipmaps", "GLenum", "GLint", "GLsizei", "GLsizei", "GLsizei", "GLenum", "GLenum", "const void*"),
   ))
-library_definition_m = LibraryDefinition("m", (
+g_library_definition_m = LibraryDefinition("m", (
   ("double", "acos", "double"),
   ("float", "acosf", "float"),
   ("float", "atanf", "float"),
@@ -2035,7 +2034,7 @@ library_definition_m = LibraryDefinition("m", (
   ("float", ("tanf", None), "float"),
   ("float", "tanhf", "float"),
   ))
-library_definition_sdl = LibraryDefinition("SDL", (
+g_library_definition_sdl = LibraryDefinition("SDL", (
   ("SDL_cond*", "SDL_CreateCond"),
   ("SDL_mutex*", "SDL_CreateMutex"),
   ("SDL_Thread*", "SDL_CreateThread", "int (*)(void*)", "void*"),
@@ -2058,21 +2057,21 @@ library_definition_sdl = LibraryDefinition("SDL", (
   ("void", "SDL_WaitThread", "SDL_Thread*", "int*"),
   ))
 
-library_definitions = [
-    library_definition_c,
-    library_definition_bcm_host,
-    library_definition_egl,
-    library_definition_gl,
-    library_definition_glu,
-    library_definition_m,
-    library_definition_sdl,
-    ]
+g_library_definitions = (
+    g_library_definition_c,
+    g_library_definition_bcm_host,
+    g_library_definition_egl,
+    g_library_definition_gl,
+    g_library_definition_glu,
+    g_library_definition_m,
+    g_library_definition_sdl,
+    )
 
 ########################################
 # C header generation ##################
 ########################################
 
-template_header_begin = """#ifndef DNLOAD_H
+g_template_header_begin = """#ifndef DNLOAD_H
 #define DNLOAD_H\n
 /** \\file
  * \\brief Dynamic loader header stub.
@@ -2203,47 +2202,49 @@ static void asm_exit(void)
 #error
 #endif
 }
+#endif
+"""
+
+g_template_entry_point = """
+#if defined(__clang__)
+/** Visibility declaration for symbols that require it (clang). */
+#define DNLOAD_VISIBILITY __attribute__((visibility("default")))
+#else
+/** Visibility declaration for symbols that require it (gcc). */
+#define DNLOAD_VISIBILITY __attribute__((externally_visible,visibility("default")))
 #endif\n
+#if !defined(%s)
 #if defined(__cplusplus)
 extern "C" {
-#endif\n
-#if !defined(USE_LD)
-#if defined(__clang__)
+#endif
 /** Program entry point. */
-void _start() __attribute__((visibility("default")));
-#else
-/** Program entry point. */
-void _start() __attribute__((externally_visible,visibility("default")));
-#endif
-#endif
-"""
-
-template_und_symbols = """
-#if !defined(USE_LD)
-#if defined(__FreeBSD__)
-#if defined(__clang__)
-/** Symbol required by libc. */
-void *environ __attribute__((visibility("default")));
-/** Symbol required by libc. */
-void *__progname __attribute__((visibility("default")));
-#else
-/** Symbol required by libc. */
-void *environ __attribute__((externally_visible,visibility("default")));
-/** Symbol required by libc. */
-void *__progname __attribute__((externally_visible,visibility("default")));
-#endif
-#endif
-#endif
-"""
-
-template_header_end = """
+void _start() DNLOAD_VISIBILITY;
 #if defined(__cplusplus)
 }
-#endif\n
+#endif
 #endif
 """
 
-template_loader = """
+g_template_und_symbols = """
+#if !defined(%s) && defined(__FreeBSD__)
+#if defined(__cplusplus)
+extern "C" {
+#endif
+/** Symbol required by libc. */
+void *environ DNLOAD_VISIBILITY;
+/** Symbol required by libc. */
+void *__progname DNLOAD_VISIBILITY;
+#if defined(__cplusplus)
+}
+#endif
+#endif
+"""
+
+g_template_header_end = """
+#endif
+"""
+
+g_template_loader = """
 #if defined(%s)
 /** \cond */
 #define dnload()
@@ -2253,7 +2254,7 @@ template_loader = """
 #endif
 """
 
-template_loader_dlfcn = """#include <dlfcn.h>
+g_template_loader_dlfcn = """#include <dlfcn.h>
 static const char g_dynstr[] = \"\"
 %s;
 /** \\brief Perform init.
@@ -2278,7 +2279,7 @@ static void dnload(void)
   } while(*(++src));
 }"""
 
-template_loader_hash = """#include <stdint.h>
+g_template_loader_hash = """#include <stdint.h>
 /** \\brief SDBM hash function.
  *
  * \\param op String to hash.
@@ -2525,11 +2526,11 @@ static void dnload(void)
   }
 }"""
 
-template_loader_vanilla = """/** \cond */
+g_template_loader_vanilla = """/** \cond */
 #define dnload()
 /** \endcond */"""
 
-template_symbol_definitions = """
+g_template_symbol_definitions = """
 #if defined(%s)
 /** \cond */
 %s
@@ -2541,7 +2542,7 @@ template_symbol_definitions = """
 #endif
 """
 
-template_symbol_table = """
+g_template_symbol_table = """
 #if !defined(%s)
 /** \\brief Symbol table structure.
  *
@@ -2573,9 +2574,10 @@ def generate_loader(mode, symbols, definition, linker):
     loader_content = generate_loader_dlfcn(symbols, linker)
   else:
     loader_content = generate_loader_hash(symbols)
-  ret = template_loader % (definition, loader_content)
+  ret = g_template_loader % (definition, loader_content)
+  ret += g_template_entry_point % (definition)
   if "maximum" != mode:
-    ret += template_und_symbols
+    ret += g_template_und_symbols % (definition)
   return ret
 
 def generate_loader_dlfcn(symbols, linker):
@@ -2592,15 +2594,15 @@ def generate_loader_dlfcn(symbols, linker):
       current_lib = symbol_lib
     dlfcn_string += "\"%s\\0\"\n" % (ii)
   dlfcn_string += "\"\\0\""
-  return template_loader_dlfcn % (dlfcn_string)
+  return g_template_loader_dlfcn % (dlfcn_string)
 
 def generate_loader_hash(symbols):
   """Generate import by hash loader code."""
-  return template_loader_hash % (str(PlatformVar("entry")), len(symbols))
+  return g_template_loader_hash % (str(PlatformVar("entry")), len(symbols))
 
 def generate_loader_vanilla():
   """Generate loader that actually leaves the loading to the operating system."""
-  return template_loader_vanilla
+  return g_template_loader_vanilla
 
 def generate_symbol_definitions(mode, symbols, prefix, definition):
   """Generate a listing of definitions from replacement symbols to real symbols."""
@@ -2611,7 +2613,7 @@ def generate_symbol_definitions(mode, symbols, prefix, definition):
     tabled += [ii.generate_rename_tabled(prefix)]
   if "vanilla" == mode:
     tabled = direct
-  return template_symbol_definitions % (definition, "\n".join(direct), "\n".join(tabled))
+  return g_template_symbol_definitions % (definition, "\n".join(direct), "\n".join(tabled))
 
 def generate_symbol_struct(mode, symbols, definition):
   """Generate the symbol struct definition."""
@@ -2625,7 +2627,7 @@ def generate_symbol_struct(mode, symbols, definition):
     hashes += ["  %s%s," % (ii.generate_prototype(), ii.get_hash())]
   if "dlfcn" != mode:
     symbol_table_content = " =\n{\n%s\n}" % ("\n".join(hashes))
-  return template_symbol_table % (definition, "\n".join(definitions), symbol_table_content)
+  return g_template_symbol_table % (definition, "\n".join(definitions), symbol_table_content)
 
 ########################################
 # Functions ############################
@@ -2712,7 +2714,7 @@ def file_is_ascii_text(op):
 
 def find_symbol(op):
   """Find single symbol."""
-  for ii in library_definitions:
+  for ii in g_library_definitions:
     ret = ii.find_symbol(op)
     if ret:
       return ret
@@ -2763,7 +2765,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     segment_strtab.add_strtab(library_name)
   # Assembler file generation is more complex when elfling is enabled.
   if elfling:
-    elfling.write_c_source(output_file + ".elfling.cpp")
+    elfling.write_c_source(output_file + ".elfling.cpp", definition_ld)
     compiler.compile_asm(output_file + ".elfling.cpp", output_file + ".elfling.S")
     asm = AssemblerFile(output_file + ".elfling.S")
     additional_asm = AssemblerFile(output_file + ".S")
@@ -3366,11 +3368,11 @@ def main():
         verbatim_symbol_strings += [str(ii)]
       print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
 
-  file_contents = template_header_begin % (os.path.basename(sys.argv[0]), definition_ld, definition_ld)
+  file_contents = g_template_header_begin % (os.path.basename(sys.argv[0]), definition_ld, definition_ld)
   file_contents += generate_symbol_definitions(compilation_mode, symbols, symbol_prefix, definition_ld)
   file_contents += generate_symbol_struct(compilation_mode, real_symbols, definition_ld)
   file_contents += generate_loader(compilation_mode, real_symbols, definition_ld, linker)
-  file_contents += template_header_end
+  file_contents += g_template_header_end
 
   fd = open(target, "w")
   fd.write(file_contents)
