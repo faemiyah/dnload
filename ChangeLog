@@ -1,3 +1,6 @@
+r13 (20??-??-??)
+  * Use __builtin_memcpy in examples.
+
 r12 (2015-06-24)
   * Move to GitHub.
   * Change revision numbering due to GitHub.

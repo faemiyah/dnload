@@ -117,10 +117,15 @@ static void audio_callback(void *userdata, Uint8 *stream, int len)
 {
   (void)userdata;
 
-  while(len--)
+#if defined(__GNUC__) && !defined(__clang__)
+  __builtin_memcpy(g_audio_position, stream, len);
+#else
+  for(int ii = 0; (ii < len); ++ii)
   {
-    *stream++ = *g_audio_position++;
+    stream[ii] = g_audio_position[ii];
   }
+#endif
+  g_audio_position += len;
 }
 
 /** SDL audio specification struct. */
