@@ -1572,13 +1572,13 @@ class Compiler(Linker):
     """Generate compiler flags."""
     self.__compiler_flags = []
     if self.command_basename_startswith("g++") or self.command_basename_startswith("gcc"):
-      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-enforce-eh-specs", "-fno-exceptions", "-fno-implicit-templates", "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt", "-fomit-frame-pointer", "-fsingle-precision-constant", "-fvisibility=hidden", "-fwhole-program", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
+      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-enforce-eh-specs", "-fno-exceptions", "-fno-implicit-templates", "-fno-rtti", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt", "-fomit-frame-pointer", "-fsingle-precision-constant", "-funsafe-math-optimizations", "-fvisibility=hidden", "-fwhole-program", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
       # Some flags are platform-specific.
       stack_boundary = int(PlatformVar("mpreferred-stack-boundary"))
       if 0 < stack_boundary:
         self.__compiler_flags += ["-mpreferred-stack-boundary=%i" % (stack_boundary)]
     elif self.command_basename_startswith("clang"):
-      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-exceptions", "-fno-rtti", "-fno-threadsafe-statics", "-fomit-frame-pointer", "-fvisibility=hidden", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
+      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-exceptions", "-fno-rtti", "-fno-threadsafe-statics", "-fomit-frame-pointer", "-funsafe-math-optimizations", "-fvisibility=hidden", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
     else:
       raise RuntimeError("compilation not supported with compiler '%s'" % (self.get_command_basename()))
 

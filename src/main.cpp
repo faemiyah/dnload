@@ -23,18 +23,17 @@
 
 namespace po = boost::program_options;
 
-/** Console output content. */
+/// Console output content.
 static const char *usage = ""
 "Usage: stub <options>\n"
 "Main function wrapper for intro stub.\n"
 "Release version does not pertain to any size limitations.\n"
 "\n";
 
-/** \brief Audio writing callback.
- *
- * \param data Raw audio data.
- * \param size Audio data size (in samples).
- */
+/// \brief Audio writing callback.
+///
+/// \param data Raw audio data.
+/// \param size Audio data size (in samples).
 void write_audio_callback(void *data, unsigned size)
 {
   FILE *fd = fopen("tdf.raw", "wb");
@@ -48,12 +47,11 @@ void write_audio_callback(void *data, unsigned size)
   return;
 }
 
-/** \brief Image writing callback.
- *
- * \param screen_w Screen width.
- * \param screen_h Screen height.
- * \param idx Frame index to write.
- */
+/// \brief Image writing callback.
+///
+/// \param screen_w Screen width.
+/// \param screen_h Screen height.
+/// \param idx Frame index to write.
 void write_frame_callback(unsigned screen_w, unsigned screen_h, unsigned idx)
 {
   boost::scoped_array<uint8_t> image(new uint8_t[screen_w * screen_h * 3]);
@@ -68,20 +66,30 @@ void write_frame_callback(unsigned screen_w, unsigned screen_h, unsigned idx)
   return;
 }
 
-/** \brief Parse resolution from string input.
- *
- * \param op Resolution string.
- * \return Tuple of width and height.
- */
+/// \brief Parse resolution from string input.
+///
+/// \param op Resolution string.
+/// \return Tuple of width and height.
 boost::tuple<int, int> parse_resolution(const std::string &op)
 {
   size_t cx = op.find("x");
   
   if(std::string::npos == cx)
   {
-    std::ostringstream sstr;
-    sstr << "invalid resolution string '" << op << '\'';
-    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+    cx = op.rfind("p");
+
+    if((std::string::npos == cx) || (0 >= cx))
+    {
+      std::ostringstream sstr;
+      sstr << "invalid resolution string '" << op << '\'';
+      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+    }
+
+    std::string sh = op.substr(0, cx);
+
+    int rh = boost::lexical_cast<int>(sh);
+
+    return boost::make_tuple(rh * 16 / 9, rh);
   }
 
   std::string sw = op.substr(0, cx);
@@ -90,6 +98,11 @@ boost::tuple<int, int> parse_resolution(const std::string &op)
   return boost::make_tuple(boost::lexical_cast<int>(sw), boost::lexical_cast<int>(sh));
 }
 
+/// Main function.
+///
+/// \param argc Argument count.
+/// \param argv Arguments.
+/// \return Program return code.
 int MAINPROG(int argc, char **argv)
 {
   unsigned screen_w = 1280;
