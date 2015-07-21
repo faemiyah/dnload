@@ -3,18 +3,18 @@
 #include <cctype>
 #include <cstring>
 #include <iostream>
+#include <vector>
 
 #if defined(DNLOAD_GLESV2)
-/** \cond */
+/// \cond
 #define GL_GLEXT_PROTOTYPES
-/** \endcond */
+/// \endcond
 #include "GLES2/gl2ext.h"
 #endif
 
-/** \brief Generate an indent.
- *
- * \param op Indent length.
- */
+/// Generate an indent.
+///
+/// \param op Indent length.
 static std::string create_indent(unsigned op)
 {
   std::ostringstream ret;
@@ -26,12 +26,11 @@ static std::string create_indent(unsigned op)
   return ret.str();
 }
 
-/** \brief Regex for whitespace (any amount).
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \return Iterator at the end of whitespace.
- */
+/// Regex for whitespace (any amount).
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \return Iterator at the end of whitespace.
 static std::string::const_iterator regex_whitespace(std::string::const_iterator bb,
     const std::string::const_iterator &ee)
 {
@@ -45,13 +44,12 @@ static std::string::const_iterator regex_whitespace(std::string::const_iterator 
   return ee;
 }
 
-/** \brief Regex for a word and any amount of following whitespace.
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \param word Word to match.
- * \return Iterator to end of match or original iterator if no match.
- */
+/// Regex for a word and any amount of following whitespace.
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \param word Word to match.
+/// \return Iterator to end of match or original iterator if no match.
 static std::string::const_iterator regex_word_whitespace(std::string::const_iterator bb,
     const std::string::const_iterator &ee, const std::string &word)
 {
@@ -76,12 +74,11 @@ static std::string::const_iterator regex_word_whitespace(std::string::const_iter
   return regex_whitespace(ii, ee);
 }
 
-/** \brief Regex for precision words and any amount of following whitespace.
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \return Iterator to end of match or original iterator if no match.
- */
+/// Regex for precision words and any amount of following whitespace.
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \return Iterator to end of match or original iterator if no match.
 static std::string::const_iterator regex_precision_whitespace(std::string::const_iterator bb,
     const std::string::const_iterator &ee)
 {
@@ -104,12 +101,11 @@ static std::string::const_iterator regex_precision_whitespace(std::string::const
   return bb;
 }
 
-/** \brief Perform glsl2 regex on a string.
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \return Iterator to end of match or original iterator if no match.
- */
+/// Perform glsl2 regex on a string.
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \return Iterator to end of match or original iterator if no match.
 static std::string::const_iterator regex_glesv2(std::string::const_iterator bb,
     const std::string::const_iterator &ee)
 {
@@ -147,12 +143,11 @@ static std::string::const_iterator regex_glesv2(std::string::const_iterator bb,
   return bb;
 }
 
-/** \brief Line comment regex on a string.
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \return Iterator to end of match or original iterator if no match.
- */
+/// Line comment regex on a string.
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \return Iterator to end of match or original iterator if no match.
 static std::string::const_iterator regex_line_comment(std::string::const_iterator bb,
     const std::string::const_iterator &ee)
 {
@@ -183,12 +178,11 @@ static std::string::const_iterator regex_line_comment(std::string::const_iterato
   }
 }
 
-/** \brief Block comment regex on a string.
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \return Iterator to end of match or original iterator if no match.
- */
+/// Block comment regex on a string.
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \return Iterator to end of match or original iterator if no match.
 static std::string::const_iterator regex_block_comment(std::string::const_iterator bb,
     const std::string::const_iterator &ee)
 {
@@ -228,12 +222,11 @@ static std::string::const_iterator regex_block_comment(std::string::const_iterat
   }
 }
 
-/** \brief Comment regex on a string.
- *
- * \param bb String iterator.
- * \param ee String endpoint.
- * \return Iterator to end of match or original iterator if no match.
- */
+/// Comment regex on a string.
+///
+/// \param bb String iterator.
+/// \param ee String endpoint.
+/// \return Iterator to end of match or original iterator if no match.
 static std::string::const_iterator regex_comment(std::string::const_iterator bb,
     const std::string::const_iterator &ee)
 {
@@ -245,11 +238,10 @@ static std::string::const_iterator regex_comment(std::string::const_iterator bb,
   return regex_block_comment(bb, ee);
 }
 
-/** \brief Perform a set regex on a string.
- *
- * \param ii String iterator.
- * \return True if matches, false if not.
- */
+/// Perform a set regex on a string.
+///
+/// \param ii String iterator.
+/// \return True if matches, false if not.
 static bool regex_space_plus_alpha_plus_semicolon(std::string::const_iterator ii,
     const std::string::const_iterator &ee)
 {
@@ -277,8 +269,88 @@ static bool regex_space_plus_alpha_plus_semicolon(std::string::const_iterator ii
   return false;
 }
 
+/// Get 10-base number count of a number.
+///
+/// \param op Number to investigate.
+/// \return 10-base number count.
+static size_t base10_magnitude(size_t op)
+{
+  size_t divident = 10;
+  size_t ret = 1;
+
+  while(0 < op / divident)
+  {
+    ++ret;
+    divident *= 10;
+  }
+  
+  return ret;
+}
+
+/// Get string representation of a number with indent to given value.
+///
+/// \param num Number to get.
+/// \param indent Number to indent to.
+/// \return String representation.
+static std::string string_format_line_number(size_t num, size_t indent)
+{
+  std::ostringstream ret;
+
+  for(size_t ii = base10_magnitude(num), ee = base10_magnitude(indent); (ii < ee); ++ii)
+  {
+    ret << '0';
+  }
+  ret << num << '|';
+
+  return ret.str();
+}
+
+/// Add line numbers to source.
+///
+/// \param op Input string.
+/// \return String with line numbers added.
+static std::string string_add_line_numbers(const std::string op)
+{
+  std::vector<std::string> lines;
+
+  for(std::string::const_iterator ii = op.begin(), ee = op.end(); (ii != ee);)
+  {
+    std::ostringstream current_line;
+
+    for(; (ii != ee); ++ii)
+    {
+      char cc = *ii;
+
+      if(('\n' == cc) || ('\r' == cc))
+      {
+        ++ii;
+        break;
+      }
+      current_line << cc;
+    }
+
+    lines.push_back(current_line.str());
+  }
+
+  std::ostringstream ret;
+
+  for(size_t ii = 0, ee = lines.size(); (ii < ee); ++ii)
+  {
+    size_t jj = ii + 1;
+
+    ret << string_format_line_number(jj, lines.size()) << lines[ii];
+
+    if(jj < ee)
+    {
+      ret << std::endl;
+    }
+  }
+  return ret.str();
+}
+
 GlslShaderSource::GlslShaderSource(const char *str1) :
-  m_indent(0)
+  m_indent(0),
+  m_pending_indent(0)
 {
   this->add(str1);
 }
@@ -292,29 +364,37 @@ void GlslShaderSource::add(const std::string &op)
     switch(cc)
     {
       case ';':
-        m_source << ";\n" << create_indent(m_indent);
+        m_source << ";\n";
+        m_pending_indent = m_indent;
         break;
 
       case '{':
         m_source << std::endl << create_indent(m_indent) << "{\n";
         ++m_indent;
-        m_source << create_indent(m_indent);
+        m_pending_indent = m_indent;
         break;
 
       case '}':
         --m_indent;
-        m_source << '\r' << create_indent(m_indent) << "}";
+        m_source << create_indent(m_indent) << "}";
         if((ii + 1 != ee) && !regex_space_plus_alpha_plus_semicolon(ii + 1, ee))
         {
-          m_source << std::endl << create_indent(m_indent);
+          m_source << std::endl;
+          m_pending_indent = m_indent;
         }
         break;
 
       default:
-        m_source << cc;
+        m_source << create_indent(m_pending_indent) << cc;
+        m_pending_indent = 0;
         break;
     }
   }
+}
+
+std::string GlslShaderSource::strWithLineNumbers() const
+{
+  return string_add_line_numbers(this->str());
 }
 
 std::string GlslShaderSource::convert_glesv2_gl(const std::string &op)
