@@ -30,13 +30,36 @@ static const char *usage = ""
 "Release version does not pertain to any size limitations.\n"
 "\n";
 
-/// \brief Audio writing callback.
-///
-/// \param data Raw audio data.
-/// \param size Audio data size (in samples).
+size_t base10_magnitude(size_t op)
+{
+  size_t divident = 10;
+  size_t ret = 1;
+
+  while(0 < op / divident)
+  {
+    ++ret;
+    divident *= 10;
+  }
+  
+  return ret;
+}
+
+std::string string_format_zero_padded_number(size_t num, size_t indent)
+{
+  std::ostringstream ret;
+
+  for(size_t ii = base10_magnitude(num), ee = base10_magnitude(indent); (ii < ee); ++ii)
+  {
+    ret << '0';
+  }
+  ret << num;
+
+  return ret.str();
+}
+
 void write_audio_callback(void *data, unsigned size)
 {
-  FILE *fd = fopen("tdf.raw", "wb");
+  FILE *fd = fopen("intro.raw", "wb");
 
   if(fd != NULL)
   {
@@ -47,22 +70,17 @@ void write_audio_callback(void *data, unsigned size)
   return;
 }
 
-/// \brief Image writing callback.
-///
-/// \param screen_w Screen width.
-/// \param screen_h Screen height.
-/// \param idx Frame index to write.
 void write_frame_callback(unsigned screen_w, unsigned screen_h, unsigned idx)
 {
   boost::scoped_array<uint8_t> image(new uint8_t[screen_w * screen_h * 3]);
-  char filename[19];
+  std::ostringstream sstr;
 
   glReadPixels(0, 0, static_cast<GLsizei>(screen_w), static_cast<GLsizei>(screen_h), GL_RGB, GL_UNSIGNED_BYTE,
       image.get());
 
-  sprintf(filename, "tdf_%04u.png", idx);
+  sstr << "intro_" << string_format_zero_padded_number(idx, 4) << ".png";
 
-  gfx::image_png_save(std::string(filename), screen_w, screen_h, 24, image.get());
+  gfx::image_png_save(sstr.str(), screen_w, screen_h, 24, image.get());
   return;
 }
 

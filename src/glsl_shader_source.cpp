@@ -1,5 +1,7 @@
 #include "glsl_shader_source.hpp"
 
+#include "intro.hpp"
+
 #include <cctype>
 #include <cstring>
 #include <iostream>
@@ -269,42 +271,6 @@ static bool regex_space_plus_alpha_plus_semicolon(std::string::const_iterator ii
   return false;
 }
 
-/// Get 10-base number count of a number.
-///
-/// \param op Number to investigate.
-/// \return 10-base number count.
-static size_t base10_magnitude(size_t op)
-{
-  size_t divident = 10;
-  size_t ret = 1;
-
-  while(0 < op / divident)
-  {
-    ++ret;
-    divident *= 10;
-  }
-  
-  return ret;
-}
-
-/// Get string representation of a number with indent to given value.
-///
-/// \param num Number to get.
-/// \param indent Number to indent to.
-/// \return String representation.
-static std::string string_format_line_number(size_t num, size_t indent)
-{
-  std::ostringstream ret;
-
-  for(size_t ii = base10_magnitude(num), ee = base10_magnitude(indent); (ii < ee); ++ii)
-  {
-    ret << '0';
-  }
-  ret << num << '|';
-
-  return ret.str();
-}
-
 /// Add line numbers to source.
 ///
 /// \param op Input string.
@@ -338,7 +304,7 @@ static std::string string_add_line_numbers(const std::string op)
   {
     size_t jj = ii + 1;
 
-    ret << string_format_line_number(jj, lines.size()) << lines[ii];
+    ret << string_format_zero_padded_number(jj, lines.size()) << '|' << lines[ii];
 
     if(jj < ee)
     {

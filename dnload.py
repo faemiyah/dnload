@@ -2682,13 +2682,13 @@ def compress_file(compression, pretty, src, dst):
     str_tail = "tail -n+2"
     str_cleanup = ";rm ~;exit"
   if "lzma" == compression:
-    command = ["xz", "--format=lzma", "--lzma1=preset=9e,lc=1,lp=0,pb=0", "--stdout"]
+    command = ["xz", "--format=lzma", "--lzma1=preset=9,lc=1,lp=0,pb=0", "--stdout"]
     header = "HOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   elif "raw" == compression:
     command = ["xz", "-9", "--extreme", "--format=raw", "--stdout"]
     header = "HOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   elif "xz" == compression:
-    command = ["xz", "--format=xz", "--lzma2=preset=9e,lc=1,pb=0", "--stdout"]
+    command = ["xz", "--format=xz", "--lzma2=preset=9,lc=1,pb=0", "--stdout"]
     header = "HOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   else:
     raise RuntimeError("unknown compression format '%s'" % compression)
