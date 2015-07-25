@@ -2561,7 +2561,7 @@ static struct SymbolTableStruct
 
 def analyze_source(source, prefix):
   """Analyze given preprocessed C source for symbol names."""
-  symbolre =  re.compile(r"[\s:;&\|\<\>\=\^\+\-\*/\(\)\?]" + prefix + "([a-zA-Z0-9_]+)[\s\(]")
+  symbolre =  re.compile(r"[\s:;&\|\<\>\=\^\+\-\*/\(\)\?]" + prefix + "([a-zA-Z0-9_]+)(?=[\s\(])")
   results = symbolre.findall(source, re.MULTILINE)
   ret = set()
   for ii in results:
