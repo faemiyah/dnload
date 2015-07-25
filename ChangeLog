@@ -1,6 +1,8 @@
 r13 (20??-??-??)
   * Use __builtin_memcpy in examples.
   * Better LZMA compression parameters.
+  * Add SDL2 support.
+  * Use SDL2 as the default abstraction layer.
 
 r12 (2015-06-24)
   * Move to GitHub.

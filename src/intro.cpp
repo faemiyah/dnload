@@ -117,7 +117,7 @@ static void audio_callback(void *userdata, Uint8 *stream, int len)
 {
   (void)userdata;
 
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && 0
   __builtin_memcpy(g_audio_position, stream, len);
 #else
   for(int ii = 0; (ii < len); ++ii)

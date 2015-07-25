@@ -27,7 +27,7 @@
 #elif defined(__APPLE__)
 #include "GL/glew.h"
 #include <OpenGL/glu.h>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #else
 #if defined(DNLOAD_VIDEOCORE)
 #include "bcm_host.h"

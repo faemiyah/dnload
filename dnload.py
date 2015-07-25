@@ -2060,6 +2060,13 @@ g_library_definition_sdl = LibraryDefinition("SDL", (
   ("int", "SDL_ShowCursor", "int"),
   ("void", "SDL_WaitThread", "SDL_Thread*", "int*"),
   ))
+g_library_definition_sdl2 = LibraryDefinition("SDL2", (
+  ("SDL_Window*", "SDL_CreateWindow", "const char*", "int", "int", "int", "int", "Uint32"),
+  ("int", "SDL_CreateWindowAndRenderer", "int", "int", "Uint32", "SDL_Window**", "SDL_Renderer**"),
+  ("SDL_GLContext", "SDL_GL_CreateContext", "SDL_Window*"),
+  ("void", "SDL_GL_SwapWindow", "SDL_Window*"),
+  ("int", "SDL_RenderSetLogicalSize", "SDL_Renderer*", "int", "int"),
+  ))
 
 g_library_definitions = (
     g_library_definition_c,
@@ -2069,6 +2076,7 @@ g_library_definitions = (
     g_library_definition_glu,
     g_library_definition_m,
     g_library_definition_sdl,
+    g_library_definition_sdl2,
     )
 
 ########################################
@@ -2101,7 +2109,7 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #elif defined(__APPLE__)
 #include \"GL/glew.h\"
 #include <OpenGL/glu.h>
-#include <SDL/SDL.h>
+#include <SDL.h>
 #else
 #if defined(DNLOAD_VIDEOCORE)
 #include "bcm_host.h"
@@ -2662,6 +2670,9 @@ def collect_libraries(libraries, symbols, compilation_mode):
     output_message = "Autodetected libraries to link against: "
   else:
     output_message = "Linking against libraries: "
+  # Check for version conflicts.
+  if 'SDL' in libraries and 'SDL2' in libraries:
+    libraries.remove('SDL')
   # Reorder libraries to ensure there is no problems with library scouring and UND symbols.
   problematic_libraries = ["c", "m", "bcm_host"] # Order is important.
   front = []
@@ -3143,11 +3154,13 @@ def main():
   opengl_reason = None
   opengl_version = None
   output_file = None
+  sdl_version = 2
   source_files = []
   strip = None
   target_search_path = []
 
   parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (sys.argv[0]), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
+  parser.add_argument("-a", "--abstraction-layer", default = "sdl2", choices = ("sdl1", "sdl2"), help = "Abstraction layer to use.\n(default: %(default))")
   parser.add_argument("-A", "--assembler", help = "Try to use given assembler executable as opposed to autodetect.")
   parser.add_argument("-B", "--objcopy", help = "Try to use given objcopy executable as opposed to autodetect.")
   parser.add_argument("-c", "--create-binary", action = "store_true", help = "Create output file, determine output file name from input file name.")
@@ -3222,6 +3235,7 @@ def main():
     print("%s %s" % (VERSION_REVISION, VERSION_DATE))
     return 0
 
+  abstraction_layer = args.abstraction_layer
   definition_ld = args.define
   compilation_mode = args.method
   nice_filedump = args.nice_filedump
@@ -3293,12 +3307,16 @@ def main():
   # Some special linker directories may be necessary.
   if compiler.get_command() in ('gcc48', 'g++-4.8'):
     library_directories += ["/usr/lib/gcc/arm-linux-gnueabihf/4.8"]
-
-  sdl_config = search_executable(["sdl-config"], "sdl-config")
-  if sdl_config:
-    (sdl_stdout, sdl_stderr) = run_command([sdl_config, "--cflags"])
-    compiler.add_extra_compiler_flags(sdl_stdout.split())
   compiler.set_include_dirs(include_directories)
+
+  if abstraction_layer in ('sdl1', 'sdl2'):
+    sdl_config_executable_name = "sdl2-config"
+    if 'sdl1' == abstraction_layer:
+      sdl_config_executable_name = "sdl-config"
+    sdl_config = search_executable([sdl_config_executable_name], sdl_config_executable_name)
+    if sdl_config:
+      (sdl_stdout, sdl_stderr) = run_command([sdl_config, "--cflags"])
+      compiler.add_extra_compiler_flags(sdl_stdout.split())
 
   if elfling:
     elfling = search_executable(["elfling-packer", "./elfling-packer"], "elfling-packer")
