@@ -350,7 +350,7 @@ One could assume that ``xz`` format would be more advantageous than the earlier 
 
 We use the `xz` toolkit, however, as it allows free customization of the compression parameters. For actual compression parameters, which yields decent results, we use::
 
-    xz --format=lzma --lzma1=preset=9e,lc=1,lp=0,pb=0
+    xz --format=lzma --lzma1=preset=9,lc=1,lp=0,pb=0
 
 At least on our bruteforced tests, this seems to consistently yield the best results for binaries aiming to the 4k threshold.
 
