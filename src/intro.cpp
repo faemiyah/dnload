@@ -463,8 +463,8 @@ void _start()
 {
 #endif
   dnload();
-#if defined(DNLOAD_GLESV2)
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+#if defined(DNLOAD_GLESV2)
   dnload_SDL_SetVideoMode(static_cast<int>(screen_w), static_cast<int>(screen_h), 0,
       (flag_fullscreen ? SDL_FULLSCREEN : 0));
   dnload_SDL_ShowCursor(flag_developer);
@@ -483,9 +483,9 @@ void _start()
   (void)egl_result;
 #endif
 #else
-  dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-  dnload_SDL_SetVideoMode(static_cast<int>(screen_w), static_cast<int>(screen_h), 0,
-      SDL_OPENGL | (flag_fullscreen ? SDL_FULLSCREEN : 0));
+  SDL_Window *window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
+      static_cast<int>(screen_h), SDL_WINDOW_OPENGL | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
+  dnload_SDL_GL_CreateContext(window);
   dnload_SDL_ShowCursor(flag_developer);
 #if defined(USE_LD)
   {
@@ -561,7 +561,7 @@ void _start()
 
       draw(ticks);
       write_frame_callback(screen_w, screen_h, frame_idx);
-      SDL_GL_SwapBuffers();
+      SDL_GL_SwapWindow(window);
       ++frame_idx;
     }
 
@@ -827,7 +827,7 @@ void _start()
 #if defined(DNLOAD_GLESV2)
     dnload_eglSwapBuffers(egl_display, egl_surface);
 #else
-    dnload_SDL_GL_SwapBuffers();
+    dnload_SDL_GL_SwapWindow(window);
 #endif
   }
 
