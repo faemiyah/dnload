@@ -328,10 +328,26 @@ class AssemblerFile:
         rodata_sections += [ii]
       else:
         other_sections += [ii]
+    text_section_str = None
+    data_section_str = None
+    rodata_section_str = None
+    other_section_str = None
+    if text_sections:
+      text_section_str = "%i text" % (len(text_sections))
+    if data_sections:
+      data_section_str = "%i data" % (len(data_sections))
+    if rodata_sections:
+      rodata_section_str = "%i rodata" % (len(rodata_sections))
+    if other_sections:
+      other_section_str = ", ".join(map(lambda x: x.get_name(), other_sections))
     if data_in_front:
       self.__sections = rodata_sections + data_sections + text_sections + other_sections
+      output_order = (rodata_section_str, data_section_str, text_section_str, other_section_str)
     else:
       self.__sections = text_sections + rodata_sections + data_sections + other_sections
+      output_order = (text_section_str, rodata_section_str, data_section_str, other_section_str)
+    if is_verbose():
+      print("Sorted sections: " + ", ".join(filter(lambda x: x, output_order)))
 
   def remove_rodata(self):
     """Remove .rodata sections by merging them into the previous/next .text section."""
