@@ -10,7 +10,7 @@ if [ ! -f "src/dnload.h" ] ; then
   touch src/dnload.h
 fi
 
-python "${DNLOAD}" -c src/intro.cpp -v
+python "${DNLOAD}" -c src/intro.cpp -v $*
 if [ $? -ne 0 ] ; then
   echo "${0}: compilation failed"
   exit 1

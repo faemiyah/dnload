@@ -313,28 +313,50 @@ class AssemblerFile:
       ii.replace_labels(labels, label_name)
     self.add_sections(other.__sections)
 
-  def remove_rodata(self):
-    """Remove .rodata sections by merging them into the previous .text section."""
-    text_section = None
+  def sort_sections(self, data_in_front = True):
+    """Sort sections into an order that is more easily compressible."""
+    text_sections = []
+    data_sections = []
     rodata_sections = []
-    ii = 0
-    while len(self.__sections) > ii:
-      section = self.__sections[ii]
-      if "text" == section.get_name():
-        text_section = section
-        ii += 1
-      elif "rodata" == section.get_name():
-        if text_section:
-          text_section.merge_content(section)
-        else:
-          rodata_sections += [section]
-        del(self.__sections[ii])
+    other_sections = []
+    for ii in self.__sections:
+      if "text" == ii.get_name():
+        text_sections += [ii]
+      elif "data" == ii.get_name():
+        data_sections += [ii]
+      elif "rodata" == ii.get_name():
+        rodata_sections += [ii]
       else:
-        ii += 1
-    # .rodata sections defined before any .text sections will be merged into
-    # the last .text sextion.
-    for ii in rodata_sections:
-      text_section.content += ii.content
+        other_sections += [ii]
+    if data_in_front:
+      self.__sections = rodata_sections + data_sections + text_sections + other_sections
+    else:
+      self.__sections = text_sections + rodata_sections + data_sections + other_sections
+
+  def remove_rodata(self):
+    """Remove .rodata sections by merging them into the previous/next .text section."""
+    new_sections = []
+    previous_text_section = None
+    rodata_section = None
+    for ii in self.__sections:
+      if "text" == ii.get_name():
+        previous_text_section = ii
+        new_sections += [ii]
+      elif "rodata" == ii.get_name():
+        if previous_text_section:
+          previous_text_section.merge_content(ii)
+        else:
+          if rodata_section:
+            rodata_section.merge_content(ii)
+          else:
+            rodata_section = ii
+      else:
+        new_sections += [ii]
+    # .rodata sections defined before any .text sections will be merged into the first section.
+    if rodata_section:
+      rodata_section.merge_content(new_sections[0])
+      new_sections[0].replace_content(rodata_section)
+    self.__sections = new_sections
 
   def replace_constant(self, src, dst):
     """Replace constant with a replacement constant."""
@@ -685,6 +707,10 @@ class AssemblerSection:
             adjustments += ["%i -> %i" % (align, desired)]
     if is_verbose() and adjustments:
       print("Alignment adjustment(%s): %s" % (self.get_name(), ", ".join(adjustments)))
+
+  def replace_content(self, op):
+    """Replace content of this section with content of given section."""
+    self.__content = op.__content
 
   def replace_entry_point(self, op):
     """Replaces an entry point with given entry point name from this section, should it exist."""
@@ -2796,8 +2822,8 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
   else:
     asm = AssemblerFile(output_file + ".S")
-    additional_asm = None
-    alignment_section = None
+    asm.sort_sections()
+  alignment_section = None
   # May be necessary to have two PT_LOAD headers as opposed to one.
   bss_section = asm.generate_fake_bss(assembler, und_symbols, elfling)
   if 0 < bss_section.get_alignment():
@@ -2831,7 +2857,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   segments = merge_segments(segments_head) + load_segments + merge_segments(segments_tail)
   # Calculate total size of headers.
   header_sizes = 0
-  fd = open(output_file + ".combined.S", "w")
+  fd = open(output_file + ".final.S", "w")
   for ii in segments:
     ii.write(fd, assembler)
     header_sizes += ii.size()
@@ -2847,8 +2873,8 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   asm.write(fd, assembler)
   fd.close()
   if is_verbose():
-    print("Wrote assembler source '%s'." % (output_file + ".combined.S"))
-  assembler.assemble(output_file + ".combined.S", output_file + ".o")
+    print("Wrote assembler source '%s'." % (output_file + ".final.S"))
+  assembler.assemble(output_file + ".final.S", output_file + ".o")
   linker.generate_linker_script(output_file + ".ld", True)
   linker.set_linker_script(output_file + ".ld")
   linker.link_binary(output_file + ".o", output_file + ".bin")
@@ -3439,6 +3465,7 @@ def main():
     elif "hash" == compilation_mode:
       compiler.compile_asm(source_file, output_file + ".S")
       asm = AssemblerFile(output_file + ".S")
+      asm.sort_sections()
       asm.remove_rodata()
       asm.write(output_file + ".final.S", assembler)
       assembler.assemble(output_file + ".final.S", output_file + ".o")

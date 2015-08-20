@@ -86,7 +86,9 @@ void _start()
 {
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-  dnload_SDL_SetVideoMode(SCREEN_W, SCREEN_H, 0, SDL_OPENGL | (FLAG_FULLSCREEN ? SDL_FULLSCREEN : 0));
+  SDL_Window *window = dnload_SDL_CreateWindow(NULL, 0, 0, SCREEN_W, SCREEN_H,
+      SDL_WINDOW_OPENGL | (FLAG_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : 0));
+  dnload_SDL_GL_CreateContext(window);
   dnload_SDL_ShowCursor(0);
 #if defined(USE_LD)
   glewInit();
@@ -117,7 +119,7 @@ void _start()
     }
 
     draw(curr_ticks);
-    dnload_SDL_GL_SwapBuffers();
+    dnload_SDL_GL_SwapWindow(window);
   }
 
   dnload_SDL_Quit();
