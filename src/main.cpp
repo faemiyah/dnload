@@ -24,8 +24,8 @@
 namespace po = boost::program_options;
 
 /// Console output content.
-static const char *usage = ""
-"Usage: stub <options>\n"
+static const char *g_usage = ""
+"Usage: stub [options]\n"
 "Main function wrapper for intro stub.\n"
 "Release version does not pertain to any size limitations.\n"
 "\n";
@@ -149,7 +149,7 @@ int MAINPROG(int argc, char **argv)
     }
     if(vmap.count("help"))
     {
-      std::cout << usage << desc << std::endl;
+      std::cout << g_usage << desc << std::endl;
       return 0;
     }
     if(vmap.count("record"))
