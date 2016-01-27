@@ -1,9 +1,8 @@
 #include "glsl_shader_source.hpp"
 
-#include "intro.hpp"
-
 #include <cctype>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 
@@ -13,6 +12,25 @@
 /// \endcond
 #include "GLES2/gl2ext.h"
 #endif
+
+/// Get 10-base number count of a number.
+///
+/// \param op Number to investigate.
+/// \return 10-base number count.
+static int base10_magnitude(size_t op)
+{
+  size_t divident = 10;
+  int ret = 1;
+
+  while(0 < op / divident)
+  {
+    ++ret;
+    divident *= 10;
+  }
+  
+  return ret;
+}
+
 
 /// Generate an indent.
 ///
@@ -300,11 +318,13 @@ static std::string string_add_line_numbers(const std::string op)
 
   std::ostringstream ret;
 
+  ret << std::setfill('0') << std::setw(base10_magnitude(lines.size()));
+
   for(size_t ii = 0, ee = lines.size(); (ii < ee); ++ii)
   {
     size_t jj = ii + 1;
 
-    ret << string_format_zero_padded_number(jj, lines.size()) << '|' << lines[ii];
+    ret << jj << '|' << lines[ii];
 
     if(jj < ee)
     {

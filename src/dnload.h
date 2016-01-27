@@ -201,21 +201,21 @@ static struct SymbolTableStruct
   SDL_GLContext (*SDL_GL_CreateContext)(SDL_Window*);
 } g_symbol_table =
 {
-  (void (DNLOAD_APIENTRY *)(GLuint, GLbitfield, GLuint))0x212d8ad7,
-  (void (DNLOAD_APIENTRY *)(GLuint))0x2386bc04,
-  (void (*)(SDL_Window*))0x295bfb59,
-  (void (*)(int))0x29f14a4,
-  (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
-  (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
-  (int (*)(SDL_Event*))0x64949d97,
-  (int (*)(Uint32))0x70d6574,
-  (void (DNLOAD_APIENTRY *)(GLsizei, GLuint*))0x75e35418,
-  (void (*)(void))0x7eb657f3,
-  (GLuint (DNLOAD_APIENTRY *)(GLenum, GLsizei, const char**))0xa4fd03d8,
-  (int (*)(int))0xb88bf697,
-  (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLsizei, const GLfloat*))0xc969d24e,
-  (void (DNLOAD_APIENTRY *)(GLshort, GLshort, GLshort, GLshort))0xd419e20a,
-  (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+  (void (DNLOAD_APIENTRY *)(GLuint, GLbitfield, GLuint))0x212d8ad7L,
+  (void (DNLOAD_APIENTRY *)(GLuint))0x2386bc04L,
+  (void (*)(SDL_Window*))0x295bfb59L,
+  (void (*)(int))0x29f14a4L,
+  (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8L,
+  (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370L,
+  (int (*)(SDL_Event*))0x64949d97L,
+  (int (*)(Uint32))0x70d6574L,
+  (void (DNLOAD_APIENTRY *)(GLsizei, GLuint*))0x75e35418L,
+  (void (*)(void))0x7eb657f3L,
+  (GLuint (DNLOAD_APIENTRY *)(GLenum, GLsizei, const char**))0xa4fd03d8L,
+  (int (*)(int))0xb88bf697L,
+  (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLsizei, const GLfloat*))0xc969d24eL,
+  (void (DNLOAD_APIENTRY *)(GLshort, GLshort, GLshort, GLshort))0xd419e20aL,
+  (SDL_GLContext (*)(SDL_Window*))0xdba45bdL,
 };
 #endif
 
@@ -274,7 +274,7 @@ typedef Elf32_Sym dnload_elf_sym_t;
 typedef Elf32_Sword dnload_elf_tag_t;
 #endif
 /** \brief ELF base address. */
-#define ELF_BASE_ADDRESS 0x400000
+#define ELF_BASE_ADDRESS 0x4000000
 /** \brief Get dynamic section element by tag.
  *
  * \param dyn Dynamic section.

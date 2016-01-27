@@ -2,6 +2,7 @@ cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
 Debug/
+fcmp
 Makefile
 intro
 intro.dir/

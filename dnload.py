@@ -1850,6 +1850,13 @@ class Symbol:
       self.__parameters = lst[2:]
     self.__library = lib
 
+  def create_replacement(self, lib):
+    """Create replacement symbol for another library."""
+    lst = [self.__returntype, (self.__name, self.__rename)]
+    if self.__parameters:
+      lst += self.__parameters
+    return Symbol(lst, lib)
+
   def generate_definition(self):
     """Get function definition for given symbol."""
     apientry = ""
@@ -1906,6 +1913,10 @@ class Symbol:
     """Tell if this symbol should never be scoured but instead used verbatim."""
     return (None == self.__rename)
 
+  def set_library(self, lib):
+    """Replace library with given library."""
+    self.__library = lib
+
   def __lt__(self, rhs):
     """Sorting operator."""
     if self.__library.get_name() < rhs.__library.get_name():
@@ -1931,10 +1942,14 @@ class LibraryDefinition:
     self.__symbols = []
     self.add_symbols(symbols)
 
+  def add_symbol(self, sym):
+    """Add single symbol."""
+    self.__symbols += [sym]
+
   def add_symbols(self, lst):
     """Add a symbol listing."""
     for ii in lst:
-      self.__symbols += [Symbol(ii, self)]
+      self.add_symbol(Symbol(ii, self))
 
   def find_symbol(self, op):
     """Find a symbol by name."""
@@ -2103,11 +2118,15 @@ g_library_definition_sdl = LibraryDefinition("SDL", (
   ("void", "SDL_WaitThread", "SDL_Thread*", "int*"),
   ))
 g_library_definition_sdl2 = LibraryDefinition("SDL2", (
+  ("SDL_Renderer*", "SDL_CreateRenderer", "SDL_Window*", "int", "Uint32"),
+  ("SDL_Thread*", "SDL_CreateThread", "int (*)(void*)", "const char*", "void*"),
   ("SDL_Window*", "SDL_CreateWindow", "const char*", "int", "int", "int", "int", "Uint32"),
   ("int", "SDL_CreateWindowAndRenderer", "int", "int", "Uint32", "SDL_Window**", "SDL_Renderer**"),
   ("SDL_GLContext", "SDL_GL_CreateContext", "SDL_Window*"),
+  ("int", "SDL_LockMutex", "SDL_mutex*"),
   ("void", "SDL_GL_SwapWindow", "SDL_Window*"),
   ("int", "SDL_RenderSetLogicalSize", "SDL_Renderer*", "int", "int"),
+  ("int", "SDL_UnlockMutex", "SDL_mutex*"),
   ))
 
 g_library_definitions = (
@@ -2712,9 +2731,6 @@ def collect_libraries(libraries, symbols, compilation_mode):
     output_message = "Autodetected libraries to link against: "
   else:
     output_message = "Linking against libraries: "
-  # Check for version conflicts.
-  if 'SDL' in libraries and 'SDL2' in libraries:
-    libraries.remove('SDL')
   # Reorder libraries to ensure there is no problems with library scouring and UND symbols.
   problematic_libraries = ["c", "m", "bcm_host"] # Order is important.
   front = []
@@ -2769,8 +2785,15 @@ def file_is_ascii_text(op):
       fd.close()
       return False
 
+def find_library_definition(op):
+  """Find library definition with name."""
+  for ii in g_library_definitions:
+    if ii.get_name() == op:
+      return ii
+  return None
+
 def find_symbol(op):
-  """Find single symbol."""
+  """Find single symbol with name."""
   for ii in g_library_definitions:
     ret = ii.find_symbol(op)
     if ret:
@@ -3081,6 +3104,29 @@ def readelf_truncate(src, dst):
     wfd.write(rfd.read(truncate_size))
     rfd.close()
     wfd.close()
+
+def replace_conflicting_library(symbols, src_name, dst_name):
+  """Replace conflicting library reference in a symbol set if necessary."""
+  src_found = any((x.get_library().get_name() == src_name) for x in symbols)
+  dst_found = any((x.get_library().get_name() == dst_name) for x in symbols)
+  if not (src_found and dst_found):
+    return symbols
+  if is_verbose():
+    print("Resolving library conflict: '%s' => '%s'" % (src_name, dst_name))
+  ret = []
+  dst = find_library_definition(dst_name)
+  for ii in symbols:
+    if ii.get_library().get_name() == src_name:
+      replacement = dst.find_symbol(ii.get_name())
+      if replacement:
+        ret += [replacement]
+      else:
+        new_symbol = ii.create_replacement(dst)
+        dst.add_symbol(new_symbol)
+        ret += [new_symbol]
+    else:
+      ret += [ii]
+  return ret
 
 def run_command(lst, decode_output = True):
   """Run program identified by list of command line parameters."""
@@ -3415,15 +3461,12 @@ def main():
     symbols = []
     for ii in sorted(sortable_symbols):
       symbols += [ii[1]]
-  real_symbols = []
-  for ii in symbols:
-    if not ii.is_verbatim():
-      real_symbols += [ii]
+  # Some libraries cannot co-exist, but have some symbols with identical names.
+  symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
 
+  real_symbols = filter(lambda x: not x.is_verbatim(), symbols)
   if is_verbose():
-    symbol_strings = []
-    for ii in symbols:
-      symbol_strings += [str(ii)]
+    symbol_strings = map(lambda x: str(x), symbols)
     print("Symbols found: %s" % (str(symbol_strings)))
     verbatim_symbols = list(set(symbols) - set(real_symbols))
     if verbatim_symbols and output_file:

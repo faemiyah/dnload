@@ -1,171 +1,239 @@
-#include "image_png.hpp"
-#include "intro.hpp"
+#include "common.hpp"
+#include "compressor.hpp"
 
 #include <iostream>
-#include <sstream>
-#include <stdio.h>
 
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
-#include <boost/scoped_array.hpp>
-#include <boost/tuple/tuple.hpp>
-
-#ifdef __APPLE__
-#include "SDL/SDL_opengl.h"
-#else
-#include "SDL_opengl.h"
-#endif
-
-#if defined(__APPLE__)
-#define MAINPROG SDL_main
-#else
-#define MAINPROG main
-#endif
 
 namespace po = boost::program_options;
 
+using namespace fcmp;
+
+/// Extension string.
+static const char *EXTENSION = ".fcmp";
+
 /// Console output content.
 static const char *g_usage = ""
-"Usage: stub [options]\n"
-"Main function wrapper for intro stub.\n"
-"Release version does not pertain to any size limitations.\n"
+"Usage: fcmp [options] <files>\n"
+"'Faemiyah Context Modelling Packer' - non-serious CM (un)compressor.\n"
 "\n";
 
-size_t base10_magnitude(size_t op)
+/// Action.
+enum Action
 {
-  size_t divident = 10;
-  size_t ret = 1;
+  /// No action.
+  ACTION_NONE = 0,
 
-  while(0 < op / divident)
-  {
-    ++ret;
-    divident *= 10;
-  }
-  
-  return ret;
-}
+  /// Compress a file.
+  ACTION_COMPRESS,
 
-std::string string_format_zero_padded_number(size_t num, size_t indent)
-{
-  std::ostringstream ret;
-
-  for(size_t ii = base10_magnitude(num), ee = base10_magnitude(indent); (ii < ee); ++ii)
-  {
-    ret << '0';
-  }
-  ret << num;
-
-  return ret.str();
-}
-
-void write_audio_callback(void *data, unsigned size)
-{
-  FILE *fd = fopen("intro.raw", "wb");
-
-  if(fd != NULL)
-  {
-    fwrite(data, size, 1, fd);
-  }
-
-  fclose(fd);
-  return;
-}
-
-void write_frame_callback(unsigned screen_w, unsigned screen_h, unsigned idx)
-{
-  boost::scoped_array<uint8_t> image(new uint8_t[screen_w * screen_h * 3]);
-  std::ostringstream sstr;
-
-  glReadPixels(0, 0, static_cast<GLsizei>(screen_w), static_cast<GLsizei>(screen_h), GL_RGB, GL_UNSIGNED_BYTE,
-      image.get());
-
-  sstr << "intro_" << string_format_zero_padded_number(idx, 4) << ".png";
-
-  gfx::image_png_save(sstr.str(), screen_w, screen_h, 24, image.get());
-  return;
-}
-
-/// \brief Parse resolution from string input.
-///
-/// \param op Resolution string.
-/// \return Tuple of width and height.
-boost::tuple<int, int> parse_resolution(const std::string &op)
-{
-  size_t cx = op.find("x");
-  
-  if(std::string::npos == cx)
-  {
-    cx = op.rfind("p");
-
-    if((std::string::npos == cx) || (0 >= cx))
-    {
-      std::ostringstream sstr;
-      sstr << "invalid resolution string '" << op << '\'';
-      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
-    }
-
-    std::string sh = op.substr(0, cx);
-
-    int rh = boost::lexical_cast<int>(sh);
-
-    return boost::make_tuple(rh * 16 / 9, rh);
-  }
-
-  std::string sw = op.substr(0, cx);
-  std::string sh = op.substr(cx + 1);
-
-  return boost::make_tuple(boost::lexical_cast<int>(sw), boost::lexical_cast<int>(sh));
-}
+  /// Extract a file.
+  ACTION_EXTRACT
+};
 
 /// Main function.
 ///
 /// \param argc Argument count.
 /// \param argv Arguments.
 /// \return Program return code.
-int MAINPROG(int argc, char **argv)
+int main(int argc, char **argv)
 {
-  unsigned screen_w = 1280;
-  unsigned screen_h = 720;
-  bool developer = false;
-  bool fullscreen = true;
-  bool record = false;
+  Action action = ACTION_NONE;
+  unsigned threads = 0;
+  fs::path program_name = ((1 <= argc) && argv[0]) ? fs::path(argv[0]) : fs::path("fcmp");
+  fs::path input_file;
+  fs::path output_file;
 
-  if(argc > 0)
+  try
   {
-    po::options_description desc("Options");
-    desc.add_options()
-      ("developer,d", "Developer mode.")
-      ("help,h", "Print help text.")
-      ("record,R", "Do not play intro normally, instead save audio as .wav and frames as .png -files.")
-      ("resolution,r", po::value<std::string>(), "Resolution to use, specify as 'WIDTHxHEIGHT'.")
-      ("window,w", "Start in window instead of full-screen.");
+    {
+      po::options_description desc("Options");
+      desc.add_options()
+        ("compress,c", po::value<std::string>(), "Compress given file.")
+        ("extract,x", po::value<std::string>(), "Decompress given file.")
+        ("help,h", "Print help text.")
+        ("output-file,o", po::value<std::string>(), "Write output to given file.")
+        ("threads,t", po::value<unsigned>(), "Number of threads to use. (default: one thread per core)")
+        ("verbose,v", "Turn on verbose reporting.")
+        ("very-verbose,w", "Turn on very verbose reporting.")
+        ("version,V", "Print version string.");
+      bool print_help = false;
+      bool print_version = false;
 
-    po::variables_map vmap;
-    po::store(po::command_line_parser(argc, argv).options(desc).run(), vmap);
-    po::notify(vmap);
+      if(argc > 0)
+      {
+        po::variables_map vmap;
+        po::store(po::command_line_parser(argc, argv).options(desc).run(), vmap);
+        po::notify(vmap);
 
-    if(vmap.count("developer"))
-    {
-      developer = true;
+        if(vmap.count("compress") && vmap.count("extract"))
+        {
+          std::ostringstream sstr;
+          sstr << "must either compress or extract, not both";
+          BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+        }
+        else if(vmap.count("compress"))
+        {
+          action = ACTION_COMPRESS;
+          input_file = fs::path(vmap["compress"].as<std::string>());
+        }
+        else if(vmap.count("extract"))
+        {
+          action = ACTION_EXTRACT;
+          input_file = fs::path(vmap["extract"].as<std::string>());
+        }
+        
+        if(vmap.count("help"))
+        {
+          print_help = true;
+        }
+        if(vmap.count("output-file"))
+        {
+          output_file = fs::path(vmap["output-file"].as<std::string>());
+        }
+        if(vmap.count("threads"))
+        {
+          threads = vmap["threads"].as<unsigned>();
+        }
+        if(vmap.count("verbose"))
+        {
+          if(!is_very_verbose())
+          {
+            set_verbosity(1);
+          }
+        }
+        if(vmap.count("very-verbose"))
+        {
+          set_verbosity(2);
+        }
+        if(vmap.count("version"))
+        {
+          print_version = true;
+        }
+      }
+
+      if(print_version)
+      {
+        std::cout << VERSION << std::endl;
+      }
+      if(print_help || (ACTION_NONE == action))
+      {
+        std::cout << g_usage << desc << std::endl;
+        return 0;
+      }
     }
-    if(vmap.count("help"))
+
+    if(input_file.empty())
     {
-      std::cout << g_usage << desc << std::endl;
-      return 0;
+      BOOST_THROW_EXCEPTION(std::runtime_error("no input file"));
     }
-    if(vmap.count("record"))
+
+    if(action == ACTION_COMPRESS)
     {
-      record = true;
+      if(output_file.empty())
+      {
+        output_file = input_file;
+        output_file += EXTENSION;
+      }
+
+      if(is_verbose())
+      {
+        std::cout << program_name << ": compressing " << input_file << std::endl;
+      }
+
+      DataBitsSptr content = DataBits::create(input_file);
+
+      if(is_very_verbose())
+      {
+        std::cout << *content;
+      }
+
+      DataCompressedSptr compressed_content = Compressor::compress(*content, threads);
+
+      // Perform trivial error check.
+      {
+        // Decompression time is insignificant compared to compression time,
+        DataBitsSptr cmp = Compressor::extract(*compressed_content);
+
+        if(*cmp != *content)
+        {
+          std::ostringstream sstr;
+          sstr << "compressed data restores incorrectly\n" << *cmp;
+          BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+        }
+      }
+
+      if(is_verbose())
+      {
+        size_t cbits = compressed_content->getSizeBits();
+        size_t cbytes = cbits / 8;
+
+        if(cbits % 8)
+        {
+          ++cbytes;
+        }
+        std::cout << program_name << ": wrote " << output_file << ", " << cbits << " bits, " << cbytes <<
+          " bytes\n";
+
+        if(is_very_verbose())
+        {
+          std::cout << *compressed_content;
+        }
+      }
+
+      compressed_content->write(output_file);
     }
-    if(vmap.count("resolution"))
+    else // ACTION_EXTRACT
     {
-      boost::tie(screen_w, screen_h) = parse_resolution(vmap["resolution"].as<std::string>());
-    }
-    if(vmap.count("window"))
-    {
-      fullscreen = false;
+      if(output_file.empty())
+      {
+        if(input_file.extension() == EXTENSION)
+        {
+          output_file = input_file.stem();
+        }
+        else
+        {
+          std::ostringstream sstr;
+          sstr << "output file not defined, cannot determine for compressed file " << input_file;
+          BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+        }
+      }
+
+      if(is_verbose())
+      {
+        std::cout << program_name << ": extracting " << input_file << std::endl;
+      }
+
+      DataCompressedSptr content = DataCompressed::create(input_file);
+
+      if(is_very_verbose())
+      {
+        std::cout << *content;
+      }
+
+      DataBitsSptr extracted_content = Compressor::extract(*content);
+
+      if(is_verbose())
+      {
+        std::cout << program_name << ": wrote " << output_file << ", " <<
+          extracted_content->getSizeBytes() << " bytes\n";
+
+        if(is_very_verbose())
+        {
+          std::cout << *extracted_content;
+        }
+      }
+
+      extracted_content->write(output_file);
     }
   }
+  catch(const boost::exception &err)
+  {
+    std::cerr << boost::diagnostic_information(err);
+    return 1;
+  }
 
-  return intro(screen_w, screen_h, developer, fullscreen, record);
+  return 0;
 }
 

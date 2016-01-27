@@ -1,8 +1,6 @@
 #ifndef BSD_RAND_H
 #define BSD_RAND_H
 
-#if defined(USE_LD)
-
 #define bsd_u_long unsigned long
 #define bsd_u_int unsigned int
 
@@ -36,8 +34,6 @@ void bsd_srand_wrapper(bsd_u_int seed);
 
 #if defined(__cplusplus)
 }
-#endif
-
 #endif
 
 #endif

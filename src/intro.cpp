@@ -1,33 +1,53 @@
-/** \file
- * Very small intro stub.
- */
+/// \file
+/// Very small intro stub.
 
 //######################################
 // Define ##############################
 //######################################
 
-/** Screen width. */
-#define SCREEN_W 1280
+/// Screen mode.
+///
+/// Negative values windowed.
+/// Positive values fullscreen.
+///
+/// Only has effect in release mode.
+#define DISPLAY_MODE -720
 
-/** Screen heigth. */
-#define SCREEN_H 720
+/// \cond
+#if !defined(USE_LD)
+#if (0 > (DISPLAY_MODE))
+#define SCREEN_F 0
+#define SCREEN_H (-(DISPLAY_MODE))
+#elif (0 < (DISPLAY_MODE))
+#define SCREEN_F 1
+#define SCREEN_H (DISPLAY_MODE)
+#else
+#error "invalid display mode (pre)"
+#endif
+#if ((800 == SCREEN_H) || (1200 == SCREEN_H))
+#define SCREEN_W ((SCREEN_H / 10) * 16)
+#else
+#define SCREEN_W ((SCREEN_H / 9) * 16)
+#endif
+#endif
+/// \endcond
 
-/** Audio channels. */
+/// Audio channels.
 #define AUDIO_CHANNELS 2
 
-/** Audio samplerate. */
+/// Audio samplerate.
 #define AUDIO_SAMPLERATE 8000
 
-/** Audio byterate. */
+/// Audio byterate.
 #define AUDIO_BYTERATE (AUDIO_CHANNELS * AUDIO_SAMPLERATE * sizeof(uint8_t))
 
-/** Intro length (in bytes of audio). */
+/// Intro length (in bytes of audio).
 #define INTRO_LENGTH (16 * AUDIO_BYTERATE)
 
-/** Intro start position (in seconds). */
+/// Intro start position (in seconds).
 #define INTRO_START (0 * AUDIO_BYTERATE)
 
-/** \cond */
+/// \cond
 #define STARTING_POS_X 0.0f
 #define STARTING_POS_Y 0.0f
 #define STARTING_POS_Z 2.0f
@@ -37,14 +57,13 @@
 #define STARTING_UP_X 0.0f
 #define STARTING_UP_Y 1.0f
 #define STARTING_UP_Z 0.0f
-/** \endcond */
+/// \endcond
 
 //######################################
 // Include #############################
 //######################################
 
 #include "dnload.h"
-#include "intro.hpp"
 
 #if defined(DNLOAD_GLESV2)
 #include "dnload_videocore.h"
@@ -53,22 +72,36 @@
 
 #if defined(USE_LD)
 #include "glsl_shader_source.hpp"
+#include "image_png.hpp"
+#include <cstdio>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
+#include <boost/program_options.hpp>
+#include <boost/scoped_array.hpp>
+#include <boost/tuple/tuple.hpp>
+namespace po = boost::program_options;
+#endif
+
+#if defined(__APPLE__)
+#define MAINPROG SDL_main
+#else
+#define MAINPROG main
 #endif
 
 //######################################
 // Global data #########################
 //######################################
 
-/** Audio buffer for output. */
-static int16_t g_audio_buffer[INTRO_LENGTH * 9 / 8 / sizeof(uint8_t)];
+/// Audio buffer for output.
+static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8 / sizeof(uint8_t)];
 
-/** Current audio position. */
+/// Current audio position.
 static uint8_t *g_audio_position = reinterpret_cast<uint8_t*>(&g_audio_buffer[INTRO_START]);
 
 #if defined(USE_LD)
 
-/** \cond */
+/// \cond
 static float g_pos_x = STARTING_POS_X;
 static float g_pos_y = STARTING_POS_Y;
 static float g_pos_z = STARTING_POS_Z;
@@ -78,10 +111,15 @@ static float g_fw_z = STARTING_FW_Z;
 static float g_up_x = STARTING_UP_X;
 static float g_up_y = STARTING_UP_Y;
 static float g_up_z = STARTING_UP_Z;
-/** \endcond */
+/// \endcond
 
-/** Developer mode global toggle. */
+/// Developer mode global toggle.
 static uint8_t g_flag_developer = 0;
+
+static const char *usage = ""
+"Usage: intro <options>\n"
+"Main function wrapper for intro stub.\n"
+"Release version does not pertain to any size limitations.\n";
 
 #endif
 
@@ -91,11 +129,10 @@ static uint8_t g_flag_developer = 0;
 
 #if 0
 
-/** \brief Random float value.
- *
- * \param op Given maximum value.
- * \return Random value between 0 and given value.
- */
+/// \brief Random float value.
+///
+/// \param op Given maximum value.
+/// \return Random value between 0 and given value.
 static float frand(float op)
 {
   return static_cast<float>(dnload_rand() & 0xFFFF) * ((1.0f / 65535.0f) * op);
@@ -107,12 +144,11 @@ static float frand(float op)
 // Music ###############################
 //######################################
 
-/** \brief Update audio stream.
- *
- * \param userdata Not used.
- * \param stream Target stream.
- * \param len Number of bytes to write.
- */
+/// \brief Update audio stream.
+///
+/// \param userdata Not used.
+/// \param stream Target stream.
+/// \param len Number of bytes to write.
 static void audio_callback(void *userdata, Uint8 *stream, int len)
 {
   (void)userdata;
@@ -128,7 +164,7 @@ static void audio_callback(void *userdata, Uint8 *stream, int len)
   g_audio_position += len;
 }
 
-/** SDL audio specification struct. */
+/// SDL audio specification struct.
 static SDL_AudioSpec audio_spec =
 {
   AUDIO_SAMPLERATE,
@@ -152,7 +188,7 @@ static SDL_AudioSpec audio_spec =
 
 #if defined(DNLOAD_GLESV2)
 
-/** Quad vertex shader. */
+/// Quad vertex shader.
 static const char *g_shader_vertex_quad = ""
 "attribute vec2 a;"
 "varying mediump vec2 b;"
@@ -163,7 +199,7 @@ static const char *g_shader_vertex_quad = ""
 "gl_Position=vec4(a,0.,1.);"
 "}";
 
-/** Quad fragment shader. */
+/// Quad fragment shader.
 static const char *g_shader_fragment_quad = ""
 "uniform highp vec3 u[4];"
 "varying mediump vec2 b;"
@@ -188,12 +224,12 @@ static const char *g_shader_fragment_quad = ""
 "}"
 "}";
 
-/** Uniform location. */
+/// Uniform location.
 static GLint g_uniform_u;
 
 #else
 
-/** Quad vertex shader. */
+/// Quad vertex shader.
 static const char *g_shader_vertex_quad = ""
 "#version 430\n"
 "in vec2 a;"
@@ -208,7 +244,7 @@ static const char *g_shader_vertex_quad = ""
 "gl_Position=vec4(a,0,1);"
 "}";
 
-/** Quad fragment shader. */
+/// Quad fragment shader.
 static const char *g_shader_fragment_quad = ""
 "#version 430\n"
 "layout(location=0)uniform vec3[4] u;"
@@ -234,22 +270,20 @@ static const char *g_shader_fragment_quad = ""
 "}"
 "}";
 
-/** Fixed uniform location. */
+/// Fixed uniform location.
 static const GLint g_uniform_u = 0;
 
 #endif
 
-/** \cond */
+/// Shader program.
 GLuint g_program_fragment;
-/** \endcond */
 
 #if defined(DNLOAD_GLESV2)
 
-/** \brief Create shader.
- *
- * \param source Source of the shader.
- * \return Shader ID.
- */
+/// \brief Create shader.
+///
+/// \param source Source of the shader.
+/// \return Shader ID.
 GLuint create_shader(const char *source, GLenum type)
 {
   GLuint ret = dnload_glCreateShader(type);
@@ -284,12 +318,11 @@ GLuint create_shader(const char *source, GLenum type)
   return ret;
 }
 
-/** \brief Create program.
- *
- * \param vertex Vertex shader.
- * \param fragment Fragment shader.
- * \return Program ID
- */
+/// \brief Create program.
+///
+/// \param vertex Vertex shader.
+/// \param fragment Fragment shader.
+/// \return Program ID
 GLuint create_program(const char *vertex, const char *fragment)
 {
   GLuint ret = dnload_glCreateProgram();
@@ -300,18 +333,15 @@ GLuint create_program(const char *vertex, const char *fragment)
   dnload_glLinkProgram(ret);
 
 #if defined(USE_LD)
-  std::cout << "Getting info log. " << std::endl;
-  //std::string log = GlslShaderSource::get_program_info_log(ret);
+  std::string log = GlslShaderSource::get_program_info_log(ret);
 
-  //if(0 < log.length())
-  //{
-  //  std::cout << log << std::endl;
-  //}
+  if(0 < log.length())
+  {
+    std::cout << log << std::endl;
+  }
 
-  std::cout << "Getting link status. " << std::endl;
   if(!GlslShaderSource::get_program_link_status(ret))
   {
-    std::cout << "Link status bad. " << ret << std::endl;
     SDL_Quit();
     exit(1);
   }
@@ -323,12 +353,11 @@ GLuint create_program(const char *vertex, const char *fragment)
 
 #elif defined(USE_LD)
 
-/** \brief Create a shader.
- *
- * \param type Shader type.
- * \param source Shader content.
- * \return Shader program ID.
- */
+/// \brief Create a shader.
+///
+/// \param type Shader type.
+/// \param source Shader content.
+/// \return Shader program ID.
 static GLuint program_attach(GLenum type, const char *source, GLuint pipeline, GLbitfield mask)
 {
   GlslShaderSource glsl_source(source);
@@ -356,10 +385,9 @@ static GLuint program_attach(GLenum type, const char *source, GLuint pipeline, G
   return ret;
 }
 
-/** \brief Create a program pipeline.
- *
- * \return Program pipeline (already bound).
- */
+/// \brief Create a program pipeline.
+///
+/// \return Program pipeline (already bound).
 static GLuint pipeline_create()
 {
   GLuint ret;
@@ -376,21 +404,20 @@ static GLuint pipeline_create()
 // Uniform data ########################
 //######################################
 
-/** \brief Uniforms.
- *
- * 0: X position.
- * 1: Y position.
- * 2: Z position.
- * 3: X forward.
- * 4: Y forward.
- * 5: Z forward.
- * 6: X up.
- * 7: Y up.
- * 8: Z up.
- * 9: Time.
- * 10: Screen aspect ratio x/y.
- * 11: Unused.
- */
+/// \brief Uniforms.
+///
+/// 0: X position.
+/// 1: Y position.
+/// 2: Z position.
+/// 3: X forward.
+/// 4: Y forward.
+/// 5: Z forward.
+/// 6: X up.
+/// 7: Y up.
+/// 8: Z up.
+/// 9: Time.
+/// 10: Screen aspect ratio x/y.
+/// 11: Unused.
 static float g_uniform_array[12] =
 {
   STARTING_POS_X, STARTING_POS_Y, STARTING_POS_Z,
@@ -399,11 +426,10 @@ static float g_uniform_array[12] =
   0.0f, 0.0f, 0.0f,
 };
 
-/** \brief Draw the world.
- *
- * \param ticks Tick count.
- * \param aspec Screen aspect.
- */
+/// \brief Draw the world.
+///
+/// \param ticks Tick count.
+/// \param aspec Screen aspect.
 static void draw(unsigned ticks)
 {
   //dnload_glDisable(GL_DEPTH_TEST);
@@ -445,7 +471,83 @@ static void draw(unsigned ticks)
 }
 
 //######################################
-// Main ################################
+// Utility #############################
+//######################################
+
+#if defined(USE_LD)
+
+/// \brief Parse resolution from string input.
+///
+/// \param op Resolution string.
+/// \return Tuple of width and height.
+boost::tuple<int, int> parse_resolution(const std::string &op)
+{
+  size_t cx = op.find("x");
+  
+  if(std::string::npos == cx)
+  {
+    cx = op.rfind("p");
+
+    if((std::string::npos == cx) || (0 >= cx))
+    {
+      std::ostringstream sstr;
+      sstr << "invalid resolution string '" << op << '\'';
+      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+    }
+
+    std::string sh = op.substr(0, cx);
+
+    int rh = boost::lexical_cast<int>(sh);
+
+    return boost::make_tuple(rh * 16 / 9, rh);
+  }
+
+  std::string sw = op.substr(0, cx);
+  std::string sh = op.substr(cx + 1);
+
+  return boost::make_tuple(boost::lexical_cast<int>(sw), boost::lexical_cast<int>(sh));
+}
+
+/// \brief Audio writing callback.
+///
+/// \param data Raw audio data.
+/// \param size Audio data size (in samples).
+void write_audio(void *data, unsigned size)
+{
+  FILE *fd = fopen("intro.raw", "wb");
+
+  if(fd != NULL)
+  {
+    fwrite(data, size, 1, fd);
+  }
+
+  fclose(fd);
+  return;
+}
+
+/// \brief Image writing callback.
+///
+/// \param screen_w Screen width.
+/// \param screen_h Screen height.
+/// \param idx Frame index to write.
+void write_frame(unsigned screen_w, unsigned screen_h, unsigned idx)
+{
+  boost::scoped_array<uint8_t> image(new uint8_t[screen_w * screen_h * 3]);
+  std::ostringstream sstr;
+
+  glReadPixels(0, 0, static_cast<GLsizei>(screen_w), static_cast<GLsizei>(screen_h), GL_RGB, GL_UNSIGNED_BYTE,
+      image.get());
+
+  sstr << "intro_" << std::setfill('0') << std::setw(4) << idx << ".png";
+
+  gfx::image_png_save(sstr.str(), screen_w, screen_h, 24, image.get());
+  return;
+}
+
+#endif
+
+//######################################
+// _start ##############################
 //######################################
 
 #if defined(USE_LD)
@@ -453,21 +555,20 @@ int intro(unsigned screen_w, unsigned screen_h, uint8_t flag_developer, uint8_t 
     uint8_t flag_record)
 {
 #else
-/** \cond */
+/// \cond
 #define screen_w SCREEN_W
 #define screen_h SCREEN_H
 #define flag_developer 0
 #define flag_fullscreen 0
-/** \endcond */
+/// \endcond
 void _start()
 {
 #endif
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 #if defined(DNLOAD_GLESV2)
-  dnload_SDL_SetVideoMode(static_cast<int>(screen_w), static_cast<int>(screen_h), 0,
-      (flag_fullscreen ? SDL_FULLSCREEN : 0));
-  dnload_SDL_ShowCursor(flag_developer);
+  SDL_Window *window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
+      static_cast<int>(screen_h), SDL_WINDOW_OPENGL | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
   EGL_DISPMANX_WINDOW_T native_window;
   videocore_create_native_window(screen_w, screen_h, &native_window);
   EGLDisplay egl_display;
@@ -482,11 +583,11 @@ void _start()
 #else
   (void)egl_result;
 #endif
+  (void)window;
 #else
   SDL_Window *window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
       static_cast<int>(screen_h), SDL_WINDOW_OPENGL | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
   dnload_SDL_GL_CreateContext(window);
-  dnload_SDL_ShowCursor(flag_developer);
 #if defined(USE_LD)
   {
     GLenum err = glewInit();
@@ -499,6 +600,7 @@ void _start()
   }
 #endif
 #endif
+  dnload_SDL_ShowCursor(flag_developer);
 
 #if defined(DNLOAD_GLESV2)
   g_program_fragment = create_program(g_shader_vertex_quad, g_shader_fragment_quad);
@@ -528,7 +630,11 @@ void _start()
     // Example by "bst", taken from "Music from very short programs - the 3rd iteration" by viznut.
     for(ii = 0; (INTRO_LENGTH / sizeof(uint8_t) > ii); ++ii)
     {
-      g_audio_buffer[ii] = static_cast<int>(ii / 70000000 * ii * ii + ii) % 127 | ii >> 4 | ii >> 5 | (ii % 127 + (ii >> 17)) | ii;
+      g_audio_buffer[ii] =
+        static_cast<uint8_t>(
+            static_cast<int>(ii / 70000000 * ii * ii + ii) % 127 |
+            ii >> 4 | ii >> 5 | (ii % 127 + (ii >> 17)) | ii
+          );
     }
   }
 
@@ -541,7 +647,7 @@ void _start()
     // audio
     SDL_PauseAudio(1);
 
-    write_audio_callback(g_audio_buffer, static_cast<unsigned>(INTRO_LENGTH * sizeof(uint16_t) * AUDIO_CHANNELS));
+    write_audio(g_audio_buffer, static_cast<unsigned>(INTRO_LENGTH * sizeof(uint16_t) * AUDIO_CHANNELS));
 
     // video
     for(;;)
@@ -560,8 +666,12 @@ void _start()
       }
 
       draw(ticks);
-      write_frame_callback(screen_w, screen_h, frame_idx);
-      SDL_GL_SwapWindow(window);
+      write_frame(screen_w, screen_h, frame_idx);
+#if defined(DNLOAD_GLESV2)
+      dnload_eglSwapBuffers(egl_display, egl_surface);
+#else
+      dnload_SDL_GL_SwapWindow(window);
+#endif
       ++frame_idx;
     }
 
@@ -842,6 +952,67 @@ void _start()
   asm_exit();
 #endif
 }
+
+//######################################
+// Main ################################
+//######################################
+
+#if defined(USE_LD)
+
+/// Main function.
+///
+/// \param argc Argument count.
+/// \param argv Arguments.
+/// \return Program return code.
+int MAINPROG(int argc, char **argv)
+{
+  unsigned screen_w = 1280;
+  unsigned screen_h = 720;
+  bool developer = false;
+  bool fullscreen = true;
+  bool record = false;
+
+  if(argc > 0)
+  {
+    po::options_description desc("Options");
+    desc.add_options()
+      ("developer,d", "Developer mode.")
+      ("help,h", "Print help text.")
+      ("record,R", "Do not play intro normally, instead save audio as .wav and frames as .png -files.")
+      ("resolution,r", po::value<std::string>(), "Resolution to use, specify as 'WIDTHxHEIGHT' or 'HEIGHTp'.")
+      ("window,w", "Start in window instead of full-screen.");
+
+    po::variables_map vmap;
+    po::store(po::command_line_parser(argc, argv).options(desc).run(), vmap);
+    po::notify(vmap);
+
+    if(vmap.count("developer"))
+    {
+      developer = true;
+    }
+    if(vmap.count("help"))
+    {
+      std::cout << usage << desc << std::endl;
+      return 0;
+    }
+    if(vmap.count("record"))
+    {
+      record = true;
+    }
+    if(vmap.count("resolution"))
+    {
+      boost::tie(screen_w, screen_h) = parse_resolution(vmap["resolution"].as<std::string>());
+    }
+    if(vmap.count("window"))
+    {
+      fullscreen = false;
+    }
+  }
+
+  return intro(screen_w, screen_h, developer, fullscreen, record);
+}
+
+#endif
 
 //######################################
 // End #################################
