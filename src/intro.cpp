@@ -350,7 +350,7 @@ GLuint create_shader(const char *source, GLenum type)
 
   if(!GlslShaderSource::get_shader_compile_status(ret))
   {
-    SDL_Quit();
+    teardown();
     exit(1);
   }
 #endif
@@ -382,7 +382,7 @@ GLuint create_program(const char *vertex, const char *fragment)
 
   if(!GlslShaderSource::get_program_link_status(ret))
   {
-    SDL_Quit();
+    teardown();
     exit(1);
   }
   std::cout << "GLSL program id: " << ret << std::endl;
@@ -616,7 +616,7 @@ void _start()
 #if defined(USE_LD)
   if(!egl_result)
   {
-    SDL_Quit();
+    teardown();
     exit(1);
   }
 #else
@@ -629,8 +629,8 @@ void _start()
     GLenum err = glewInit();
     if(GLEW_OK != err)
     {
-      SDL_Quit();
       std::cerr  << "glewInit(): " << glewGetErrorString(err) << std::endl;
+      teardown();
       exit(1);
     }
   }
@@ -708,7 +708,6 @@ void _start()
     }
 
     teardown();
-    SDL_Quit();
     return 0;
   }
 
