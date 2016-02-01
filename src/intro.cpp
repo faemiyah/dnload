@@ -127,7 +127,9 @@ SDL_Window *g_sdl_window;
 
 #if defined(DNLOAD_GLESV2)
 
+#if defined(DNLOAD_VIDEOCORE)
 #include "dnload_videocore.h"
+#endif
 #include "dnload_egl.h"
 
 /// Global EGL display storage.

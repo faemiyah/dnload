@@ -2179,12 +2179,7 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include <OpenGL/glu.h>
 #include <SDL.h>
 #else
-#if defined(DNLOAD_VIDEOCORE)
-#include "bcm_host.h"
-#endif
 #if defined(DNLOAD_GLESV2)
-#include \"EGL/egl.h\"
-#include \"EGL/eglext.h\"
 #include \"GLES2/gl2.h\"
 #include \"GLES2/gl2ext.h\"
 #else
@@ -2195,12 +2190,7 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #endif
 #include \"bsd_rand.h\"
 #else
-#if defined(DNLOAD_VIDEOCORE)
-#include "bcm_host.h"
-#endif
 #if defined(DNLOAD_GLESV2)
-#include \"EGL/egl.h\"
-#include \"EGL/eglext.h\"
 #include \"GLES2/gl2.h\"
 #include \"GLES2/gl2ext.h\"
 #else
