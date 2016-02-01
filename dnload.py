@@ -3236,7 +3236,7 @@ def main():
   elfling = None
   include_directories = [VIDEOCORE_PATH + "/include", VIDEOCORE_PATH + "/include/interface/vcos/pthreads", VIDEOCORE_PATH + "/include//interface/vmcs_host/linux", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/SDL"]
   libraries = []
-  library_directories = ["/lib", "/lib/x86_64-linux-gnu", VIDEOCORE_PATH + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
+  library_directories = ["/lib", "/lib/x86_64-linux-gnu", VIDEOCORE_PATH + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
   linker = None
   objcopy = None
   opengl_reason = None

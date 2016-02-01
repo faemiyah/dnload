@@ -124,6 +124,46 @@ static const char *usage = ""
 #endif
 
 //######################################
+// Global functions ####################
+//######################################
+
+/// Global SDL window storage.
+SDL_Window *g_sdl_window;
+
+#if defined(DNLOAD_GLESV2)
+
+/// Global EGL display storage.
+EGLDisplay g_egl_display;
+
+/// Global EGL surface storage.
+EGLSurface g_egl_surface;
+
+#endif
+
+/// Swap buffers.
+///
+/// Uses global data.
+static void swap_buffers()
+{
+#if defined(DNLOAD_GLESV2)
+  dnload_eglSwapBuffers(g_egl_display, g_egl_surface);
+#else
+  dnload_SDL_GL_SwapWindow(g_sdl_window);
+#endif
+}
+
+/// Tear down initialized systems.
+///
+/// Uses global data.
+static void teardown()
+{
+#if defined(DNLOAD_GLESV2)
+  egl_quit(g_egl_display);
+#endif
+  dnload_SDL_Quit();
+}
+
+//######################################
 // Random ##############################
 //######################################
 
@@ -566,14 +606,13 @@ void _start()
 #endif
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-#if defined(DNLOAD_GLESV2)
-  SDL_Window *window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
+  g_sdl_window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
       static_cast<int>(screen_h), SDL_WINDOW_OPENGL | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-  EGL_DISPMANX_WINDOW_T native_window;
-  videocore_create_native_window(screen_w, screen_h, &native_window);
-  EGLDisplay egl_display;
-  EGLSurface egl_surface;
-  bool egl_result = egl_init(reinterpret_cast<NativeWindowType>(&native_window), &egl_display, &egl_surface);
+#if defined(DNLOAD_GLESV2)
+  EGL_DISPMANX_WINDOW_T egl_native_window;
+  videocore_create_native_window(screen_w, screen_h, &egl_native_window);
+  bool egl_result = egl_init(reinterpret_cast<NativeWindowType>(&egl_native_window), &g_egl_display,
+      &g_egl_surface);
 #if defined(USE_LD)
   if(!egl_result)
   {
@@ -583,11 +622,8 @@ void _start()
 #else
   (void)egl_result;
 #endif
-  (void)window;
 #else
-  SDL_Window *window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
-      static_cast<int>(screen_h), SDL_WINDOW_OPENGL | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-  dnload_SDL_GL_CreateContext(window);
+  dnload_SDL_GL_CreateContext(g_sdl_window);
 #if defined(USE_LD)
   {
     GLenum err = glewInit();
@@ -667,14 +703,11 @@ void _start()
 
       draw(ticks);
       write_frame(screen_w, screen_h, frame_idx);
-#if defined(DNLOAD_GLESV2)
-      dnload_eglSwapBuffers(egl_display, egl_surface);
-#else
-      dnload_SDL_GL_SwapWindow(window);
-#endif
+      swap_buffers();
       ++frame_idx;
     }
 
+    teardown();
     SDL_Quit();
     return 0;
   }
@@ -934,17 +967,10 @@ void _start()
 #endif
 
     draw(curr_ticks);
-#if defined(DNLOAD_GLESV2)
-    dnload_eglSwapBuffers(egl_display, egl_surface);
-#else
-    dnload_SDL_GL_SwapWindow(window);
-#endif
+    swap_buffers();
   }
 
-#if defined(DNLOAD_GLESV2)
-  egl_quit(egl_display);
-#endif
-  dnload_SDL_Quit();
+  teardown();
 
 #if defined(USE_LD)
   return 0;
