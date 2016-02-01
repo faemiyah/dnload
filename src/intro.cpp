@@ -65,11 +65,6 @@
 
 #include "dnload.h"
 
-#if defined(DNLOAD_GLESV2)
-#include "dnload_videocore.h"
-#include "dnload_egl.h"
-#endif
-
 #if defined(USE_LD)
 #include "glsl_shader_source.hpp"
 #include "image_png.hpp"
@@ -131,6 +126,9 @@ static const char *usage = ""
 SDL_Window *g_sdl_window;
 
 #if defined(DNLOAD_GLESV2)
+
+#include "dnload_videocore.h"
+#include "dnload_egl.h"
 
 /// Global EGL display storage.
 EGLDisplay g_egl_display;
