@@ -2161,6 +2161,13 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #define GL_GLEXT_PROTOTYPES
 /** \endcond */
 #endif\n
+#if defined(__cplusplus)
+#include <cmath>
+#include <cstdlib>
+#else
+#include <math.h>
+#include <stdlib.h>
+#endif\n
 #if defined(%s)
 #if defined(WIN32)
 #include \"windows.h\"
@@ -2212,13 +2219,6 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #else
 #include \"SDL.h\"
 #endif
-#endif\n
-#if defined(__cplusplus)
-#include <cmath>
-#include <cstdlib>
-#else
-#include <math.h>
-#include <stdlib.h>
 #endif\n
 /** Macro stringification helper (adds indirection). */
 #define DNLOAD_MACRO_STR_HELPER(op) #op
@@ -3524,8 +3524,8 @@ def main():
     elif "hash" == compilation_mode:
       compiler.compile_asm(source_file, output_file + ".S")
       asm = AssemblerFile(output_file + ".S")
-      asm.sort_sections()
-      asm.remove_rodata()
+      #asm.sort_sections()
+      #asm.remove_rodata()
       asm.write(output_file + ".final.S", assembler)
       assembler.assemble(output_file + ".final.S", output_file + ".o")
       linker.generate_linker_script(output_file + ".ld")
