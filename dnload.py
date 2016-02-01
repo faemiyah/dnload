@@ -98,11 +98,11 @@ g_platform_variables = {
   "align" : { "32-bit" : 4, "64-bit" : 8, "amd64" : 1, "ia32" : 1 },
   "bom" : { "amd64" : "<", "armel" : "<", "ia32" : "<" },
   "compression" : { "default" : "lzma" },
-  "e_flags" : { "default" : 0, "armel" : 0x5000002 },
+  "e_flags" : { "default" : 0, "armel" : 0x5000402 },
   "e_machine" : { "amd64" : 62, "armel" : 40, "ia32" : 3 },
   "ei_class" : { "32-bit" : 1, "64-bit" : 2 },
   "ei_osabi" : { "FreeBSD" : 9, "Linux-armel" : 0, "Linux" : 3 },
-  "entry" : { "64-bit" : 0x400000, "armel" : 0x8000, "ia32" : 0x4000000 }, # ia32: 0x8048000
+  "entry" : { "64-bit" : 0x400000, "armel" : 0x10000, "ia32" : 0x4000000 }, # ia32: 0x8048000
   "gl_library" : { "default" : "GL" },
   "interp" : { "FreeBSD" : "\"/libexec/ld-elf.so.1\"", "Linux-armel" : "\"/lib/ld-linux.so.3\"", "Linux-ia32" : "\"/lib/ld-linux.so.2\"", "Linux-amd64" : "\"/lib64/ld-linux-x86-64.so.2\"" },
   "march" : { "amd64" : "core2", "armel" : "armv6", "ia32" : "pentium4" },
@@ -2466,12 +2466,14 @@ static const struct link_map* elf_get_link_map()
  */
 static const void* elf_transform_dynamic_address(const struct link_map *lmap, const void *ptr)
 {
-#if defined(__FreeBSD__)
-  return (uint8_t*)ptr + (size_t)lmap->l_addr;
-#else
-  (void)lmap;
-  return ptr;
+#if defined(__linux__)
+  // Addresses may also be absolute.
+  if(ptr >= (void*)(size_t)lmap->l_addr)
+  {
+    return ptr;
+  }
 #endif
+  return (uint8_t*)ptr + (size_t)lmap->l_addr;
 }
 #if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
 /** \\brief Get address of one dynamic section corresponding to given library.
