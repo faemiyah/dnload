@@ -105,7 +105,7 @@ g_platform_variables = {
   "entry" : { "64-bit" : 0x400000, "armel" : 0x10000, "ia32" : 0x4000000 }, # ia32: 0x8048000
   "gl_library" : { "default" : "GL" },
   "interp" : { "FreeBSD" : "\"/libexec/ld-elf.so.1\"", "Linux-armel" : "\"/lib/ld-linux.so.3\"", "Linux-ia32" : "\"/lib/ld-linux.so.2\"", "Linux-amd64" : "\"/lib64/ld-linux-x86-64.so.2\"" },
-  "march" : { "amd64" : "core2", "armel" : "armv6", "ia32" : "pentium4" },
+  "march" : { "amd64" : "core2", "armel" : "armv6t2", "ia32" : "pentium4" },
   "memory_page" : { "32-bit" : 0x1000, "64-bit" : 0x200000 },
   "mpreferred-stack-boundary" : { "armel" : 0, "ia32" : 2, "64-bit" : 4 },
   "phdr_count" : { "default" : 3 },
@@ -2168,6 +2168,10 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include <math.h>
 #include <stdlib.h>
 #endif\n
+#if defined(DNLOAD_VIDEOCORE)
+#include \"bcm_host.h\"
+#include \"EGL/egl.h\"
+#endif\n
 #if defined(%s)
 #if defined(WIN32)
 #include \"windows.h\"
@@ -2177,7 +2181,7 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #elif defined(__APPLE__)
 #include \"GL/glew.h\"
 #include <OpenGL/glu.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 #else
 #if defined(DNLOAD_GLESV2)
 #include \"GLES2/gl2.h\"
@@ -2190,23 +2194,20 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #endif
 #include \"bsd_rand.h\"
 #else
-#if defined(DNLOAD_GLESV2)
-#include \"GLES2/gl2.h\"
-#include \"GLES2/gl2ext.h\"
-#else
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #include <OpenGL/glu.h>
+#include <SDL/SDL.h>
+#else
+#if defined(DNLOAD_GLESV2)
+#include \"GLES2/gl2.h\"
+#include \"GLES2/gl2ext.h\"
 #else
 #include \"GL/gl.h\"
 #include \"GL/glext.h\"
 #include \"GL/glu.h\"
 #endif
-#endif
-#ifdef __APPLE__
-#include <SDL/sdl.h>
-#else
 #include \"SDL.h\"
 #endif
 #endif\n

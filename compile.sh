@@ -10,7 +10,11 @@ if [ ! -f "src/dnload.h" ] ; then
   touch src/dnload.h
 fi
 
-python "${DNLOAD}" -c src/intro.cpp -v $*
+if [ -f "/opt/vc/lib/libbcm_host.so" ] ; then
+  python "${DNLOAD}" -c src/intro.cpp -v -lc -lgcc -lm -lbcm_host -lEGL -lGLESv2 -lSDL2 $*
+else
+  python "${DNLOAD}" -c src/intro.cpp -v $*
+fi
 if [ $? -ne 0 ] ; then
   echo "${0}: compilation failed"
   exit 1
