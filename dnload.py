@@ -2035,6 +2035,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("GLint", "glGetUniformLocation", "GLuint", "const GLchar*"),
   ("void", "glLineWidth", "GLfloat"),
   ("void", "glLinkProgram", "GLuint"),
+  ("void", "glPolygonOffset", "GLfloat", "GLfloat"),
   ("void", "glProgramUniform1f", "GLuint", "GLint", "GLfloat"),
   ("void", "glProgramUniform1fv", "GLuint", "GLint", "GLsizei", "const GLfloat*"),
   ("void", "glProgramUniform1i", "GLuint", "GLint", "GLint"),
