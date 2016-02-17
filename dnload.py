@@ -2051,6 +2051,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glShaderSource", "GLuint", "GLsizei", "const GLchar**", "const GLint*"),
   ("void", "glStencilFunc", "GLenum", "GLint", "GLuint"),
   ("void", "glStencilMask", "GLuint"),
+  ("void", "glStencilOp", "GLenum", "GLenum", "GLenum"),
   ("void", "glStencilOpSeparate", "GLenum", "GLenum", "GLenum", "GLenum"),
   ("void", "glTexImage2D", "GLenum", "GLint", "GLint", "GLsizei", "GLsizei", "GLint", "GLenum", "GLenum", "const GLvoid*"),
   ("void", "glTexImage2DMultisample", "GLenum", "GLsizei", "GLint", "GLsizei", "GLsizei", "GLboolean"),
