@@ -2003,6 +2003,8 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glBindProgramPipeline", "GLuint"),
   ("void", "glBindRenderbuffer", "GLenum", "GLuint"),
   ("void", "glBindTexture", "GLenum", "GLuint"),
+  ("void", "glBlendFunc", "GLenum", "GLenum"),
+  ("void", "glBlendFuncSeparate", "GLenum", "GLenum", "GLenum", "GLenum"),
   ("void", "glBufferData", "GLenum", "GLsizeiptr", "const GLvoid*", "GLenum"),
   ("void", "glClear", "GLbitfield"),
   ("void", "glClearColor", "GLclampf", "GLclampf", "GLclampf", "GLclampf"),
