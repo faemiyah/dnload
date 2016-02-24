@@ -11,12 +11,17 @@ extern "C"
 {
 #endif
 
-/** \brief Terminate EGL connection.
- *
- * Wrapped since the termination may also fail.
- *
- * \param egl_display EGL display to terminate connection on.
- */
+/// Global EGL display storage.
+EGLDisplay g_egl_display;
+
+/// Global EGL surface storage.
+EGLSurface g_egl_surface;
+
+/// Terminate EGL connection.
+///
+/// Wrapped since the termination may also fail.
+///
+/// \param egl_display EGL display to terminate connection on.
 static void egl_terminate(EGLDisplay egl_display)
 {
   EGLBoolean result = dnload_eglTerminate(egl_display);
@@ -30,13 +35,12 @@ static void egl_terminate(EGLDisplay egl_display)
 #endif
 }
 
-/** \brief Init EGL display.
- *
- * \param native_window Native window given to EGL.
- * \param out_display EGL display target.
- * \param out_surface EGL surface target.
- * \return Success value.
- */
+/// Init EGL display.
+///
+/// \param native_window Native window given to EGL.
+/// \param out_display EGL display target.
+/// \param out_surface EGL surface target.
+/// \return Success value.
 static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_display, EGLSurface *out_surface)
 {
   static const EGLint desired_config[] =
@@ -62,7 +66,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
   EGLint config_count;
   EGLBoolean result;
 
-  display =   dnload_eglGetDisplay(EGL_DEFAULT_DISPLAY);
+  display = dnload_eglGetDisplay(EGL_DEFAULT_DISPLAY);
 #if defined(USE_LD)
   if(EGL_NO_DISPLAY == display)
   {
@@ -138,10 +142,9 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
   return EGL_TRUE;
 }
 
-/** \brief Uninitialize EGL display.
- *
- * \param display EGL display to uninitialize.
- */
+/// Uninitialize EGL display.
+///
+/// \param display EGL display to uninitialize.
 static void egl_quit(EGLDisplay display)
 {
   EGLBoolean result =  dnload_eglMakeCurrent(display, EGL_NO_CONTEXT, EGL_NO_CONTEXT, EGL_NO_CONTEXT);

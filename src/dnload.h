@@ -154,6 +154,7 @@ static void asm_exit(void)
 #define dnload_SDL_Quit SDL_Quit
 #define dnload_graphics_get_display_size graphics_get_display_size
 #define dnload_eglGetDisplay eglGetDisplay
+#define dnload_bcm_host_deinit bcm_host_deinit
 #define dnload_eglTerminate eglTerminate
 #define dnload_SDL_ShowCursor SDL_ShowCursor
 #define dnload_vc_dispmanx_update_start vc_dispmanx_update_start
@@ -190,6 +191,7 @@ static void asm_exit(void)
 #define dnload_SDL_Quit g_symbol_table.SDL_Quit
 #define dnload_graphics_get_display_size g_symbol_table.graphics_get_display_size
 #define dnload_eglGetDisplay g_symbol_table.eglGetDisplay
+#define dnload_bcm_host_deinit g_symbol_table.bcm_host_deinit
 #define dnload_eglTerminate g_symbol_table.eglTerminate
 #define dnload_SDL_ShowCursor g_symbol_table.SDL_ShowCursor
 #define dnload_vc_dispmanx_update_start g_symbol_table.vc_dispmanx_update_start
@@ -233,6 +235,7 @@ static struct SymbolTableStruct
   void (*SDL_Quit)(void);
   int32_t (*graphics_get_display_size)(const uint16_t, uint32_t*, uint32_t*);
   EGLDisplay (*eglGetDisplay)(NativeDisplayType);
+  void (*bcm_host_deinit)(void);
   EGLBoolean (*eglTerminate)(EGLDisplay);
   int (*SDL_ShowCursor)(int);
   DISPMANX_UPDATE_HANDLE_T (*vc_dispmanx_update_start)(int32_t);
@@ -268,6 +271,7 @@ static struct SymbolTableStruct
   (void (*)(void))0x7eb657f3L,
   (int32_t (*)(const uint16_t, uint32_t*, uint32_t*))0x97bb35dbL,
   (EGLDisplay (*)(NativeDisplayType))0xabd36ff6L,
+  (void (*)(void))0xadd96fb5L,
   (EGLBoolean (*)(EGLDisplay))0xb87f4317L,
   (int (*)(int))0xb88bf697L,
   (DISPMANX_UPDATE_HANDLE_T (*)(int32_t))0xb8dfc099L,
@@ -530,7 +534,7 @@ static void* dnload_find_symbol(uint32_t hash)
 static void dnload(void)
 {
   unsigned ii;
-  for(ii = 0; (33 > ii); ++ii)
+  for(ii = 0; (34 > ii); ++ii)
   {
     void **iter = ((void**)&g_symbol_table) + ii;
     *iter = dnload_find_symbol(*(uint32_t*)iter);

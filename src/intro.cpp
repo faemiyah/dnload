@@ -126,18 +126,10 @@ static const char *usage = ""
 SDL_Window *g_sdl_window;
 
 #if defined(DNLOAD_GLESV2)
-
+#include "dnload_egl.h"
 #if defined(DNLOAD_VIDEOCORE)
 #include "dnload_videocore.h"
 #endif
-#include "dnload_egl.h"
-
-/// Global EGL display storage.
-EGLDisplay g_egl_display;
-
-/// Global EGL surface storage.
-EGLSurface g_egl_surface;
-
 #endif
 
 /// Swap buffers.
@@ -159,6 +151,9 @@ static void teardown()
 {
 #if defined(DNLOAD_GLESV2)
   egl_quit(g_egl_display);
+#if defined(DNLOAD_VIDEOCORE)
+  dnload_bcm_host_deinit();
+#endif
 #endif
   dnload_SDL_Quit();
 }
@@ -584,11 +579,48 @@ void write_frame(unsigned screen_w, unsigned screen_h, unsigned idx)
   return;
 }
 
+/// Update window position.
+///
+/// May be NOP depending on platform.
+void update_window_position()
+{
+  static int window_x = INT_MIN;
+  static int window_y = INT_MIN;
+  static int window_width = INT_MIN;
+  static int window_height = INT_MIN;
+  int current_window_x;
+  int current_window_y;
+  int current_window_width;
+  int current_window_height;
+  
+  SDL_GetWindowPosition(g_sdl_window, &current_window_x, &current_window_y);
+  SDL_GetWindowSize(g_sdl_window, &current_window_width, &current_window_height);
+  if((current_window_x != window_x) || (current_window_y != window_y) ||
+      (current_window_width != window_width) || (current_window_height != window_height))
+  {
+    window_x = current_window_x;
+    window_y = current_window_y;
+    window_width = current_window_width;
+    window_height = current_window_height;
+#if defined(DNLOAD_VIDEOCORE)
+    videocore_move_native_window(window_x, window_y, window_width, window_height);
+#endif
+  }
+}
+
 #endif
 
 //######################################
 // _start ##############################
 //######################################
+
+/// \cond
+#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#define DEFAULT_SDL_WINDOW_FLAGS SDL_WINDOW_BORDERLESS
+#else
+#define DEFAULT_SDL_WINDOW_FLAGS SDL_WINDOW_OPENGL
+#endif
+/// \endcond
 
 #if defined(USE_LD)
 int intro(unsigned screen_w, unsigned screen_h, uint8_t flag_developer, uint8_t flag_fullscreen,
@@ -606,12 +638,12 @@ void _start()
 #endif
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-  g_sdl_window = dnload_SDL_CreateWindow(NULL, 0, 0, static_cast<int>(screen_w),
-      static_cast<int>(screen_h), SDL_WINDOW_OPENGL | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
+  g_sdl_window = dnload_SDL_CreateWindow(NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+      static_cast<int>(screen_w), static_cast<int>(screen_h),
+      DEFAULT_SDL_WINDOW_FLAGS | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
 #if defined(DNLOAD_GLESV2)
-  EGL_DISPMANX_WINDOW_T egl_native_window;
-  videocore_create_native_window(screen_w, screen_h, &egl_native_window);
-  bool egl_result = egl_init(reinterpret_cast<NativeWindowType>(&egl_native_window), &g_egl_display,
+  videocore_create_native_window(screen_w, screen_h);
+  bool egl_result = egl_init(reinterpret_cast<NativeWindowType>(&g_egl_native_window), &g_egl_display,
       &g_egl_surface);
 #if defined(USE_LD)
   if(!egl_result)
@@ -637,6 +669,13 @@ void _start()
 #endif
 #endif
   dnload_SDL_ShowCursor(flag_developer);
+
+#if defined(USE_LD)
+  if(!flag_fullscreen)
+  {
+    update_window_position();
+  }
+#endif
 
 #if defined(DNLOAD_GLESV2)
   g_program_fragment = create_program(g_shader_vertex_quad, g_shader_fragment_quad);
@@ -866,6 +905,13 @@ void _start()
         {
           mouse_look_x += event.motion.xrel;
           mouse_look_y += event.motion.yrel;
+        }
+      }
+      else if(SDL_WINDOWEVENT == event.type)
+      {
+        if(!flag_fullscreen)
+        {
+          update_window_position();
         }
       }
     }

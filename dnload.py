@@ -1977,6 +1977,7 @@ g_library_definition_c = LibraryDefinition("c", (
   ("void", "srandom", "unsigned int"),
   ))
 g_library_definition_bcm_host = LibraryDefinition("bcm_host", (
+  ("void", "bcm_host_deinit"),
   ("void", "bcm_host_init"),
   ("DISPMANX_DISPLAY_HANDLE_T", "vc_dispmanx_display_open", "uint32_t"),
   ("DISPMANX_ELEMENT_HANDLE_T", "vc_dispmanx_element_add", "DISPMANX_UPDATE_HANDLE_T", "DISPMANX_DISPLAY_HANDLE_T", "int32_t", "const VC_RECT_T*", "DISPMANX_RESOURCE_HANDLE_T", "const VC_RECT_T*", "DISPMANX_PROTECTION_T", "VC_DISPMANX_ALPHA_T*", "DISPMANX_CLAMP_T*", "DISPMANX_TRANSFORM_T"),
