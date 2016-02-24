@@ -615,7 +615,7 @@ void update_window_position()
 //######################################
 
 /// \cond
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_VIDEOCORE)
 #define DEFAULT_SDL_WINDOW_FLAGS SDL_WINDOW_BORDERLESS
 #else
 #define DEFAULT_SDL_WINDOW_FLAGS SDL_WINDOW_OPENGL
