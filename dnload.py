@@ -2088,6 +2088,7 @@ g_library_definition_glu = LibraryDefinition("GLU", (
 g_library_definition_m = LibraryDefinition("m", (
   ("double", "acos", "double"),
   ("float", "acosf", "float"),
+  ("float", "atan2f", "float", "float"),
   ("float", "atanf", "float"),
   ("float", ("ceilf", None), "float"),
   ("float", "cosf", "float"),
