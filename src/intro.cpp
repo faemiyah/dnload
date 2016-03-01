@@ -125,11 +125,9 @@ static const char *usage = ""
 /// Global SDL window storage.
 SDL_Window *g_sdl_window;
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
 #include "dnload_egl.h"
-#if defined(DNLOAD_VIDEOCORE)
 #include "dnload_videocore.h"
-#endif
 #endif
 
 /// Swap buffers.
@@ -137,7 +135,7 @@ SDL_Window *g_sdl_window;
 /// Uses global data.
 static void swap_buffers()
 {
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
   dnload_eglSwapBuffers(g_egl_display, g_egl_surface);
 #else
   dnload_SDL_GL_SwapWindow(g_sdl_window);
@@ -149,11 +147,9 @@ static void swap_buffers()
 /// Uses global data.
 static void teardown()
 {
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
   egl_quit(g_egl_display);
-#if defined(DNLOAD_VIDEOCORE)
   dnload_bcm_host_deinit();
-#endif
 #endif
   dnload_SDL_Quit();
 }
@@ -638,10 +634,15 @@ void _start()
 #endif
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+#if defined(DNLOAD_GLESV2) && !defined(DNLOAD_VIDEOCORE)
+  dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+  dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+  dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#endif
   g_sdl_window = dnload_SDL_CreateWindow(NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
       static_cast<int>(screen_w), static_cast<int>(screen_h),
       DEFAULT_SDL_WINDOW_FLAGS | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
   videocore_create_native_window(screen_w, screen_h);
   bool egl_result = egl_init(reinterpret_cast<NativeWindowType>(&g_egl_native_window), &g_egl_display,
       &g_egl_surface);
@@ -656,7 +657,11 @@ void _start()
 #endif
 #else
   dnload_SDL_GL_CreateContext(g_sdl_window);
+#endif
+  dnload_SDL_ShowCursor(flag_developer);
+
 #if defined(USE_LD)
+#if !defined(DNLOAD_GLESV2)
   {
     GLenum err = glewInit();
     if(GLEW_OK != err)
@@ -667,10 +672,6 @@ void _start()
     }
   }
 #endif
-#endif
-  dnload_SDL_ShowCursor(flag_developer);
-
-#if defined(USE_LD)
   if(!flag_fullscreen)
   {
     update_window_position();

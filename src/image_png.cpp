@@ -37,7 +37,7 @@ static uint8_t bpp_to_png_color_type(unsigned bpp)
 
     default:
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "invalid bit depth: " << bpp;
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
@@ -57,18 +57,24 @@ static FILE* png_read_header(const std::string &filename)
     FILE *fd = fopen(filename.c_str(), "rb");
     if(!fd)
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << "could not open '" << filename << '\'';
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
 
     {
       uint8_t header[8];
-      fread(header, 1, 8, fd);
+      size_t bytes_read = fread(header, 1, 8, fd);
+      if(8 != bytes_read)
+      {
+        std::ostringstream sstr;
+        sstr << "trying to read png header in '" << filename << "': only " << bytes_read << " bytes read";
+        BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+      }
       if(png_sig_cmp(header, 0, 8))
       {
         fclose(fd);
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "not a PNG file: " << filename;
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
@@ -150,21 +156,21 @@ class PngReader
       m_png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
       if(!m_png)
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "could not create a PNG read struct";
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
       m_info = png_create_info_struct(m_png);
       if(!m_info)
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "could not create a PNG info struct";
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
       m_end = png_create_info_struct(m_png);
       if(!m_end)
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "could not create a PNG end info struct";
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
@@ -337,14 +343,14 @@ class PngWriter
       m_png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
       if(!m_png)
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "could not create a PNG read struct";
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
       m_info = png_create_info_struct(m_png);
       if(!m_info)
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << "could not create a PNG info struct";
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
@@ -412,7 +418,7 @@ namespace gfx
     // error handling in libpng is retarded
     if(setjmp(png_jmpbuf(reader.getPng())))
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << "could not set longjmp";
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -423,14 +429,14 @@ namespace gfx
     {
       if(reader.getDepth() <= 0)
       {
-        std::stringstream sstr;
+        std::ostringstream sstr;
         sstr << '\'' << filename << "' is an image, excepted a volume";
         BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
       }
     }
     else if(reader.getDepth() > 0)
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << '\'' << filename << "' is a volume, excepted an image";
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -447,7 +453,7 @@ namespace gfx
     // error handling in libpng is still retarded
     if(setjmp(png_jmpbuf(reader.getPng())))
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << "could not set longjmp";
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -459,7 +465,7 @@ namespace gfx
              bpp = reader.getBpp();
     if(bpp != required_bpp)
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << '\'' << filename << "' has bit depth " << bpp << ", excepted " << required_bpp;
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -505,7 +511,7 @@ namespace gfx
 
     if(depth != 0)
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << '\'' << filename << "' is a volume, excepted an image";
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -516,7 +522,7 @@ namespace gfx
   {
     if((0 >= pw) || (0 >= ph))
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << "invalid image dimensions: " << pw << "x" << ph;
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -531,7 +537,7 @@ namespace gfx
     FILE *fd = fopen(filename.c_str(), "wb");
     if(!fd)
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << "could not open '" << filename << '\'';
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
@@ -553,7 +559,7 @@ namespace gfx
     // error handling in libpng is still retarded
     if(setjmp(png_jmpbuf(writer.getPng())))
     {
-      std::stringstream sstr;
+      std::ostringstream sstr;
       sstr << "could not set longjmp";
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }

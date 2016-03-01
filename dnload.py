@@ -26,6 +26,7 @@ ELFLING_OUTPUT = "elfling_output"
 ELFLING_PADDING = 10
 ELFLING_WORK = "elfling_modelCounters"
 ELFLING_UNCOMPRESSED = "_uncompressed"
+MALI_PATH = "/usr/lib/arm-linux-gnueabihf/mali-egl"
 VIDEOCORE_PATH = "/opt/vc"
 
 ########################################
@@ -3341,6 +3342,10 @@ def main():
     definitions += ["DNLOAD_NO_FIXED_R_DEBUG_ADDRESS"]
 
   if not no_glesv2:
+    if os.path.exists(MALI_PATH):
+      definitions += ["DNLOAD_MALI"]
+      opengl_reason = "'%s' (Mali)" % (MALI_PATH)
+      opengl_version = "ES2"
     if os.path.exists(VIDEOCORE_PATH):
       definitions += ["DNLOAD_VIDEOCORE"]
       opengl_reason = "'%s' (VideoCore)" % (VIDEOCORE_PATH)
