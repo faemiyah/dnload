@@ -106,7 +106,7 @@ g_platform_variables = {
   "entry" : { "64-bit" : 0x400000, "armel" : 0x10000, "ia32" : 0x4000000 }, # ia32: 0x8048000
   "gl_library" : { "default" : "GL" },
   "interp" : { "FreeBSD" : "\"/libexec/ld-elf.so.1\"", "Linux-armel" : "\"/lib/ld-linux.so.3\"", "Linux-ia32" : "\"/lib/ld-linux.so.2\"", "Linux-amd64" : "\"/lib64/ld-linux-x86-64.so.2\"" },
-  "march" : { "amd64" : "core2", "armel" : "armv6t2", "ia32" : "pentium4" },
+  "march" : { "amd64" : "core2", "armv6l" : "armv6t2", "armv7l" : "armv7e-m", "ia32" : "pentium4" },
   "memory_page" : { "32-bit" : 0x1000, "64-bit" : 0x200000 },
   "mpreferred-stack-boundary" : { "armel" : 0, "ia32" : 2, "64-bit" : 4 },
   "phdr_count" : { "default" : 3 },
@@ -3350,6 +3350,11 @@ def main():
       definitions += ["DNLOAD_VIDEOCORE"]
       opengl_reason = "'%s' (VideoCore)" % (VIDEOCORE_PATH)
       opengl_version = "ES2"
+      if 'armv7l' == g_osarch:
+        repl_march = str(PlatformVar("armv6l"))
+        if verbose:
+          print("Workaround (Raspberry Pi): targeting '%s' instead of '%s'" % (repl_marcg, g_osarch))
+        replace_platform_variable("march", repl_march)
 
   if "ES2" == opengl_version:
     definitions += ["DNLOAD_GLESV2"]
