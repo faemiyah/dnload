@@ -627,7 +627,7 @@ int intro(unsigned screen_w, unsigned screen_h, uint8_t flag_developer, uint8_t 
 #define screen_w SCREEN_W
 #define screen_h SCREEN_H
 #define flag_developer 0
-#define flag_fullscreen 0
+#define flag_fullscreen SCREEN_F
 /// \endcond
 void _start()
 {
