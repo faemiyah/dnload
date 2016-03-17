@@ -294,7 +294,7 @@ typedef Elf32_Sym dnload_elf_sym_t;
 typedef Elf32_Sword dnload_elf_tag_t;
 #endif
 /** \brief ELF base address. */
-#define ELF_BASE_ADDRESS 0x10000
+#define ELF_BASE_ADDRESS 0x8000
 /** \brief Get dynamic section element by tag.
  *
  * \param dyn Dynamic section.

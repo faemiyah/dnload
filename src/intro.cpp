@@ -9,12 +9,9 @@
 ///
 /// Negative values windowed.
 /// Positive values fullscreen.
-///
-/// Only has effect in release mode.
 #define DISPLAY_MODE -720
 
 /// \cond
-#if !defined(USE_LD)
 #if (0 > (DISPLAY_MODE))
 #define SCREEN_F 0
 #define SCREEN_H (-(DISPLAY_MODE))
@@ -27,8 +24,7 @@
 #if ((800 == SCREEN_H) || (1200 == SCREEN_H))
 #define SCREEN_W ((SCREEN_H / 10) * 16)
 #else
-#define SCREEN_W ((SCREEN_H / 9) * 16)
-#endif
+#define SCREEN_W (((SCREEN_H * 16) / 9) - (((SCREEN_H * 16) / 9) % 4))
 #endif
 /// \endcond
 
@@ -72,6 +68,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
 #include <boost/scoped_array.hpp>
 #include <boost/tuple/tuple.hpp>
@@ -507,11 +504,11 @@ static void draw(unsigned ticks)
 
 #if defined(USE_LD)
 
-/// \brief Parse resolution from string input.
+/// Parse resolution from string input.
 ///
 /// \param op Resolution string.
 /// \return Tuple of width and height.
-boost::tuple<int, int> parse_resolution(const std::string &op)
+boost::tuple<unsigned, unsigned> parse_resolution(const std::string &op)
 {
   size_t cx = op.find("x");
   
@@ -528,9 +525,11 @@ boost::tuple<int, int> parse_resolution(const std::string &op)
 
     std::string sh = op.substr(0, cx);
 
-    int rh = boost::lexical_cast<int>(sh);
+    unsigned rh = boost::lexical_cast<unsigned>(sh);
+    unsigned rw = (rh * 16) / 9;
+    unsigned rem4 = rw % 4;
 
-    return boost::make_tuple(rh * 16 / 9, rh);
+    return boost::make_tuple(rw - rem4, rh);
   }
 
   std::string sw = op.substr(0, cx);
@@ -618,20 +617,8 @@ void update_window_position()
 #endif
 /// \endcond
 
-#if defined(USE_LD)
-int intro(unsigned screen_w, unsigned screen_h, uint8_t flag_developer, uint8_t flag_fullscreen,
-    uint8_t flag_record)
+void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_developer, bool flag_record)
 {
-#else
-/// \cond
-#define screen_w SCREEN_W
-#define screen_h SCREEN_H
-#define flag_developer 0
-#define flag_fullscreen SCREEN_F
-/// \endcond
-void _start()
-{
-#endif
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 #if defined(DNLOAD_GLESV2) && !defined(DNLOAD_VIDEOCORE)
@@ -676,6 +663,9 @@ void _start()
   {
     update_window_position();
   }
+#else
+  (void)flag_developer;
+  (void)flag_record;
 #endif
 
 #if defined(DNLOAD_GLESV2)
@@ -748,7 +738,7 @@ void _start()
     }
 
     teardown();
-    return 0;
+    return;
   }
 
   if(!flag_developer)
@@ -1017,12 +1007,6 @@ void _start()
   }
 
   teardown();
-
-#if defined(USE_LD)
-  return 0;
-#else
-  asm_exit();
-#endif
 }
 
 //######################################
@@ -1030,7 +1014,6 @@ void _start()
 //######################################
 
 #if defined(USE_LD)
-
 /// Main function.
 ///
 /// \param argc Argument count.
@@ -1038,52 +1021,76 @@ void _start()
 /// \return Program return code.
 int MAINPROG(int argc, char **argv)
 {
-  unsigned screen_w = 1280;
-  unsigned screen_h = 720;
+  unsigned screen_w = SCREEN_W;
+  unsigned screen_h = SCREEN_H;
   bool developer = false;
   bool fullscreen = true;
   bool record = false;
 
-  if(argc > 0)
+  try
   {
-    po::options_description desc("Options");
-    desc.add_options()
-      ("developer,d", "Developer mode.")
-      ("help,h", "Print help text.")
-      ("record,R", "Do not play intro normally, instead save audio as .wav and frames as .png -files.")
-      ("resolution,r", po::value<std::string>(), "Resolution to use, specify as 'WIDTHxHEIGHT' or 'HEIGHTp'.")
-      ("window,w", "Start in window instead of full-screen.");
+    if(argc > 0)
+    {
+      po::options_description desc("Options");
+      desc.add_options()
+        ("developer,d", "Developer mode.")
+        ("help,h", "Print help text.")
+        ("record,R", "Do not play intro normally, instead save audio as .wav and frames as .png -files.")
+        ("resolution,r", po::value<std::string>(), "Resolution to use, specify as 'WIDTHxHEIGHT' or 'HEIGHTp'.")
+        ("window,w", "Start in window instead of full-screen.");
 
-    po::variables_map vmap;
-    po::store(po::command_line_parser(argc, argv).options(desc).run(), vmap);
-    po::notify(vmap);
+      po::variables_map vmap;
+      po::store(po::command_line_parser(argc, argv).options(desc).run(), vmap);
+      po::notify(vmap);
 
-    if(vmap.count("developer"))
-    {
-      developer = true;
+      if(vmap.count("developer"))
+      {
+        developer = true;
+      }
+      if(vmap.count("help"))
+      {
+        std::cout << usage << desc << std::endl;
+        return 0;
+      }
+      if(vmap.count("record"))
+      {
+        record = true;
+      }
+      if(vmap.count("resolution"))
+      {
+        boost::tie(screen_w, screen_h) = parse_resolution(vmap["resolution"].as<std::string>());
+      }
+      if(vmap.count("window"))
+      {
+        fullscreen = false;
+      }
     }
-    if(vmap.count("help"))
-    {
-      std::cout << usage << desc << std::endl;
-      return 0;
-    }
-    if(vmap.count("record"))
-    {
-      record = true;
-    }
-    if(vmap.count("resolution"))
-    {
-      boost::tie(screen_w, screen_h) = parse_resolution(vmap["resolution"].as<std::string>());
-    }
-    if(vmap.count("window"))
-    {
-      fullscreen = false;
-    }
+
+    intro(screen_w, screen_h, developer, fullscreen, record);
   }
-
-  return intro(screen_w, screen_h, developer, fullscreen, record);
+  catch(const boost::exception &err)
+  {
+    std::cerr << boost::diagnostic_information(err);
+    return 1;
+  }
+  catch(const std::exception &err)
+  {
+    std::cerr << err.what() << std::endl;
+    return 1;
+  }
+  catch(...)
+  {
+    std::cerr << __FILE__ << ": unknown exception caught\n";
+    return -1;
+  }
+  return 0;
 }
-
+#else
+void _start()
+{
+  intro(SCREEN_W, SCREEN_H, static_cast<bool>(SCREEN_F), false, false);
+  asm_exit();
+}
 #endif
 
 //######################################

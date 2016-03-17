@@ -3239,7 +3239,7 @@ def main():
   default_strip_list = ["/usr/local/bin/strip", "strip"]
   definitions = []
   elfling = None
-  include_directories = [VIDEOCORE_PATH + "/include", VIDEOCORE_PATH + "/include/interface/vcos/pthreads", VIDEOCORE_PATH + "/include//interface/vmcs_host/linux", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/SDL"]
+  include_directories = [VIDEOCORE_PATH + "/include", VIDEOCORE_PATH + "/include/interface/vcos/pthreads", VIDEOCORE_PATH + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
   libraries = []
   library_directories = ["/lib", "/lib/x86_64-linux-gnu", VIDEOCORE_PATH + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
   linker = None
