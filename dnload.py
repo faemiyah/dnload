@@ -2086,6 +2086,9 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
 g_library_definition_glu = LibraryDefinition("GLU", (
   ("GLint", "gluBuild3DMipmaps", "GLenum", "GLint", "GLsizei", "GLsizei", "GLsizei", "GLenum", "GLenum", "const void*"),
   ))
+g_library_definition_freetype = LibraryDefinition("freetype", (
+  ("int", "FT_Init_FreeType", "void*"),
+  ))
 g_library_definition_m = LibraryDefinition("m", (
   ("double", "acos", "double"),
   ("float", "acosf", "float"),
