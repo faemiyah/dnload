@@ -2087,7 +2087,13 @@ g_library_definition_glu = LibraryDefinition("GLU", (
   ("GLint", "gluBuild3DMipmaps", "GLenum", "GLint", "GLsizei", "GLsizei", "GLsizei", "GLenum", "GLenum", "const void*"),
   ))
 g_library_definition_freetype = LibraryDefinition("freetype", (
-  ("int", "FT_Init_FreeType", "void*"),
+  ("FT_UInt", "FT_Get_Char_Index", "FT_Face", "FT_ULong"),
+  ("FT_Error", "FT_Get_Kerning", "FT_Face", "FT_UInt", "FT_UInt", "FT_UInt", "FT_Vector*"),
+  ("FT_Error", "FT_Init_FreeType", "FT_Library*"),
+  ("FT_Error", "FT_Load_Glyph", "FT_Face", "FT_UInt", "FT_Int32"),
+  ("FT_Error", "FT_New_Face", "FT_Library", "const char*", "FT_Long", "FT_Face*"),
+  ("FT_Error", "FT_Render_Glyph", "FT_GlyphSlot", "FT_Render_Mode"),
+  ("FT_Error", "FT_Set_Pixel_Sizes", "FT_Face", "FT_UInt", "FT_UInt"),
   ))
 g_library_definition_m = LibraryDefinition("m", (
   ("double", "acos", "double"),
@@ -2109,7 +2115,7 @@ g_library_definition_m = LibraryDefinition("m", (
   ("float", "roundf", "float"),
   ("float", "sinf", "float"),
   ("float", ("sqrtf", None), "float"),
-  ("float", ("tanf", None), "float"),
+  ("float", "tanf", "float"),
   ("float", "tanhf", "float"),
   ))
 g_library_definition_sdl = LibraryDefinition("SDL", (
@@ -2153,6 +2159,7 @@ g_library_definitions = (
     g_library_definition_egl,
     g_library_definition_gl,
     g_library_definition_glu,
+    g_library_definition_freetype,
     g_library_definition_m,
     g_library_definition_sdl,
     g_library_definition_sdl2,
@@ -2195,10 +2202,14 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include \"windows.h\"
 #include \"GL/glew.h\"
 #include \"GL/glu.h\"
+#include \"ft2build.h\"
+#include FT_FREETYPE_H
 #include \"SDL.h\"
 #elif defined(__APPLE__)
 #include \"GL/glew.h\"
 #include <OpenGL/glu.h>
+#include \"ft2build.h\"
+#include FT_FREETYPE_H
 #include <SDL/SDL.h>
 #else
 #if defined(DNLOAD_GLESV2)
@@ -2208,6 +2219,8 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include \"GL/glew.h\"
 #include \"GL/glu.h\"
 #endif
+#include \"ft2build.h\"
+#include FT_FREETYPE_H
 #include \"SDL.h\"
 #endif
 #include \"bsd_rand.h\"
@@ -2216,6 +2229,8 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #include <OpenGL/glu.h>
+#include \"ft2build.h\"
+#include FT_FREETYPE_H
 #include <SDL/SDL.h>
 #else
 #if defined(DNLOAD_GLESV2)
@@ -2226,6 +2241,8 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include \"GL/glext.h\"
 #include \"GL/glu.h\"
 #endif
+#include \"ft2build.h\"
+#include FT_FREETYPE_H
 #include \"SDL.h\"
 #endif
 #endif\n
