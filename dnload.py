@@ -1447,6 +1447,7 @@ class Linker:
     self.__libraries = []
     self.__linker_flags = []
     self.__linker_script = []
+    self.__rpath_directories = []
 
   def command_basename_startswith(self, op):
     """Check if command basename starts with given string."""
@@ -1487,12 +1488,16 @@ class Linker:
     """Set link directory listing."""
     ret = []
     prefix = "-L"
+    rpath_prefix = ["-Xlinker"]
     if self.__command_basename.startswith("cl."):
       prefix = "/L"
     for ii in self.__library_directories:
       ret += [prefix + ii]
     if self.__command_basename.startswith("ld"):
       ret += ["-rpath-link", ":".join(self.__library_directories)]
+      rpath_prefix = []
+    for ii in self.__rpath_directories:
+      ret += rpath_prefix + ["-rpath=%s" % (ii)]
     return ret
 
   def get_library_name(self, op):
@@ -1573,6 +1578,12 @@ class Linker:
   def set_linker_script(self, op):
     """Use given linker script."""
     self.__linker_script = ["-T", op]
+
+  def set_rpath_directories(self, lst):
+    """Set rpath option."""
+    self.__rpath_directories = []
+    for ii in lst:
+      self.__rpath_directories += [ii]
 
 ########################################
 # Compiler #############################
@@ -3253,6 +3264,7 @@ def main():
   opengl_reason = None
   opengl_version = None
   output_file = None
+  rpath = []
   sdl_version = 2
   source_files = []
   strip = None
@@ -3278,6 +3290,7 @@ def main():
   parser.add_argument("-o", "--output-file", help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
+  parser.add_argument("--rpath", action = "append", help = "Extra rpath locations for linking.")
   parser.add_argument("--safe-symtab", action = "store_true", help = "Handle DT_SYMTAB in a safe manner.")
   parser.add_argument("-s", "--search-path", action = "append", help = "Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
   parser.add_argument("-S", "--strip-binary", help = "Try to use given strip executable as opposed to autodetect.")
@@ -3318,6 +3331,8 @@ def main():
       g_osname = new_osname
   if args.output_file:
     output_file = args.output_file
+  if args.rpath:
+    rpath = args.rpath
   if args.safe_symtab:
     definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
   if args.search_path:
@@ -3529,9 +3544,11 @@ def main():
     compiler.generate_linker_flags()
     compiler.set_libraries(libraries)
     compiler.set_library_directories(library_directories)
+    compiler.set_rpath_directories(rpath)
     linker.generate_linker_flags()
     linker.set_libraries(libraries)
     linker.set_library_directories(library_directories)
+    linker.set_rpath_directories(rpath)
     if "maximum" == compilation_mode:
       und_symbols = get_platform_und_symbols()
       generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, und_symbols, elfling,
