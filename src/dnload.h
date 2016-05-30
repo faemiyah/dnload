@@ -40,7 +40,7 @@
 #elif defined(__APPLE__)
 #include "GL/glew.h"
 #include <OpenGL/glu.h>
-#include <SDL/SDL.h>
+#include "SDL.h"
 #else
 #if defined(DNLOAD_GLESV2)
 #include "GLES2/gl2.h"
@@ -57,7 +57,7 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #include <OpenGL/glu.h>
-#include <SDL/SDL.h>
+#include "SDL.h"
 #else
 #if defined(DNLOAD_GLESV2)
 #include "GLES2/gl2.h"
@@ -133,53 +133,39 @@ static void asm_exit(void)
 
 #if defined(USE_LD)
 /** \cond */
-#define dnload_glAttachShader glAttachShader
-#define dnload_glCompileShader glCompileShader
-#define dnload_glCreateProgram glCreateProgram
-#define dnload_glCreateShader glCreateShader
-#define dnload_glDrawArrays glDrawArrays
-#define dnload_glEnableVertexAttribArray glEnableVertexAttribArray
-#define dnload_glGetUniformLocation glGetUniformLocation
-#define dnload_glLinkProgram glLinkProgram
-#define dnload_glShaderSource glShaderSource
-#define dnload_glUniform3fv glUniform3fv
-#define dnload_glUseProgram glUseProgram
-#define dnload_glVertexAttribPointer glVertexAttribPointer
-#define dnload_SDL_Init SDL_Init
-#define dnload_SDL_OpenAudio SDL_OpenAudio
-#define dnload_SDL_PauseAudio SDL_PauseAudio
-#define dnload_SDL_PollEvent SDL_PollEvent
-#define dnload_SDL_Quit SDL_Quit
-#define dnload_SDL_ShowCursor SDL_ShowCursor
-#define dnload_SDL_CreateWindow SDL_CreateWindow
-#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
-#define dnload_SDL_GL_SetAttribute SDL_GL_SetAttribute
+#define dnload_glUseProgramStages glUseProgramStages
+#define dnload_glBindProgramPipeline glBindProgramPipeline
 #define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
+#define dnload_SDL_PauseAudio SDL_PauseAudio
+#define dnload_SDL_OpenAudio SDL_OpenAudio
+#define dnload_SDL_CreateWindow SDL_CreateWindow
+#define dnload_SDL_PollEvent SDL_PollEvent
+#define dnload_SDL_Init SDL_Init
+#define dnload_glGenProgramPipelines glGenProgramPipelines
+#define dnload_SDL_Quit SDL_Quit
+#define dnload_glCreateShaderProgramv glCreateShaderProgramv
+#define dnload_SDL_ShowCursor SDL_ShowCursor
+#define dnload_glProgramUniform3fv glProgramUniform3fv
+#define dnload_glRects glRects
+#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
 /** \endcond */
 #else
 /** \cond */
-#define dnload_glAttachShader g_symbol_table.glAttachShader
-#define dnload_glCompileShader g_symbol_table.glCompileShader
-#define dnload_glCreateProgram g_symbol_table.glCreateProgram
-#define dnload_glCreateShader g_symbol_table.glCreateShader
-#define dnload_glDrawArrays g_symbol_table.glDrawArrays
-#define dnload_glEnableVertexAttribArray g_symbol_table.glEnableVertexAttribArray
-#define dnload_glGetUniformLocation g_symbol_table.glGetUniformLocation
-#define dnload_glLinkProgram g_symbol_table.glLinkProgram
-#define dnload_glShaderSource g_symbol_table.glShaderSource
-#define dnload_glUniform3fv g_symbol_table.glUniform3fv
-#define dnload_glUseProgram g_symbol_table.glUseProgram
-#define dnload_glVertexAttribPointer g_symbol_table.glVertexAttribPointer
-#define dnload_SDL_Init g_symbol_table.SDL_Init
-#define dnload_SDL_OpenAudio g_symbol_table.SDL_OpenAudio
-#define dnload_SDL_PauseAudio g_symbol_table.SDL_PauseAudio
-#define dnload_SDL_PollEvent g_symbol_table.SDL_PollEvent
-#define dnload_SDL_Quit g_symbol_table.SDL_Quit
-#define dnload_SDL_ShowCursor g_symbol_table.SDL_ShowCursor
-#define dnload_SDL_CreateWindow g_symbol_table.SDL_CreateWindow
-#define dnload_SDL_GL_CreateContext g_symbol_table.SDL_GL_CreateContext
-#define dnload_SDL_GL_SetAttribute g_symbol_table.SDL_GL_SetAttribute
+#define dnload_glUseProgramStages g_symbol_table.glUseProgramStages
+#define dnload_glBindProgramPipeline g_symbol_table.glBindProgramPipeline
 #define dnload_SDL_GL_SwapWindow g_symbol_table.SDL_GL_SwapWindow
+#define dnload_SDL_PauseAudio g_symbol_table.SDL_PauseAudio
+#define dnload_SDL_OpenAudio g_symbol_table.SDL_OpenAudio
+#define dnload_SDL_CreateWindow g_symbol_table.SDL_CreateWindow
+#define dnload_SDL_PollEvent g_symbol_table.SDL_PollEvent
+#define dnload_SDL_Init g_symbol_table.SDL_Init
+#define dnload_glGenProgramPipelines g_symbol_table.glGenProgramPipelines
+#define dnload_SDL_Quit g_symbol_table.SDL_Quit
+#define dnload_glCreateShaderProgramv g_symbol_table.glCreateShaderProgramv
+#define dnload_SDL_ShowCursor g_symbol_table.SDL_ShowCursor
+#define dnload_glProgramUniform3fv g_symbol_table.glProgramUniform3fv
+#define dnload_glRects g_symbol_table.glRects
+#define dnload_SDL_GL_CreateContext g_symbol_table.SDL_GL_CreateContext
 /** \endcond */
 #endif
 
@@ -190,29 +176,39 @@ static void asm_exit(void)
  */
 static struct SymbolTableStruct
 {
-  void (DNLOAD_APIENTRY *glAttachShader)(GLuint, GLuint);
-  void (DNLOAD_APIENTRY *glCompileShader)(GLuint);
-  GLuint (DNLOAD_APIENTRY *glCreateProgram)(void);
-  GLuint (DNLOAD_APIENTRY *glCreateShader)(GLenum);
-  void (DNLOAD_APIENTRY *glDrawArrays)(GLenum, GLint, GLsizei);
-  void (DNLOAD_APIENTRY *glEnableVertexAttribArray)(GLuint);
-  GLint (DNLOAD_APIENTRY *glGetUniformLocation)(GLuint, const GLchar*);
-  void (DNLOAD_APIENTRY *glLinkProgram)(GLuint);
-  void (DNLOAD_APIENTRY *glShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
-  void (DNLOAD_APIENTRY *glUniform3fv)(GLint, GLsizei, const GLfloat*);
-  void (DNLOAD_APIENTRY *glUseProgram)(GLuint);
-  void (DNLOAD_APIENTRY *glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
-  int (*SDL_Init)(Uint32);
-  int (*SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
-  void (*SDL_PauseAudio)(int);
-  int (*SDL_PollEvent)(SDL_Event*);
-  void (*SDL_Quit)(void);
-  int (*SDL_ShowCursor)(int);
-  SDL_Window* (*SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
-  SDL_GLContext (*SDL_GL_CreateContext)(SDL_Window*);
-  int (*SDL_GL_SetAttribute)(SDL_GLattr, int);
+  void (DNLOAD_APIENTRY *glUseProgramStages)(GLuint, GLbitfield, GLuint);
+  void (DNLOAD_APIENTRY *glBindProgramPipeline)(GLuint);
   void (*SDL_GL_SwapWindow)(SDL_Window*);
-} g_symbol_table;
+  void (*SDL_PauseAudio)(int);
+  int (*SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
+  SDL_Window* (*SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
+  int (*SDL_PollEvent)(SDL_Event*);
+  int (*SDL_Init)(Uint32);
+  void (DNLOAD_APIENTRY *glGenProgramPipelines)(GLsizei, GLuint*);
+  void (*SDL_Quit)(void);
+  GLuint (DNLOAD_APIENTRY *glCreateShaderProgramv)(GLenum, GLsizei, const char**);
+  int (*SDL_ShowCursor)(int);
+  void (DNLOAD_APIENTRY *glProgramUniform3fv)(GLuint, GLint, GLsizei, const GLfloat*);
+  void (DNLOAD_APIENTRY *glRects)(GLshort, GLshort, GLshort, GLshort);
+  SDL_GLContext (*SDL_GL_CreateContext)(SDL_Window*);
+} g_symbol_table =
+{
+  (void (DNLOAD_APIENTRY *)(GLuint, GLbitfield, GLuint))0x212d8ad7,
+  (void (DNLOAD_APIENTRY *)(GLuint))0x2386bc04,
+  (void (*)(SDL_Window*))0x295bfb59,
+  (void (*)(int))0x29f14a4,
+  (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
+  (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
+  (int (*)(SDL_Event*))0x64949d97,
+  (int (*)(Uint32))0x70d6574,
+  (void (DNLOAD_APIENTRY *)(GLsizei, GLuint*))0x75e35418,
+  (void (*)(void))0x7eb657f3,
+  (GLuint (DNLOAD_APIENTRY *)(GLenum, GLsizei, const char**))0xa4fd03d8,
+  (int (*)(int))0xb88bf697,
+  (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLsizei, const GLfloat*))0xc969d24e,
+  (void (DNLOAD_APIENTRY *)(GLshort, GLshort, GLshort, GLshort))0xd419e20a,
+  (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+};
 #endif
 
 #if defined(USE_LD)
@@ -220,53 +216,253 @@ static struct SymbolTableStruct
 #define dnload()
 /** \endcond */
 #else
-#include <dlfcn.h>
-static const char g_dynstr[] = ""
-"libGLESv2.so\0"
-"glAttachShader\0"
-"glCompileShader\0"
-"glCreateProgram\0"
-"glCreateShader\0"
-"glDrawArrays\0"
-"glEnableVertexAttribArray\0"
-"glGetUniformLocation\0"
-"glLinkProgram\0"
-"glShaderSource\0"
-"glUniform3fv\0"
-"glUseProgram\0"
-"glVertexAttribPointer\0"
-"\0libSDL2.so\0"
-"SDL_Init\0"
-"SDL_OpenAudio\0"
-"SDL_PauseAudio\0"
-"SDL_PollEvent\0"
-"SDL_Quit\0"
-"SDL_ShowCursor\0"
-"SDL_CreateWindow\0"
-"SDL_GL_CreateContext\0"
-"SDL_GL_SetAttribute\0"
-"SDL_GL_SwapWindow\0"
-"\0";
+#include <stdint.h>
+/** \brief SDBM hash function.
+ *
+ * \param op String to hash.
+ * \return Full hash.
+ */
+static uint32_t sdbm_hash(const uint8_t *op)
+{
+  uint32_t ret = 0;
+  for(;;)
+  {
+    uint32_t cc = *op++;
+    if(!cc)
+    {
+      return ret;
+    }
+    ret = ret * 65599 + cc;
+  }
+}
+#if defined(__FreeBSD__)
+#include <sys/link_elf.h>
+#elif defined(__linux__)
+#include <link.h>
+#else
+#error "no elf header location known for current platform"
+#endif
+#if (8 == DNLOAD_POINTER_SIZE)
+/** Elf header type. */
+typedef Elf64_Ehdr dnload_elf_ehdr_t;
+/** Elf program header type. */
+typedef Elf64_Phdr dnload_elf_phdr_t;
+/** Elf dynamic structure type. */
+typedef Elf64_Dyn dnload_elf_dyn_t;
+/** Elf symbol table entry type. */
+typedef Elf64_Sym dnload_elf_sym_t;
+/** Elf dynamic structure tag type. */
+typedef Elf64_Sxword dnload_elf_tag_t;
+#else
+/** Elf header type. */
+typedef Elf32_Ehdr dnload_elf_ehdr_t;
+/** Elf program header type. */
+typedef Elf32_Phdr dnload_elf_phdr_t;
+/** Elf dynamic structure type. */
+typedef Elf32_Dyn dnload_elf_dyn_t;
+/** Elf symbol table entry type. */
+typedef Elf32_Sym dnload_elf_sym_t;
+/** Elf dynamic structure tag type. */
+typedef Elf32_Sword dnload_elf_tag_t;
+#endif
+/** \brief ELF base address. */
+#define ELF_BASE_ADDRESS 0x400000
+/** \brief Get dynamic section element by tag.
+ *
+ * \param dyn Dynamic section.
+ * \param tag Tag to look for.
+ * \return Pointer to dynamic element.
+ */
+static const dnload_elf_dyn_t* elf_get_dynamic_element_by_tag(const void *dyn, dnload_elf_tag_t tag)
+{
+  const dnload_elf_dyn_t *dynamic = (const dnload_elf_dyn_t*)dyn;
+  do {
+    ++dynamic; // First entry in PT_DYNAMIC is probably nothing important.
+#if defined(__linux__) && defined(DNLOAD_SAFE_SYMTAB_HANDLING)
+    if(0 == dynamic->d_tag)
+    {
+      return NULL;
+    }
+#endif
+  } while(dynamic->d_tag != tag);
+  return dynamic;
+}
+#if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS) || defined(DNLOAD_SAFE_SYMTAB_HANDLING)
+/** \brief Get the address associated with given tag in a dynamic section.
+ *
+ * \param dyn Dynamic section.
+ * \param tag Tag to look for.
+ * \return Address matching given tag.
+ */
+static const void* elf_get_dynamic_address_by_tag(const void *dyn, dnload_elf_tag_t tag)
+{
+  const dnload_elf_dyn_t *dynamic = elf_get_dynamic_element_by_tag(dyn, tag);
+#if defined(__linux__) && defined(DNLOAD_SAFE_SYMTAB_HANDLING)
+  if(NULL == dynamic)
+  {
+    return NULL;
+  }
+#endif
+  return (const void*)dynamic->d_un.d_ptr;
+}
+#endif
+#if !defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
+/** Link map address, fixed location in ELF headers. */
+extern const struct r_debug *dynamic_r_debug;
+#endif
+/** \brief Get the program link map.
+ *
+ * \return Link map struct.
+ */
+static const struct link_map* elf_get_link_map()
+{
+#if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
+  // ELF header is in a fixed location in memory.
+  // First program header is located directly afterwards.
+  const dnload_elf_ehdr_t *ehdr = (const dnload_elf_ehdr_t*)ELF_BASE_ADDRESS;
+  const dnload_elf_phdr_t *phdr = (const dnload_elf_phdr_t*)((size_t)ehdr + (size_t)ehdr->e_phoff);
+  do {
+    ++phdr; // Dynamic header is probably never first in PHDR list.
+  } while(phdr->p_type != PT_DYNAMIC);
+  // Find the debug entry in the dynamic header array.
+  {
+    const struct r_debug *debug = (const struct r_debug*)elf_get_dynamic_address_by_tag((const void*)phdr->p_vaddr, DT_DEBUG);
+    return debug->r_map;
+  }
+#else
+  return dynamic_r_debug->r_map;
+#endif
+}
+/** \brief Return pointer from link map address.
+ *
+ * \param lmap Link map.
+ * \param ptr Pointer in this link map.
+ */
+static const void* elf_transform_dynamic_address(const struct link_map *lmap, const void *ptr)
+{
+#if defined(__linux__)
+  // Addresses may also be absolute.
+  if(ptr >= (void*)(size_t)lmap->l_addr)
+  {
+    return ptr;
+  }
+#endif
+  return (uint8_t*)ptr + (size_t)lmap->l_addr;
+}
+#if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
+/** \brief Get address of one dynamic section corresponding to given library.
+ *
+ * \param lmap Link map.
+ * \param tag Tag to look for.
+ * \return Pointer to given section or NULL.
+ */
+static const void* elf_get_library_dynamic_section(const struct link_map *lmap, dnload_elf_tag_t tag)
+{
+  return elf_transform_dynamic_address(lmap, elf_get_dynamic_address_by_tag(lmap->l_ld, tag));
+}
+#endif
+/** \brief Find a symbol in any of the link maps.
+ *
+ * Should a symbol with name matching the given hash not be present, this function will happily continue until
+ * we crash. Size-minimal code has no room for error checking.
+ *
+ * \param hash Hash of the function name string.
+ * \return Symbol found.
+ */
+static void* dnload_find_symbol(uint32_t hash)
+{
+  const struct link_map* lmap = elf_get_link_map();
+#if defined(__linux__) && (8 == DNLOAD_POINTER_SIZE)
+  // On 64-bit Linux, the second entry is not usable.
+  lmap = lmap->l_next;
+#endif
+  for(;;)
+  {
+    // First entry is this object itself, safe to advance first.
+    lmap = lmap->l_next;
+    {
+#if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
+      // Find symbol from link map. We need the string table and a corresponding symbol table.
+      const char* strtab = (const char*)elf_get_library_dynamic_section(lmap, DT_STRTAB);
+      const dnload_elf_sym_t *symtab = (const dnload_elf_sym_t*)elf_get_library_dynamic_section(lmap, DT_SYMTAB);
+      const uint32_t* hashtable = (const uint32_t*)elf_get_library_dynamic_section(lmap, DT_HASH);
+      unsigned dynsymcount;
+      unsigned ii;
+#if defined(__linux__)
+      if(NULL == hashtable)
+      {
+        hashtable = (const uint32_t*)elf_get_library_dynamic_section(lmap, DT_GNU_HASH);
+        // DT_GNU_HASH symbol counter borrows from FreeBSD rtld-elf implementation.
+        dynsymcount = 0;
+        {
+          unsigned bucket_count = hashtable[0];
+          const uint32_t* buckets = hashtable + 4 + ((sizeof(void*) / 4) * hashtable[2]);
+          const uint32_t* chain_zero = buckets + bucket_count + hashtable[1];
+          for(ii = 0; (ii < bucket_count); ++ii)
+          {
+            unsigned bkt = buckets[ii];
+            if(bkt == 0)
+            {
+              continue;
+            }
+            {
+              const uint32_t* hashval = chain_zero + bkt;
+              do {
+                ++dynsymcount;
+              } while(0 == (*hashval++ & 1u));              
+            }
+          }
+        }
+      }
+      else
+#endif
+      {
+        dynsymcount = hashtable[1];
+      }
+      for(ii = 0; (ii < dynsymcount); ++ii)
+      {
+        const dnload_elf_sym_t *sym = &symtab[ii];
+#else
+      // Assume DT_SYMTAB dynamic entry immediately follows DT_STRTAB dynamic entry.
+      // Assume DT_STRTAB memory block immediately follows DT_SYMTAB dynamic entry.
+      const dnload_elf_dyn_t *dynamic = elf_get_dynamic_element_by_tag(lmap->l_ld, DT_STRTAB);
+      const char* strtab = (const char*)elf_transform_dynamic_address(lmap, (const void*)(dynamic->d_un.d_ptr));
+      const dnload_elf_sym_t *sym = (const dnload_elf_sym_t*)elf_transform_dynamic_address(lmap, (const void*)((dynamic + 1)->d_un.d_ptr));
+      for(; ((void*)sym < (void*)strtab); ++sym)
+      {
+#endif
+        const char *name = strtab + sym->st_name;
+#if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
+        // UND symbols have valid names but no value.
+        if(!sym->st_value)
+        {
+          continue;
+        }
+#endif
+        if(sdbm_hash((const uint8_t*)name) == hash)
+        {
+          //if(!sym->st_value)
+          //{
+          //  printf("incorrect symbol in library '%s': '%s'\n", lmap->l_name, name);
+          //}
+          return (void*)((const uint8_t*)sym->st_value + (size_t)lmap->l_addr);
+        }
+      }
+    }
+  }
+}
 /** \brief Perform init.
  *
- * dlopen/dlsym -style.
+ * Import by hash - style.
  */
 static void dnload(void)
 {
-  char *src = (char*)g_dynstr;
-  void **dst = (void**)&g_symbol_table;
-  do {
-    void *handle = dlopen(src, RTLD_LAZY);
-    for(;;)
-    {
-      while(*(src++));
-      if(!*(src))
-      {
-        break;
-      }
-      *dst++ = dlsym(handle, src);
-    }
-  } while(*(++src));
+  unsigned ii;
+  for(ii = 0; (15 > ii); ++ii)
+  {
+    void **iter = ((void**)&g_symbol_table) + ii;
+    *iter = dnload_find_symbol(*(uint32_t*)iter);
+  }
 }
 #endif
 
@@ -284,19 +480,6 @@ extern "C" {
 #endif
 /** Program entry point. */
 void _start() DNLOAD_VISIBILITY;
-#if defined(__cplusplus)
-}
-#endif
-#endif
-
-#if !defined(USE_LD) && defined(__FreeBSD__)
-#if defined(__cplusplus)
-extern "C" {
-#endif
-/** Symbol required by libc. */
-void *environ DNLOAD_VISIBILITY;
-/** Symbol required by libc. */
-void *__progname DNLOAD_VISIBILITY;
 #if defined(__cplusplus)
 }
 #endif

@@ -2212,16 +2212,10 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #if defined(WIN32)
 #include \"windows.h\"
 #include \"GL/glew.h\"
-#include \"GL/glu.h\"
-#include \"ft2build.h\"
-#include FT_FREETYPE_H
-#include \"SDL.h\"
+#include \"GL/glu.h\"[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #elif defined(__APPLE__)
 #include \"GL/glew.h\"
-#include <OpenGL/glu.h>
-#include \"ft2build.h\"
-#include FT_FREETYPE_H
-#include <SDL/SDL.h>
+#include <OpenGL/glu.h>[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #else
 #if defined(DNLOAD_GLESV2)
 #include \"GLES2/gl2.h\"
@@ -2229,20 +2223,14 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #else
 #include \"GL/glew.h\"
 #include \"GL/glu.h\"
-#endif
-#include \"ft2build.h\"
-#include FT_FREETYPE_H
-#include \"SDL.h\"
+#endif[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #endif
 #include \"bsd_rand.h\"
 #else
 #if defined(__APPLE__)
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
-#include <OpenGL/glu.h>
-#include \"ft2build.h\"
-#include FT_FREETYPE_H
-#include <SDL/SDL.h>
+#include <OpenGL/glu.h>[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #else
 #if defined(DNLOAD_GLESV2)
 #include \"GLES2/gl2.h\"
@@ -2251,10 +2239,7 @@ g_template_header_begin = """#ifndef DNLOAD_H
 #include \"GL/gl.h\"
 #include \"GL/glext.h\"
 #include \"GL/glu.h\"
-#endif
-#include \"ft2build.h\"
-#include FT_FREETYPE_H
-#include \"SDL.h\"
+#endif[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #endif
 #endif\n
 /** Macro stringification helper (adds indirection). */
@@ -3146,8 +3131,8 @@ def readelf_truncate(src, dst):
 
 def replace_conflicting_library(symbols, src_name, dst_name):
   """Replace conflicting library reference in a symbol set if necessary."""
-  src_found = any((x.get_library().get_name() == src_name) for x in symbols)
-  dst_found = any((x.get_library().get_name() == dst_name) for x in symbols)
+  src_found = symbols_has_library(symbols, src_name)
+  dst_found = symbols_has_library(symbols, dst_name)
   if not (src_found and dst_found):
     return symbols
   if is_verbose():
@@ -3212,6 +3197,18 @@ def search_executable(op, description = None):
 def set_program_start(op):
   """Set label to start program execution from."""
   replace_platform_variable("start", op)
+
+def symbols_has_library(symbols, name):
+  """Tell if symbol collection wants to link against a given library."""
+  return any((x.get_library().get_name() == name) for x in symbols)
+
+def template_replace(contents, template, replacement):
+  """Replace all occurrances of given template with replacement."""
+  return re.sub(r'\[\[\s*%s\s*\]\]' % (template), replacement, contents)
+
+def template_erase_all(contents):
+  """Erases all templates that remain."""
+  return re.sub(r'\[\[[^\]]+\]\]', "", contents)
 
 def touch(op):
   """Emulate *nix 'touch' command."""
@@ -3532,6 +3529,14 @@ def main():
   file_contents += generate_symbol_struct(compilation_mode, real_symbols, definition_ld)
   file_contents += generate_loader(compilation_mode, real_symbols, definition_ld, linker)
   file_contents += g_template_header_end
+
+  if symbols_has_library(symbols, "freetype2"):
+    file_contents = template_replace(file_contents, "FREETYPE_INCLUDE",
+        "\n#include \"ft2build.h\"\n#include FT_FREETYPE_H")
+  if symbols_has_library(symbols, "SDL") or symbols_has_library(symbols, "SDL2"):
+    file_contents = template_replace(file_contents, "SDL_INCLUDE", "\n#include \"SDL.h\"")
+  # Done replacing templates, erase all templates that remain.
+  file_contents = template_erase_all(file_contents)
 
   fd = open(target, "w")
   fd.write(file_contents)

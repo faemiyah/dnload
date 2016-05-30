@@ -113,6 +113,11 @@ static const char *usage = ""
 "Main function wrapper for intro stub.\n"
 "Release version does not pertain to any size limitations.\n";
 
+#else
+
+/// Developer mode disabled.
+#define g_flag_developer 0
+
 #endif
 
 //######################################
@@ -617,7 +622,7 @@ void update_window_position()
 #endif
 /// \endcond
 
-void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_developer, bool flag_record)
+void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_record)
 {
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
@@ -645,7 +650,7 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
 #else
   dnload_SDL_GL_CreateContext(g_sdl_window);
 #endif
-  dnload_SDL_ShowCursor(flag_developer);
+  dnload_SDL_ShowCursor(g_flag_developer);
 
 #if defined(USE_LD)
 #if !defined(DNLOAD_GLESV2)
@@ -664,7 +669,6 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
     update_window_position();
   }
 #else
-  (void)flag_developer;
   (void)flag_record;
 #endif
 
@@ -741,12 +745,11 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
     return;
   }
 
-  if(!flag_developer)
+  if(!g_flag_developer)
   {
     SDL_OpenAudio(&audio_spec, NULL);
     SDL_PauseAudio(0);
   }
-  g_flag_developer = flag_developer;
 #else
   dnload_SDL_OpenAudio(&audio_spec, NULL);
   dnload_SDL_PauseAudio(0);
@@ -1023,7 +1026,6 @@ int MAINPROG(int argc, char **argv)
 {
   unsigned screen_w = SCREEN_W;
   unsigned screen_h = SCREEN_H;
-  bool developer = false;
   bool fullscreen = true;
   bool record = false;
 
@@ -1045,7 +1047,7 @@ int MAINPROG(int argc, char **argv)
 
       if(vmap.count("developer"))
       {
-        developer = true;
+        g_flag_developer = true;
       }
       if(vmap.count("help"))
       {
@@ -1066,7 +1068,7 @@ int MAINPROG(int argc, char **argv)
       }
     }
 
-    intro(screen_w, screen_h, developer, fullscreen, record);
+    intro(screen_w, screen_h, fullscreen, record);
   }
   catch(const boost::exception &err)
   {
