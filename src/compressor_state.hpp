@@ -90,7 +90,8 @@ namespace fcmp
       /// \param thr Thread to move.
       /// \param context Context to use for next job.
       /// \param weight Weight to use for next job.
-      void awaken(CompressorThread *thr, uint8_t context, uint8_t weight);
+      /// \param size_limit Cancel compression if size limit is reached.
+      void awaken(CompressorThread *thr, uint8_t context, uint8_t weight, size_t size_limit);
 
       /// Rotate to next cycle. If no improvements have happened, do nothing.
       ///

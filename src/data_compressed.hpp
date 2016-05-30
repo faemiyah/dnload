@@ -96,11 +96,6 @@ namespace fcmp
       void read(const fs::path &filename);
 
     public:
-      /// Get total size.
-      ///
-      /// \return Total size on disk in bits.
-      size_t getSizeBits() const;
-
       /// Output to stream.
       ///
       /// \param ostr Stream to output to.
@@ -166,6 +161,19 @@ namespace fcmp
       size_t getBitstreamLength() const
       {
         return m_data.size();
+      }
+
+      /// Get total size.
+      ///
+      /// \return Total size on disk in bits.
+      size_t getSizeBits() const
+      {
+        size_t ret = 8 + 24; // Model count and extracted size count.
+
+        // Model sizes are constant.
+        ret += m_models.size() * DataModel::size();
+
+        return ret + m_data.size();
       }
 
       /// Accessor.

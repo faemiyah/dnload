@@ -49,7 +49,8 @@ static uint8_t gcd(uint8_t lhs, uint8_t rhs)
 /// \param data Compressed data.
 /// \param bit Bit to output.
 /// \param pending_bits Number of pending bits to output.
-static void output_bit_pending(DataCompressed &data, bool bit, unsigned &pending_bits)
+/// \return Size of compressed data after appending bits.
+static size_t output_bit_pending(DataCompressed &data, bool bit, unsigned &pending_bits)
 {
   data.append(bit);
 
@@ -65,6 +66,8 @@ static void output_bit_pending(DataCompressed &data, bool bit, unsigned &pending
     data.append(!bit);
     --pending_bits;
   }
+
+  return data.getSizeBits();
 }
 
 bool Compressor::addModel(uint8_t context, uint8_t weight)
@@ -95,7 +98,7 @@ bool Compressor::addModel(uint8_t context, uint8_t weight)
   return true;
 }
 
-DataCompressedSptr Compressor::compressRun(const DataBits &data)
+DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_limit)
 {
   DataCompressedSptr ret(new DataCompressed(data.getSizeBits()));
 
@@ -149,11 +152,19 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data)
     {
       if(CODE_HALF > high)
       {
-        output_bit_pending(*ret, false, pending_bits);
+        size_t cmp_size = output_bit_pending(*ret, false, pending_bits);
+        if(size_limit <= cmp_size)
+        {
+          return ret;
+        }
       }
       else if(CODE_HALF <= low)
       {
-        output_bit_pending(*ret, true, pending_bits);
+        size_t cmp_size = output_bit_pending(*ret, true, pending_bits);
+        if(size_limit <= cmp_size)
+        {
+          return ret;
+        }
       }
       else if((CODE_HIGH > high) && (CODE_LOW <= low))
       {

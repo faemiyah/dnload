@@ -33,7 +33,7 @@ void CompressorThread::run()
     CompressorSptr compressor = m_state->mutate(m_context, m_weight);
     if(compressor)
     {
-      DataCompressedSptr attempt = compressor->compressRun(*m_data);
+      DataCompressedSptr attempt = compressor->compressRun(*m_data, m_size_limit);
       sl.lock();
       m_state->update(compressor, attempt);
     }

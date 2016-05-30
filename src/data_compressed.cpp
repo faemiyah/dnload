@@ -11,18 +11,6 @@ std::ostream& DataModel::put(std::ostream &ostr) const
   return ostr << 'c' << to_bit_string(m_context) << " w" << to_hex_string(m_weight);
 }
 
-size_t DataCompressed::getSizeBits() const
-{
-  size_t ret = 8 + 24; // Model count and extracted size count.
-
-  for(const DataModel &vv : m_models)
-  {
-    ret += vv.size();
-  }
-
-  return ret + m_data.size();
-}
-
 std::ostream& DataCompressed::put(std::ostream &ostr) const
 {
   ostr << "Models(" << m_models.size() << "):\n  ";

@@ -34,6 +34,9 @@ namespace fcmp
       /// Weight.
       uint8_t m_weight;
 
+      /// Size limit.
+      size_t m_size_limit;
+
     public:
       /// Constructor.
       ///
@@ -65,10 +68,12 @@ namespace fcmp
       ///
       /// \param context Context for next task.
       /// \param weight Weight for next task.
-      void awaken(uint8_t context, uint8_t weight)
+      /// \param size_limit Maximum size to compress up to.
+      void awaken(uint8_t context, uint8_t weight, size_t size_limit)
       {
         m_context = context;
         m_weight = weight;
+        m_size_limit = size_limit;
         m_cond.notify_one();
       }
 

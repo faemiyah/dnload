@@ -104,10 +104,10 @@ namespace fcmp
       static const uint32_t CODE_HALF = 1U << 30;
 
       /// Lower limit for renormalization (1/4).
-      static const uint32_t CODE_LOW = 1U << 29;
+      static const uint32_t CODE_LOW = CODE_HALF - (1U << 29);
 
       /// High limit for renormalization (3/4).
-      static const uint32_t CODE_HIGH = (1U << 29) * 3;
+      static const uint32_t CODE_HIGH = CODE_HALF + (1U << 29);
 
     private:
       /// Models.
@@ -147,8 +147,9 @@ namespace fcmp
       /// Perform one compression run using current models.
       ///
       /// \param data Data to compress.
+      /// \param size_limit Cancel compression size limit is exceeded.
       /// \return Compressed data.
-      DataCompressedSptr compressRun(const DataBits &data);
+      DataCompressedSptr compressRun(const DataBits &data, size_t size_limit);
 
       /// Decompress a data stream.
       ///

@@ -34,11 +34,11 @@ CompressorState::CompressorState(const DataBits *data, unsigned threads) :
   }
 }
 
-void CompressorState::awaken(CompressorThread *thr, uint8_t context, uint8_t weight)
+void CompressorState::awaken(CompressorThread *thr, uint8_t context, uint8_t weight, size_t size_limit)
 {
   erase(m_threads_dormant, thr);
   m_threads_active.push_back(thr);
-  thr->awaken(context, weight);
+  thr->awaken(context, weight, size_limit);
 }
 
 bool CompressorState::compressCycle()
@@ -58,7 +58,8 @@ bool CompressorState::compressCycle()
         m_cond.wait(sl);
       }
 
-      awaken(m_threads_dormant.back(), context, weight);
+      awaken(m_threads_dormant.back(), context, weight,
+          m_best_data ? m_best_data->getSizeBits() : std::numeric_limits<size_t>::max());
 #if defined(FCMP_COMPRESSION_TRIVIAL)
       break;
 #endif
