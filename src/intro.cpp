@@ -622,6 +622,12 @@ void update_window_position()
 #endif
 /// \endcond
 
+/// \brief Intro body function.
+///
+/// \param screen_w Screen width.
+/// \param screen_h Screen height.
+/// \param flag_fullscreen Fullscreen toggle.
+/// \param flag_record Record toggle.
 void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_record)
 {
   dnload();
@@ -1090,7 +1096,7 @@ int MAINPROG(int argc, char **argv)
 #else
 void _start()
 {
-  intro(SCREEN_W, SCREEN_H, static_cast<bool>(SCREEN_F), false, false);
+  intro(SCREEN_W, SCREEN_H, static_cast<bool>(SCREEN_F), false);
   asm_exit();
 }
 #endif
