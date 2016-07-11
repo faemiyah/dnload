@@ -3545,7 +3545,7 @@ def main():
   else:
     g_template_header.subst("LOADER", generate_loader_hash(real_symbols))
   if "maximum" != compilation_mode:
-    g_template_header.subst("UND_SYMBOLS", g_template_symbols.format())
+    g_template_header.subst("UND_SYMBOLS", g_template_und_symbols.format())
 
   # Add remaining simple substitutions and generate file contents.
   g_template_header.subst("DEFINITION_LD", definition_ld)
