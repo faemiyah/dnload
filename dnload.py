@@ -3521,7 +3521,7 @@ def main():
       print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
 
   # Header includes.
-  if symbols_has_library(symbols, "freetype2"):
+  if symbols_has_library(symbols, "freetype"):
     g_template_header.subst("FREETYPE_INCLUDE", "\n#include \"ft2build.h\"\n#include FT_FREETYPE_H")
   if symbols_has_library(symbols, "SDL") or symbols_has_library(symbols, "SDL2"):
     g_template_header.subst("SDL_INCLUDE", "\n#include \"SDL.h\"")
