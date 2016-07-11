@@ -2,6 +2,26 @@
 /// Very small intro stub.
 
 //######################################
+// Include #############################
+//######################################
+
+#include "dnload.h"
+
+#if defined(USE_LD)
+#include "glsl_shader_source.hpp"
+#include "image_png.hpp"
+#include <cstdio>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <boost/exception/diagnostic_information.hpp>
+#include <boost/program_options.hpp>
+#include <boost/scoped_array.hpp>
+#include <boost/tuple/tuple.hpp>
+namespace po = boost::program_options;
+#endif
+
+//######################################
 // Define ##############################
 //######################################
 
@@ -28,14 +48,33 @@
 #endif
 /// \endcond
 
+/// Size of one sample in bytes.
+#define AUDIO_SAMPLE_SIZE 1
+
+/// \cond
+#if (4 == AUDIO_SAMPLE_SIZE)
+#define AUDIO_SAMPLE_TYPE_SDL AUDIO_F32SYS
+typedef float sample_t;
+#elif (2 == AUDIO_SAMPLE_SIZE)
+#define AUDIO_SAMPLE_TYPE_SDL AUDIO_S16SYS
+typedef int16_t sample_t;
+#elif (1 == AUDIO_SAMPLE_SIZE)
+#define AUDIO_SAMPLE_TYPE_SDL AUDIO_U8
+typedef uint8_t sample_t;
+#else
+#error "invalid audio sample size"
+#endif
+#define AUDIO_POSITION_SHIFT (9 - (4 / sizeof(sample_t)))
+/// \endcond
+
 /// Audio channels.
-#define AUDIO_CHANNELS 2
+#define AUDIO_CHANNELS 1
 
 /// Audio samplerate.
 #define AUDIO_SAMPLERATE 8000
 
 /// Audio byterate.
-#define AUDIO_BYTERATE (AUDIO_CHANNELS * AUDIO_SAMPLERATE * sizeof(uint8_t))
+#define AUDIO_BYTERATE (AUDIO_CHANNELS * AUDIO_SAMPLERATE * sizeof(sample_t))
 
 /// Intro length (in bytes of audio).
 #define INTRO_LENGTH (16 * AUDIO_BYTERATE)
@@ -56,37 +95,11 @@
 /// \endcond
 
 //######################################
-// Include #############################
-//######################################
-
-#include "dnload.h"
-
-#if defined(USE_LD)
-#include "glsl_shader_source.hpp"
-#include "image_png.hpp"
-#include <cstdio>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <boost/exception/diagnostic_information.hpp>
-#include <boost/program_options.hpp>
-#include <boost/scoped_array.hpp>
-#include <boost/tuple/tuple.hpp>
-namespace po = boost::program_options;
-#endif
-
-#if defined(__APPLE__)
-#define MAINPROG SDL_main
-#else
-#define MAINPROG main
-#endif
-
-//######################################
 // Global data #########################
 //######################################
 
 /// Audio buffer for output.
-static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8 / sizeof(uint8_t)];
+static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8 / sizeof(sample_t)];
 
 /// Current audio position.
 static uint8_t *g_audio_position = reinterpret_cast<uint8_t*>(&g_audio_buffer[INTRO_START]);
@@ -201,7 +214,7 @@ static void audio_callback(void *userdata, Uint8 *stream, int len)
 static SDL_AudioSpec audio_spec =
 {
   AUDIO_SAMPLERATE,
-  AUDIO_U8,
+  AUDIO_SAMPLE_TYPE_SDL,
   AUDIO_CHANNELS,
   0,
 #if defined(USE_LD)
@@ -547,7 +560,7 @@ boost::tuple<unsigned, unsigned> parse_resolution(const std::string &op)
 ///
 /// \param data Raw audio data.
 /// \param size Audio data size (in samples).
-void write_audio(void *data, unsigned size)
+void write_audio(void *data, size_t size)
 {
   FILE *fd = fopen("intro.raw", "wb");
 
@@ -704,7 +717,7 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
     unsigned ii;
 
     // Example by "bst", taken from "Music from very short programs - the 3rd iteration" by viznut.
-    for(ii = 0; (INTRO_LENGTH / sizeof(uint8_t) > ii); ++ii)
+    for(ii = 0; (INTRO_LENGTH / sizeof(sample_t) > ii); ++ii)
     {
       g_audio_buffer[ii] =
         static_cast<uint8_t>(
@@ -723,7 +736,7 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
     // audio
     SDL_PauseAudio(1);
 
-    write_audio(g_audio_buffer, static_cast<unsigned>(INTRO_LENGTH * sizeof(uint16_t) * AUDIO_CHANNELS));
+    write_audio(g_audio_buffer, INTRO_LENGTH);
 
     // video
     for(;;)
@@ -1028,7 +1041,7 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
 /// \param argc Argument count.
 /// \param argv Arguments.
 /// \return Program return code.
-int MAINPROG(int argc, char **argv)
+int DNLOAD_MAIN(int argc, char **argv)
 {
   unsigned screen_w = SCREEN_W;
   unsigned screen_h = SCREEN_H;
