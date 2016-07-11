@@ -2196,9 +2196,10 @@ class Template:
       (ret, num) = re.subn(r'\[\[\s*%s\s*\]\]' % (kk), vv, ret)
       if not num and is_verbose():
         print("WARNING: substitution '%s' has no matches" % (kk))
+    unmatched = list(set(re.findall(r'\[\[([^\]]+)\]\]', ret)))
     (ret, num) = re.subn(r'\[\[[^\]]+\]\]', "", ret)
     if num and is_verbose():
-      print("WARNING: %i substitutions were not matched" % num)
+      print("Template substitutions not matched: %s (%i)" % (str(unmatched), num))
     return ret
 
   def subst(self, template, replacement):
@@ -2270,6 +2271,11 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #include \"GL/glu.h\"
 #endif[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #endif
+#endif\n
+#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
+#define DNLOAD_MAIN SDL_main
+#else
+#define DNLOAD_MAIN main
 #endif\n
 /** Macro stringification helper (adds indirection). */
 #define DNLOAD_MACRO_STR_HELPER(op) #op
