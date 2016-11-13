@@ -3263,6 +3263,7 @@ class CustomHelpFormatter(argparse.HelpFormatter):
 
 def main():
   """Main function."""
+  global g_osarch
   global g_osname
   global g_verbose
 
@@ -3394,8 +3395,8 @@ def main():
       opengl_version = "ES2"
       if 'armv7l' == g_osarch:
         repl_march = "armv6l"
-        if verbose:
-          print("Workaround (Raspberry Pi): targeting '%s' instead of '%s'" % (repl_marcg, g_osarch))
+        if is_verbose():
+          print("Workaround (Raspberry Pi): targeting '%s' instead of '%s'" % (repl_march, g_osarch))
         g_osarch = repl_march
 
   if "ES2" == opengl_version:
