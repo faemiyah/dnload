@@ -250,7 +250,6 @@ class AssemblerFile:
     fd.close()
     self.__sections = []
     current_section = AssemblerSection("text")
-    ii = 0
     sectionre = re.compile(r'^\s+\.section\s+\"?\.([a-zA-Z0-9_]+)[\.\s]')
     for ii in lines:
       match = sectionre.match(ii)
@@ -616,8 +615,8 @@ class AssemblerSection:
   def empty(self):
     """Tell if this section is empty."""
     if not self.__content:
-      return False
-    return True
+      return True
+    return False
 
   def erase(self, first, last = None):
     """Erase lines."""
@@ -767,6 +766,10 @@ class AssemblerSection:
       fd.write(self.__tag)
     for ii in self.__content:
       fd.write(ii)
+
+  def __str__(self):
+    """String representation."""
+    return "AssemblerSection('%s', %i)" % (self.__name, len(self.__content))
 
 ########################################
 # AssemblerSectionAlignment ############
@@ -3020,14 +3023,18 @@ def is_verbose():
   """Tell if verbose mode is on."""
   return g_verbose
 
-def locate(pth, fn):
+def locate(pth, fn, previous_paths = None):
   """Search for given file from given path downward."""
   if is_listing(pth):
     for ii in pth:
-      ret = locate(ii, fn)
+      ret = locate(ii, fn, previous_paths)
       if ret:
         return ret
     return None
+  # Initialize previous paths on first execution.
+  if not previous_paths:
+    pth = os.path.realpath(pth)
+    previous_paths = [pth]
   # Some specific directory trees would take too much time to traverse.
   if pth in ("/lib/modules"): 
     return None
@@ -3036,9 +3043,9 @@ def locate(pth, fn):
     return os.path.normpath(pthfn)
   try:
     for ii in os.listdir(pth):
-      iifn = pth + "/" + ii
-      if os.path.isdir(iifn):
-        ret = locate(iifn, fn)
+      iifn = os.path.realpath(pth + "/" + ii)
+      if os.path.isdir(iifn) and (not iifn in previous_paths):
+        ret = locate(iifn, fn, previous_paths + [iifn])
         if ret:
           return ret
   except OSError as ee: # Permission denied or the like.
