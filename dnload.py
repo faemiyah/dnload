@@ -78,7 +78,7 @@ class PlatformVar:
     """String representation."""
     ret = self.get()
     if isinstance(ret, int):
-      return hex(ret)
+      return "0x%x" % (ret)
     return ret
 
 g_platform_mapping = {
@@ -197,12 +197,12 @@ class Assembler:
     """Get data element."""
     size = int(size)
     if isinstance(value, int):
-      value = hex(value)
+      value = "0x%x" % (value)
     elif is_listing(value):
       value_strings = []
       for ii in value:
         if isinstance(ii, int):
-          value_strings += [hex(ii)]
+          value_strings += ["0x%x" % (ii)]
         else:
           value_strings += [str(ii)]
       value = ", ".join(value_strings)
@@ -222,7 +222,7 @@ class Assembler:
       raise NotImplementedError("exporting assembler value of size %i", size)
 
   def format_equ(self, name, value):
-    return ".equ %s, %s\n" % (name, value)
+    return ".globl %s\n.equ %s, %s\n" % (name, name, value)
 
   def format_label(self, op):
     """Generate name labels."""
@@ -231,9 +231,9 @@ class Assembler:
     ret = ""
     if is_listing(op):
       for ii in op:
-        ret += ii + ":\n"
+        ret += format_label(ii) 
     else:
-      ret += op + ":\n"
+      ret += ".globl %s\n%s:\n" % (op, op)
     return ret
 
 ########################################
@@ -257,7 +257,7 @@ class AssemblerFile:
         self.add_sections(current_section)
         current_section = AssemblerSection(match.group(1), ii)
       else:
-        current_section.add_line(ii)
+        current_section.add_content(ii)
     if not current_section.empty():
       self.add_sections(current_section)
     if is_verbose():
@@ -301,6 +301,31 @@ class AssemblerFile:
     self.add_sections(bss)
     return bss
 
+  def generate_end(self, assembler):
+    """Generate section for end label."""
+    end_section = AssemblerSection("end")
+    end_section.add_content(assembler.format_label("end"))
+    self.add_sections(end_section)
+    return end_section
+
+  def generate_file_output(self, section_names):
+    """Generate output to be written into a file."""
+    ret = ""
+    allowed_names = []
+    denied_names = []
+    # If no section_names, allow everything.
+    if section_names:
+      for ii in section_names:
+        if ii.startswith("^"):
+          denied_names += [ii[len("^"):]]
+        else:
+          allowed_names += [ii]
+    for ii in self.__sections:
+      sn = ii.get_name()
+      if (not sn in denied_names) and ((not allowed_names) or (sn in allowed_names)):
+        ret += ii.generate_file_output()
+    return ret
+
   def incorporate(self, other, label_name, jump_point_name):
     """Incorporate another assembler file into this, rename entry points."""
     labels = []
@@ -313,41 +338,55 @@ class AssemblerFile:
       ii.replace_labels(labels, label_name)
     self.add_sections(other.__sections)
 
-  def sort_sections(self, data_in_front = True):
+  def sort_sections(self, assembler, data_in_front = True):
     """Sort sections into an order that is more easily compressible."""
     text_sections = []
-    data_sections = []
     rodata_sections = []
+    data_sections = []
     other_sections = []
+    end_sections = []
     for ii in self.__sections:
       if "text" == ii.get_name():
         text_sections += [ii]
-      elif "data" == ii.get_name():
-        data_sections += [ii]
       elif "rodata" == ii.get_name():
         rodata_sections += [ii]
+      elif "data" == ii.get_name():
+        data_sections += [ii]
+      elif "end" == ii.get_name():
+        end_sections += [ii]
       else:
         other_sections += [ii]
-    text_section_str = None
-    data_section_str = None
-    rodata_section_str = None
-    other_section_str = None
+    text_section_str = []
+    rodata_section_str = []    
+    data_section_str = []
+    other_section_str = []
     if text_sections:
-      text_section_str = "%i text" % (len(text_sections))
-    if data_sections:
-      data_section_str = "%i data" % (len(data_sections))
+      text_section_str += ["%i text" % (len(text_sections))]
     if rodata_sections:
-      rodata_section_str = "%i rodata" % (len(rodata_sections))
-    if other_sections:
-      other_section_str = ", ".join(map(lambda x: x.get_name(), other_sections))
-    if data_in_front:
-      self.__sections = rodata_sections + data_sections + text_sections + other_sections
-      output_order = (rodata_section_str, data_section_str, text_section_str, other_section_str)
+      rodata_section_str = ["%i rodata" % (len(rodata_sections))]
+    if data_sections:
+      data_section_str += ["%i data" % (len(data_sections))]
+    # Must generate end section if it's not already present.
+    if not end_sections:
+      end_section = self.generate_end(assembler)
+      if is_verbose():
+        print("Generated sections: %s" % (end_section.get_name()))
+      other_sections += [end_section]
     else:
+      if 1 < len(end_sections):
+        raise RuntimeError("%i (> 1) end sections detected" % (len(end_sections)))
+      other_sections += end_sections
+    if other_sections:
+      other_section_str = [", ".join(map(lambda x: x.get_name(), other_sections))]
+    # Sort data either in front or in the back.
+    if data_in_front:
+      section_str = rodata_section_str + data_section_str + text_section_str + other_section_str
+      self.__sections = rodata_sections + data_sections + text_sections + other_sections
+    else:
+      section_str = text_section_str + rodata_section_str + data_section_str + other_section_str
       self.__sections = text_sections + rodata_sections + data_sections + other_sections
-      output_order = (text_section_str, rodata_section_str, data_section_str, other_section_str)
     if is_verbose():
-      print("Sorted sections: " + ", ".join(filter(lambda x: x, output_order)))
+      print("Sorted sections: " + ", ".join(filter(lambda x: x, section_str)))
 
   def remove_rodata(self):
     """Remove .rodata sections by merging them into the previous/next .text section."""
@@ -374,35 +413,22 @@ class AssemblerFile:
       new_sections[0].replace_content(rodata_section)
     self.__sections = new_sections
 
-  def replace_constant(self, src, dst):
-    """Replace constant with a replacement constant."""
-    replace_count = 0
-    for ii in self.__sections:
-      for jj in range(len(ii.content)):
-        line = ii.content[jj]
-        replaced = re.sub(r'(\$%s|\$%s)' % (src, hex(src)), r'$%s' % hex(dst), line)
-        if line != replaced:
-          ii.content[jj] = replaced
-          replace_count += 1
-    if 1 > replace_count:
-      raise RuntimeError("could not find constant to be replaced")
-    elif 1 < replace_count:
-      raise RuntimeError("found constant to be replaced more than once, source destroyed")
-
-  def write(self, op, assembler):
+  def write(self, op, assembler, section_names = None):
     """Write an output assembler file or append to an existing file."""
+    output = self.generate_file_output(section_names)
+    if not output:
+      return False
     if isinstance(op, str):
       fd = open(op, "w")
-      for ii in self.__sections:
-        ii.write(fd)
+      ret = fd.write(output)
       fd.close()
-      if is_verbose():
+      if ret and is_verbose():
         print("Wrote assembler source file '%s'." % (op))
     else:
-      prefix = assembler.format_block_comment("Program")
+      prefix = assembler.format_block_comment("sections '%s'" % (str(section_names)))
       op.write(prefix)
-      for ii in self.__sections:
-        ii.write(op)
+      op.write(output)
+    return True
 
 ########################################
 # AssemblerBssElement ##################
@@ -459,9 +485,10 @@ class AssemblerSection:
     self.__tag = section_tag
     self.__content = []
 
-  def add_line(self, line):
-    """Add one line."""
-    self.__content += [line]
+  def add_content(self, line):
+    """Add one or more lines of content."""
+    for ii in line.strip("\n").split("\n"):
+      self.__content += [ii + "\n"]
 
   def clear_content(self):
     """Clear all content."""
@@ -470,18 +497,18 @@ class AssemblerSection:
   def crunch(self):
     """Remove all offending content."""
     while True:
-      lst = self.want_line(r'\s*\.file\s+(.*)')
-      if lst:
-        self.erase(lst[0])
-        continue
-      lst = self.want_line(r'\s*\.globl\s+(.*)')
-      if lst:
-        self.erase(lst[0])
-        continue
-      lst = self.want_line(r'\s*\.ident\s+(.*)')
-      if lst:
-        self.erase(lst[0])
-        continue
+      #lst = self.want_line(r'\s*\.file\s+(.*)')
+      #if lst:
+      #  self.erase(lst[0])
+      #  continue
+      #lst = self.want_line(r'\s*\.globl\s+(.*)')
+      #if lst:
+      #  self.erase(lst[0])
+      #  continue
+      #lst = self.want_line(r'\s*\.ident\s+(.*)')
+      #if lst:
+      #  self.erase(lst[0])
+      #  continue
       lst = self.want_line(r'\s*\.section\s+(.*)')
       if lst:
         self.erase(lst[0])
@@ -695,6 +722,15 @@ class AssemblerSection:
         ret += [match.group(1)]
     return ret
 
+  def generate_file_output(self):
+    """Generate output for writing to a file."""
+    ret = ""
+    if self.__tag:
+      ret += self.__tag
+    for ii in self.__content:
+      ret += ii
+    return ret
+
   def get_name(self):
     """Accessor."""
     return self.__name
@@ -760,13 +796,6 @@ class AssemblerSection:
         return (ii, match.group(1))
     return None
 
-  def write(self, fd):
-    """Write this section into a file."""
-    if self.__tag:
-      fd.write(self.__tag)
-    for ii in self.__content:
-      fd.write(ii)
-
   def __str__(self):
     """String representation."""
     return "AssemblerSection('%s', %i)" % (self.__name, len(self.__content))
@@ -788,14 +817,14 @@ class AssemblerSectionAlignment(AssemblerSection):
     """Generate assembler content."""
     self.clear_content()
     if self.get_name():
-      self.add_line(assembler.format_label(self.get_name()))
+      self.add_content(assembler.format_label(self.get_name()))
     # Pad with zero bytes.
     var_line = AssemblerVariable(("", 1, 0)).generate_source(assembler, 1)
     for ii in range(self.__padding):
-      self.add_line(var_line)
+      self.add_content(var_line)
     if 0 < self.__alignment:
-      self.add_line(assembler.format_align(self.__alignment))
-    self.add_line(assembler.format_label(self.__post_label))
+      self.add_content(assembler.format_align(self.__alignment))
+    self.add_content(assembler.format_label(self.__post_label))
 
 ########################################
 # AssemblerSectionBss ##################
@@ -806,7 +835,7 @@ class AssemblerSectionBss(AssemblerSection):
 
   def __init__(self):
     """Constructor."""
-    AssemblerSection.__init__(self, ".bss")
+    AssemblerSection.__init__(self, "bss")
     self.__elements = []
     self.__size = 0
     self.__und_size = 0
@@ -814,7 +843,7 @@ class AssemblerSectionBss(AssemblerSection):
   def add_element(self, op):
     """Add one variable element."""
     if op in self.__elements:
-      print("WARNING: trying to add .bss element twice: %s" % (str(element)))
+      print("WARNING: trying to add .%s element twice: %s" % (sekf.__name, str(element)))
       return
     self.__elements += [op]
     self.__elements.sort()
@@ -826,18 +855,18 @@ class AssemblerSectionBss(AssemblerSection):
     """Generate assembler content."""
     self.clear_content()
     if prepend_label:
-      self.add_line(assembler.format_label(prepend_label))
+      self.add_content(assembler.format_label(prepend_label))
     if 0 < self.__size:
-      self.add_line(assembler.format_align(int(PlatformVar("addr"))))
-      self.add_line(assembler.format_label("aligned_end"))
+      self.add_content(assembler.format_align(int(PlatformVar("addr"))))
+      self.add_content(assembler.format_label("aligned_end"))
     if 0 < self.get_alignment():
-      self.add_line(assembler.format_align(self.get_alignment()))
-    self.add_line(assembler.format_label("bss_start"))
+      self.add_content(assembler.format_align(self.get_alignment()))
+    self.add_content(assembler.format_label("bss_start"))
     cumulative = 0
     for ii in self.__elements:
-      self.add_line(assembler.format_equ(ii.get_name(), "bss_start + %i" % (cumulative)))
+      self.add_content(assembler.format_equ(ii.get_name(), "bss_start + %i" % (cumulative)))
       cumulative += ii.get_size()
-    self.add_line(assembler.format_equ("bss_end", "bss_start + %i" % (cumulative)))
+    self.add_content(assembler.format_equ("bss_end", "bss_start + %i" % (cumulative)))
 
   def get_alignment(self):
     """Get alignment. May be zero."""
@@ -1562,7 +1591,12 @@ class Linker:
 
   def link_binary(self, src, dst):
     """Link a binary file with no bells and whistles."""
-    cmd = [self.__command, "--entry=" + str(PlatformVar("entry")), src, "-o", dst] + self.__linker_script
+    cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))]
+    if is_listing(src):
+      cmd += src
+    else:
+      cmd += [src]
+    cmd += ["-o", dst] + self.__linker_script
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)
@@ -1856,7 +1890,7 @@ def sdbm_hash(name):
   ret = 0
   for ii in name:
     ret = (ret * 65599 + ord(ii)) & 0xFFFFFFFF
-  return hex(ret)
+  return "0x%x" % (ret)
 
 class Symbol:
   """Represents one (function) symbol."""
@@ -2200,25 +2234,21 @@ class Template:
   def __init__(self, content):
     """Constructor."""
     self.__content = content
-    self.__substitutions = {}
 
-  def format(self):
+  def format(self, substitutions = None):
     """Return formatted output."""
     ret = self.__content
-    for kk in self.__substitutions:
-      vv = self.__substitutions[kk].replace("\\", "\\\\")
-      (ret, num) = re.subn(r'\[\[\s*%s\s*\]\]' % (kk), vv, ret)
-      if not num and is_verbose():
-        print("WARNING: substitution '%s' has no matches" % (kk))
+    if substitutions:
+      for kk in substitutions:
+        vv = substitutions[kk].replace("\\", "\\\\")
+        (ret, num) = re.subn(r'\[\[\s*%s\s*\]\]' % (kk), vv, ret)
+        if not num and is_verbose():
+          print("WARNING: substitution '%s' has no matches" % (kk))
     unmatched = list(set(re.findall(r'\[\[([^\]]+)\]\]', ret)))
     (ret, num) = re.subn(r'\[\[[^\]]+\]\]', "", ret)
     if num and is_verbose():
       print("Template substitutions not matched: %s (%i)" % (str(unmatched), num))
     return ret
-
-  def subst(self, template, replacement):
-    """Add a substitution."""
-    self.__substitutions[template] = replacement
 
   def __str__(self):
     """String representation."""
@@ -2708,14 +2738,13 @@ def generate_loader_dlfcn(symbols, linker):
         dlfcn_string += "\"%s\\0\"\n" % (ii.get_library_name(linker))
       current_lib = symbol_lib
     dlfcn_string += "\"%s\\0\"\n" % (ii)
-  g_template_loader_dlfcn.subst("DLFCN_STRING", dlfcn_string + "\"\\0\"")
-  return g_template_loader_dlfcn.format()
+  subst = { "DLFCN_STRING" : dlfcn_string + "\"\\0\"" }
+  return g_template_loader_dlfcn.format(subst)
 
 def generate_loader_hash(symbols):
   """Generate import by hash loader code."""
-  g_template_loader_hash.subst("BASE_ADDRESS", str(PlatformVar("entry")))
-  g_template_loader_hash.subst("SYMBOL_COUNT", str(len(symbols)))
-  return g_template_loader_hash.format()
+  subst = { "BASE_ADDRESS" : str(PlatformVar("entry")), "SYMBOL_COUNT" : str(len(symbols)) }
+  return g_template_loader_hash.format(subst)
 
 def generate_symbol_definitions_direct(symbols, prefix):
   """Generate a listing of definitions to point to real symbols."""
@@ -2735,14 +2764,15 @@ def generate_symbol_table(mode, symbols):
   """Generate the symbol struct definition."""
   definitions = []
   hashes = []
+  subst = {}
   symbol_table_content = ""
   for ii in symbols:
     definitions += ["  %s;" % (ii.generate_definition())]
     hashes += ["  %s%s," % (ii.generate_prototype(), ii.get_hash())]
   if "dlfcn" != mode:
-    g_template_symbol_table.subst("SYMBOL_TABLE_INITIALIZATION", " =\n{\n%s\n}" % ("\n".join(hashes)))
-  g_template_symbol_table.subst("SYMBOL_TABLE_DEFINITION", "\n".join(definitions))
-  return g_template_symbol_table.format()
+    subst["SYMBOL_TABLE_INITIALIZATION"] = " =\n{\n%s\n}" % ("\n".join(hashes))
+  subst["SYMBOL_TABLE_DEFINITION"] = "\n".join(definitions)
+  return g_template_symbol_table.format(subst)
 
 ########################################
 # Functions ############################
@@ -2903,8 +2933,9 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
   else:
     asm = AssemblerFile(output_file + ".S")
-    asm.sort_sections()
-  alignment_section = None
+    alignment_section = None
+  # sort sections after generation.
+  asm.sort_sections(assembler)
   # May be necessary to have two PT_LOAD headers as opposed to one.
   bss_section = asm.generate_fake_bss(assembler, und_symbols, elfling)
   if 0 < bss_section.get_alignment():
@@ -2936,29 +2967,38 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     segments_tail += [segment_symtab]
   segments_tail += [segment_interp, segment_strtab]
   segments = merge_segments(segments_head) + load_segments + merge_segments(segments_tail)
-  # Calculate total size of headers.
+  # Assemble headers.
+  fname = output_file + ".headers"
+  fd = open(fname + ".S", "w")
   header_sizes = 0
-  fd = open(output_file + ".final.S", "w")
   for ii in segments:
     ii.write(fd, assembler)
     header_sizes += ii.size()
   if is_verbose():
     print("Size of headers: %i bytes" % (header_sizes))
+  fd.close()
+  if is_verbose():
+    print("Wrote assembler source '%s'." % (fname + ".S"))
+  assembler.assemble(fname + ".S", fname + ".o")
+  link_files = [fname + ".o"]
   # Create content of earlier sections and write source when done.
   if alignment_section:
     alignment_section.create_content(assembler)
-  if elfling and elfling.has_data():
-    bss_section.create_content(assembler)
-  else:
-    bss_section.create_content(assembler, "end")
-  asm.write(fd, assembler)
-  fd.close()
-  if is_verbose():
-    print("Wrote assembler source '%s'." % (output_file + ".final.S"))
-  assembler.assemble(output_file + ".final.S", output_file + ".o")
+  bss_section.create_content(assembler)
+  # Assemble data.
+  fname = output_file + ".content"
+  if asm.write(fname + ".S", assembler, ["^bss"]):
+    link_files += [fname + ".o"]
+  assembler.assemble(fname + ".S", fname + ".o")
+  # Assemble bss.
+  fname = output_file + ".bss"
+  if asm.write(fname + ".S", assembler, ["bss"]):
+    link_files += [fname + ".o"]
+  assembler.assemble(fname + ".S", fname + ".o")
+  # Link all generated files.
   linker.generate_linker_script(output_file + ".ld", True)
   linker.set_linker_script(output_file + ".ld")
-  linker.link_binary(output_file + ".o", output_file + ".bin")
+  linker.link_binary(link_files, output_file + ".bin")
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
   readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
 
@@ -3540,36 +3580,37 @@ def main():
       print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
 
   # Header includes.
+  subst = {}
   if symbols_has_library(symbols, "freetype"):
-    g_template_header.subst("FREETYPE_INCLUDE", "\n#include \"ft2build.h\"\n#include FT_FREETYPE_H")
+    subst["FREETYPE_INCLUDE"] = "\n#include \"ft2build.h\"\n#include FT_FREETYPE_H"
   if symbols_has_library(symbols, "SDL") or symbols_has_library(symbols, "SDL2"):
-    g_template_header.subst("SDL_INCLUDE", "\n#include \"SDL.h\"")
+    subst["SDL_INCLUDE"] = "\n#include \"SDL.h\""
 
   # Symbol definitions.
   symbol_definitions_direct = generate_symbol_definitions_direct(symbols, symbol_prefix)
-  g_template_header.subst("SYMBOL_DEFINITIONS_DIRECT", symbol_definitions_direct)
+  subst["SYMBOL_DEFINITIONS_DIRECT"] = symbol_definitions_direct
   if "vanilla" == compilation_mode:
-    g_template_header.subst("SYMBOL_DEFINITIONS_TABLE", symbol_definitions_direct)
+    subst["SYMBOL_DEFINITIONS_TABLE"] = symbol_definitions_direct
   else:
     symbol_definitions_table = generate_symbol_definitions_table(symbols, symbol_prefix)
     symbol_table = generate_symbol_table(compilation_mode, real_symbols)
-    g_template_header.subst("SYMBOL_DEFINITIONS_TABLE", symbol_definitions_table)
-    g_template_header.subst("SYMBOL_TABLE", symbol_table)
+    subst["SYMBOL_DEFINITIONS_TABLE"] = symbol_definitions_table
+    subst["SYMBOL_TABLE"] = symbol_table
 
   # Loader and UND symbols.
   if "vanilla" == compilation_mode:
-    g_template_header.subst("LOADER", g_template_loader_vanilla.format())
+    subst["LOADER"] = g_template_loader_vanilla.format()
   elif "dlfcn" == compilation_mode:
-    g_template_header.subst("LOADER", generate_loader_dlfcn(real_symbols, linker))
+    subst["LOADER"] = generate_loader_dlfcn(real_symbols, linker)
   else:
-    g_template_header.subst("LOADER", generate_loader_hash(real_symbols))
+    subst["LOADER"] = generate_loader_hash(real_symbols)
   if "maximum" != compilation_mode:
-    g_template_header.subst("UND_SYMBOLS", g_template_und_symbols.format())
+    subst["UND_SYMBOLS"] = g_template_und_symbols.format()
 
   # Add remaining simple substitutions and generate file contents.
-  g_template_header.subst("DEFINITION_LD", definition_ld)
-  g_template_header.subst("FILENAME", os.path.basename(sys.argv[0]))
-  file_contents = g_template_header.format()
+  subst["DEFINITION_LD"] = definition_ld
+  subst["FILENAME"] = os.path.basename(sys.argv[0])
+  file_contents = g_template_header.format(subst)
 
   fd = open(target, "w")
   fd.write(file_contents)
