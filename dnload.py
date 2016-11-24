@@ -1540,10 +1540,13 @@ class Linker:
     if re.match(r'lib.+\.so(\..*)?', op):
       return op
     libname = "lib%s.so" % (op)
-    # Shared object may be linker script, if so, it will tell actual shared object.
+    # Search in library directories only.
     for ii in self.__library_directories:
       current_libname = locate(ii, libname)
-      if current_libname and file_is_ascii_text(current_libname):
+      if not current_libname:
+        continue
+      # Check if the supposed shared library is a linker script.
+      if file_is_ascii_text(current_libname):
         fd = open(current_libname, "r")
         match = re.search(r'GROUP\s*\(\s*(\S+)\s+', fd.read(), re.MULTILINE)
         fd.close()
@@ -1552,6 +1555,8 @@ class Linker:
           if is_verbose():
             print("Using shared library '%s' instead of '%s'." % (ret, libname))
           return ret
+      # Stop at first match.
+      break
     return libname
 
   def get_linker_flags(self):
@@ -2799,6 +2804,54 @@ class SymbolSource:
     return fname + ".o"
 
 g_symbol_sources = {
+"__aeabi_idivmod" : SymbolSource("""extern "C" int __aeabi_idivmod(int, int);\n
+int __aeabi_idivmod(int numerator, int denominator)
+{
+  int quotient = 0;
+  int quotient_mul = 1;
+  int remainder_mul = 1;\n
+  if(numerator < 0)
+  {
+    remainder_mul = -1;
+    numerator = -numerator;\n
+    if(denominator < 0)
+    {
+      denominator = -denominator;
+    }
+    else
+    {
+      quotient_mul = -1;
+    }
+  }
+  else if(denominator < 0)
+  {
+    quotient_mul = -1;
+    denominator = -denominator;
+  }\n
+  while(numerator > denominator)
+  {
+    numerator -= denominator;
+    ++quotient;
+  }\n
+  volatile register int r1 asm("r1") = numerator * remainder_mul;
+  asm("" : /**/ : "r"(r1) : /**/); // output: remainder
+  return quotient * quotient_mul; // r0
+}
+"""),
+"__aeabi_uidivmod" : SymbolSource("""extern "C" unsigned int __aeabi_uidivmod(unsigned int, unsigned int);\n
+unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
+{
+  int quotient = 0;
+  while(numerator > denominator)
+  {
+    numerator -= denominator;
+    ++quotient;
+  }\n
+  volatile register int r1 asm("r1") = numerator;
+  asm("" : /**/ : "r"(r1) : /**/); // output: remainder
+  return quotient; // r0
+}
+"""),
 "memset" : SymbolSource("""#include <cinttypes>
 #include <cstring>\n
 void* memset(void *ptr, int value, size_t num)
@@ -2809,7 +2862,7 @@ void* memset(void *ptr, int value, size_t num)
   }
   return ptr;
 }
-""")
+"""),
 }
 
 ########################################
