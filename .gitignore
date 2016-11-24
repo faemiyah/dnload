@@ -8,8 +8,11 @@ intro
 intro.dir/
 Release/
 src/hello_world
+src/hello_world.*.cpp
 src/intro
+src/intro.*.cpp
 src/quad
+src/quad.*.cpp
 ./*.exe
 *.bin
 *.ilk
