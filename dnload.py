@@ -1634,6 +1634,7 @@ class Compiler(Linker):
     Linker.__init__(self, op)
     self.__compiler_flags = []
     self.__compiler_flags_extra = []
+    self.__compiler_flags_whole_program = []
     self.__definitions = []
     self.__include_directories = []
     self.generate_standard()
@@ -1646,9 +1647,11 @@ class Compiler(Linker):
     elif not op in self.__include_directories and not op in self.__definitions:
       self.__compiler_flags_extra += [op]
 
-  def compile_asm(self, src, dst):
+  def compile_asm(self, src, dst, whole_program = False):
     """Compile a file into assembler source."""
     cmd = [self.get_command(), "-S", src, "-o", dst] + self.__standard + self.__compiler_flags + self.__compiler_flags_extra + self.__definitions + self.__include_directories
+    if whole_program:
+      cmd += self.__compiler_flags_whole_program
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)
@@ -1664,7 +1667,8 @@ class Compiler(Linker):
     """Generate compiler flags."""
     self.__compiler_flags = []
     if self.command_basename_startswith("g++") or self.command_basename_startswith("gcc"):
-      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-enforce-eh-specs", "-fno-exceptions", "-fno-implicit-templates", "-fno-rtti", "-fno-stack-protector", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt", "-fomit-frame-pointer", "-funsafe-math-optimizations", "-fvisibility=hidden", "-fwhole-program", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
+      self.__compiler_flags += ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-enforce-eh-specs", "-fno-exceptions", "-fno-implicit-templates", "-fno-rtti", "-fno-stack-protector", "-fno-threadsafe-statics", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt", "-fomit-frame-pointer", "-funsafe-math-optimizations", "-fvisibility=hidden", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
+      self.__compiler_flags_whole_program += ["-fwhole-program"]
       # Some flags are platform-specific.
       stack_boundary = int(PlatformVar("mpreferred-stack-boundary"))
       if 0 < stack_boundary:
@@ -2775,6 +2779,40 @@ def generate_symbol_table(mode, symbols):
   return g_template_symbol_table.format(subst)
 
 ########################################
+# SymbolSource #########################
+########################################
+
+class SymbolSource:
+  """Representation of source providing one symbol."""
+
+  def __init__(self, op):
+    """Constructor."""
+    self.__source = op
+
+  def compile_and_assemble(self, compiler, assembler, fname):
+    """Compile and assemble to a file."""
+    fd = open(fname + ".cpp", "w")
+    fd.write(self.__source)
+    fd.close()
+    compiler.compile_asm(fname + ".cpp", fname + ".S")
+    assembler.assemble(fname + ".S", fname + ".o")
+    return fname + ".o"
+
+g_symbol_sources = {
+"memset" : SymbolSource("""#include <cinttypes>
+#include <cstring>\n
+void* memset(void *ptr, int value, size_t num)
+{
+  for(size_t ii = 0; (ii < num); ++ii)
+  {
+    reinterpret_cast<uint8_t*>(ptr)[ii] = static_cast<uint8_t>(value);
+  }
+  return ptr;
+}
+""")
+}
+
+########################################
 # Functions ############################
 ########################################
 
@@ -2883,7 +2921,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     output_file):
   """Generate a binary using all possible tricks. Return whether or not reprocess is necessary."""
   if source_file:
-    compiler.compile_asm(source_file, output_file + ".S")
+    compiler.compile_asm(source_file, output_file + ".S", True)
   segment_ehdr = AssemblerSegment(assembler_ehdr)
   if osarch_is_32_bit():
     segment_phdr_dynamic = AssemblerSegment(assembler_phdr32_dynamic)
@@ -2985,16 +3023,23 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   if alignment_section:
     alignment_section.create_content(assembler)
   bss_section.create_content(assembler)
-  # Assemble data.
+  # Assemble content.
   fname = output_file + ".content"
   if asm.write(fname + ".S", assembler, ["^bss"]):
+    assembler.assemble(fname + ".S", fname + ".o")
+    # The generated content may have UND symbols we need to implement ourselves.
+    und_symbols = readelf_list_und_symbols(fname + ".o")
+    for ii in und_symbols:
+      if ii in g_symbol_sources:
+        und_name = output_file + "." + ii
+        link_files += [g_symbol_sources[ii].compile_and_assemble(compiler, assembler, und_name)]
+    # Add actual linked file after all potential symbol objects.
     link_files += [fname + ".o"]
-  assembler.assemble(fname + ".S", fname + ".o")
   # Assemble bss.
   fname = output_file + ".bss"
   if asm.write(fname + ".S", assembler, ["bss"]):
+    assembler.assemble(fname + ".S", fname + ".o")
     link_files += [fname + ".o"]
-  assembler.assemble(fname + ".S", fname + ".o")
   # Link all generated files.
   linker.generate_linker_script(output_file + ".ld", True)
   linker.set_linker_script(output_file + ".ld")
@@ -3172,6 +3217,14 @@ def readelf_get_info(op):
   else:
     raise RuntimeError("could not read entry point from executable '%s'" % (op))
   return ret
+
+def readelf_list_und_symbols(op):
+  """List UND symbols found from a file."""
+  (so, se) = run_command(["readelf", "--symbols", op])
+  match = re.findall(r'GLOBAL\s+DEFAULT\s+UND\s+(\S+)\s+', so, re.MULTILINE)
+  if match:
+    return match
+  return None
 
 def readelf_truncate(src, dst):
   """Truncate file to size reported by readelf first PT_LOAD file size."""
