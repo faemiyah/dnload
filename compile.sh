@@ -10,9 +10,7 @@ if [ ! -f "src/dnload.h" ] ; then
   touch src/dnload.h
 fi
 
-if [ -f "/opt/vc/lib/libbcm_host.so" ] ; then # VideoCore
-  python "${DNLOAD}" -c src/intro.cpp -v -lc -lgcc -lm -lbcm_host -lEGL -lGLESv2 -lSDL2 $*
-elif [ -d "/usr/lib/arm-linux-gnueabihf/mali-egl" ] ; then # Mali
+if [ -d "/usr/lib/arm-linux-gnueabihf/mali-egl" ] ; then # Mali
   python "${DNLOAD}" -c src/intro.cpp -v --rpath "/usr/local/lib" -lc -ldl -lgcc -lm -lEGL -lGLESv2 -lSDL2 -m dlfcn $*
 else
   python "${DNLOAD}" -c src/intro.cpp -v $*
