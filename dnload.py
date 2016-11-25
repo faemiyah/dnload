@@ -30,6 +30,34 @@ MALI_PATH = "/usr/lib/arm-linux-gnueabihf/mali-egl"
 VIDEOCORE_PATH = "/opt/vc"
 
 ########################################
+# Helper functions #####################
+########################################
+
+def is_listing(op):
+  """Tell if given parameter is a listing."""
+  return isinstance(op, (list, tuple))
+
+def listify(lhs, rhs = None):
+  """Make a list of one or two elements if reasonable."""
+  if (lhs is None) and (rhs is None):
+    return []
+  if lhs is None:
+    if is_listing(rhs):
+      return rhs
+    return [rhs]
+  if rhs is None:
+    if is_listing(lhs):
+      return lhs
+    return [lhs]
+  if is_listing(lhs) and is_listing(rhs):
+    return lhs + rhs
+  if is_listing(lhs):
+    return lhs + [rhs]
+  if is_listing(rhs):
+    return [lhs] + rhs
+  return [lhs, rhs]
+
+########################################
 # PlatformVar ##########################
 ########################################
 
@@ -185,31 +213,25 @@ class Assembler:
   def format_comment(self, op, indent = ""):
     """Get comment string."""
     ret = ""
-    if is_listing(op):
-      for ii in op:
-        if ii:
-          ret += indent + self.__comment + " " + ii + "\n"
-    elif op:
-      ret += indent + self.__comment + " " + op + "\n"
+    for ii in listify(op):
+      if ii:
+        ret += indent + self.__comment + " " + ii + "\n"
     return ret
 
   def format_data(self, size, value, indent = ""):
     """Get data element."""
     size = int(size)
-    if isinstance(value, int):
-      value = "0x%x" % (value)
-    elif is_listing(value):
-      value_strings = []
-      for ii in value:
-        if isinstance(ii, int):
-          value_strings += ["0x%x" % (ii)]
-        else:
-          value_strings += [str(ii)]
-      value = ", ".join(value_strings)
-    else:
-      value = str(value)
-      if value.startswith("\"") and 1 == size:
-        return indent + self.__string + " " + value + "\n"
+    value_strings = []
+    for ii in listify(value):
+      if isinstance(ii, int):
+        value_strings += ["0x%x" % (ii)]
+      else:
+        value_strings += [str(ii)]
+    if not value_strings:
+      raise RuntimeError("unable to format value: '%s'" % (str(value)))
+    value = ", ".join(value_strings)
+    if value.startswith("\"") and 1 == size:
+      return indent + self.__string + " " + value + "\n"
     if 1 == size:
       return indent + self.__byte + " " + value + "\n"
     elif 2 == size:
@@ -243,12 +265,20 @@ class Assembler:
 class AssemblerFile:
   """Assembler file representation."""
 
-  def __init__(self, filename):
+  def __init__(self, fname):
     """Constructor, opens and reads a file."""
-    fd = open(filename, "r")
+    self.__sections = []
+    self.add_source(fname)
+
+  def add_sections(self, op):
+    """Manually add one or more sections."""
+    self.__sections += listify(op)
+
+  def add_source(self, fname):
+    """Add source from an assembler file."""
+    fd = open(fname, "r")
     lines = fd.readlines()
     fd.close()
-    self.__sections = []
     current_section = AssemblerSection("text")
     sectionre = re.compile(r'^\s+\.section\s+\"?\.([a-zA-Z0-9_]+)[\.\s]')
     for ii in lines:
@@ -262,14 +292,7 @@ class AssemblerFile:
       self.add_sections(current_section)
     if is_verbose():
       section_names = map(lambda x: x.get_name(), self.__sections)
-      print("Read %i sections in '%s': %s" % (len(self.__sections), filename, ", ".join(section_names)))
-
-  def add_sections(self, op):
-    """Manually add one or more sections."""
-    if(is_listing(op)):
-      self.__sections += op
-    else:
-      self.__sections += [op]
+      print("Read %i sections in '%s': %s" % (len(self.__sections), fname, ", ".join(section_names)))
 
   def generate_fake_bss(self, assembler, und_symbols = None, elfling = None):
     """Remove local labels that would seem to generate .bss, make a fake .bss section."""
@@ -300,13 +323,6 @@ class AssemblerFile:
         print("%s%u bytes%s" % (outstr, bss_size, pt_load_string))
     self.add_sections(bss)
     return bss
-
-  def generate_end(self, assembler):
-    """Generate section for end label."""
-    end_section = AssemblerSection("end")
-    end_section.add_content(assembler.format_label("end"))
-    self.add_sections(end_section)
-    return end_section
 
   def generate_file_output(self, section_names):
     """Generate output to be written into a file."""
@@ -344,7 +360,6 @@ class AssemblerFile:
     rodata_sections = []
     data_sections = []
     other_sections = []
-    end_sections = []
     for ii in self.__sections:
       if "text" == ii.get_name():
         text_sections += [ii]
@@ -352,8 +367,6 @@ class AssemblerFile:
         rodata_sections += [ii]
       elif "data" == ii.get_name():
         data_sections += [ii]
-      elif "end" == ii.get_name():
-        end_sections += [ii]
       else:
         other_sections += [ii]
     text_section_str = []
@@ -366,16 +379,6 @@ class AssemblerFile:
       rodata_section_str = ["%i rodata" % (len(rodata_sections))]
     if data_sections:
       data_section_str += ["%i data" % (len(data_sections))]
-    # Must generate end section if it's not already present.
-    if not end_sections:
-      end_section = self.generate_end(assembler)
-      if is_verbose():
-        print("Generated sections: %s" % (end_section.get_name()))
-      other_sections += [end_section]
-    else:
-      if 1 < len(end_sections):
-        raise RuntimeError("%i (> 1) end sections detected" % (len(end_sections)))
-      other_sections += end_sections
     if other_sections:
       other_section_str = [", ".join(map(lambda x: x.get_name(), other_sections))]
     # Sort data either in front or in the back.
@@ -1596,12 +1599,7 @@ class Linker:
 
   def link_binary(self, src, dst):
     """Link a binary file with no bells and whistles."""
-    cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))]
-    if is_listing(src):
-      cmd += src
-    else:
-      cmd += [src]
-    cmd += ["-o", dst] + self.__linker_script
+    cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))] + listify(src) + ["-o", dst] + self.__linker_script
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)
@@ -2719,6 +2717,11 @@ void *__progname DNLOAD_VISIBILITY;
 #endif
 """)
 
+g_template_extra_source = Template("""[[HEADERS]]\n
+[[PROTOTYPES]]\n
+[[SOURCE]]
+""")
+
 ########################################
 # Symbol functionality #################
 ########################################
@@ -2790,22 +2793,81 @@ def generate_symbol_table(mode, symbols):
 class SymbolSource:
   """Representation of source providing one symbol."""
 
+  def __init__(self, name, dependencies, headers, prototypes, source):
+    """Constructor."""
+    self.__name = name
+    self.__dependencies = listify(dependencies)
+    self.__headers = listify(headers)
+    self.__prototypes = listify(prototypes)
+    self.__source = source
+
+  def get_dependencies(self):
+    """Accessor."""
+    return self.__dependencies
+
+  def get_headers(self):
+    """Accessor."""
+    return self.__headers
+
+  def get_name(self):
+    """Accessor."""
+    return self.__name
+
+  def get_prototypes(self):
+    """Accessor."""
+    return self.__prototypes
+
+  def get_source(self):
+    """Accessor."""
+    return self.__source
+
+class SymbolSourceDatabase:
+  """Database of different symbol sources that generates missing code."""
+
   def __init__(self, op):
     """Constructor."""
-    self.__source = op
+    self.__symbols = {}
+    for ii in op:
+      if 5 != len(ii):
+        raise RuntimeError("incorrect length for sybol source data: %i" % (len(ii)))
+      name = ii[0]
+      self.__symbols[name] = SymbolSource(name, ii[1], ii[2], ii[3], ii[4])
 
-  def compile_and_assemble(self, compiler, assembler, fname):
-    """Compile and assemble to a file."""
+  def compile_asm(self, compiler, assembler, required_symbols, fname):
+    """Compile given symbols into assembly and return it."""
+    headers = set()
+    prototypes = []
+    source = []
+    ii = 0
+    while ii < len(required_symbols):
+      name = required_symbols[ii]
+      if name in self.__symbols:
+        sym = self.__symbols[name]
+        # Add all dependencies to required symbols list.
+        for jj in sym.get_dependencies():
+          if not jj in required_symbols:
+            required_symbols += [jj]
+        # Extend collected source data.
+        headers = headers.union(sym.get_headers())
+        prototypes += sym.get_prototypes()
+        source += [sym.get_source()]
+      ii += 1
+    if not source:
+      return None
+    subst = { "HEADERS" : "\n".join(map(lambda x: "#include <%s>" % (x), headers)),
+        "PROTOTYPES" : "\n\n".join(prototypes),
+        "SOURCE" : "\n\n".join(source)
+        }
     fd = open(fname + ".cpp", "w")
-    fd.write(self.__source)
+    fd.write(g_template_extra_source.format(subst))
     fd.close()
     compiler.compile_asm(fname + ".cpp", fname + ".S")
     assembler.assemble(fname + ".S", fname + ".o")
     return fname + ".o"
 
-g_symbol_sources = {
-"__aeabi_idivmod" : SymbolSource("""extern "C" int __aeabi_idivmod(int, int);\n
-int __aeabi_idivmod(int numerator, int denominator)
+g_symbol_sources = SymbolSourceDatabase((
+  ("__aeabi_idivmod", None, None, "extern \"C\" int __aeabi_idivmod(int, int);",
+"""int __aeabi_idivmod(int numerator, int denominator)
 {
   int quotient = 0;
   int quotient_mul = 1;
@@ -2836,12 +2898,11 @@ int __aeabi_idivmod(int numerator, int denominator)
   volatile register int r1 asm("r1") = numerator * remainder_mul;
   asm("" : /**/ : "r"(r1) : /**/); // output: remainder
   return quotient * quotient_mul; // r0
-}
-"""),
-"__aeabi_uidivmod" : SymbolSource("""extern "C" unsigned int __aeabi_uidivmod(unsigned int, unsigned int);\n
-unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
+}"""),
+  ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned int __aeabi_uidivmod(unsigned int, unsigned int);",
+"""unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
 {
-  int quotient = 0;
+  int quotient = 0;\n
   while(numerator > denominator)
   {
     numerator -= denominator;
@@ -2850,23 +2911,20 @@ unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
   volatile register int r1 asm("r1") = numerator;
   asm("" : /**/ : "r"(r1) : /**/); // output: remainder
   return quotient; // r0
-}
-"""),
-"memset" : SymbolSource("""#include <cinttypes>
-#include <cstring>\n
-void* memset(void *ptr, int value, size_t num)
+}"""),
+  ("memset", None, ("cinttypes", "cstring"), None,
+"""void* memset(void *ptr, int value, size_t num)
 {
   for(size_t ii = 0; (ii < num); ++ii)
   {
     reinterpret_cast<uint8_t*>(ptr)[ii] = static_cast<uint8_t>(value);
-  }
+  }\n
   return ptr;
-}
-"""),
-}
+}"""),
+  ))
 
 ########################################
-# Functions ############################
+# Main functionality ###################
 ########################################
 
 def check_executable(op):
@@ -3058,7 +3116,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     segments_tail += [segment_symtab]
   segments_tail += [segment_interp, segment_strtab]
   segments = merge_segments(segments_head) + load_segments + merge_segments(segments_tail)
-  # Assemble headers.
+  # Build headers.
   fname = output_file + ".headers"
   fd = open(fname + ".S", "w")
   header_sizes = 0
@@ -3075,23 +3133,16 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   # Create content of earlier sections and write source when done.
   if alignment_section:
     alignment_section.create_content(assembler)
-  bss_section.create_content(assembler)
-  # Assemble content.
+  bss_section.create_content(assembler, "end")
+  # Assemble content without headers to check for missing symbols.
   fname = output_file + ".content"
-  if asm.write(fname + ".S", assembler, ["^bss"]):
+  if asm.write(fname + ".S", assembler):
     assembler.assemble(fname + ".S", fname + ".o")
-    # The generated content may have UND symbols we need to implement ourselves.
     und_symbols = readelf_list_und_symbols(fname + ".o")
-    for ii in und_symbols:
-      if ii in g_symbol_sources:
-        und_name = output_file + "." + ii
-        link_files += [g_symbol_sources[ii].compile_and_assemble(compiler, assembler, und_name)]
-    # Add actual linked file after all potential symbol objects.
-    link_files += [fname + ".o"]
-  # Assemble bss.
-  fname = output_file + ".bss"
-  if asm.write(fname + ".S", assembler, ["bss"]):
-    assembler.assemble(fname + ".S", fname + ".o")
+    additional_file = g_symbol_sources.compile_asm(compiler, assembler, und_symbols, output_file + ".extra")
+    # If additional code was needed, add it to link.
+    if additional_file:
+      link_files += [additional_file]
     link_files += [fname + ".o"]
   # Link all generated files.
   linker.generate_linker_script(output_file + ".ld", True)
@@ -3112,20 +3163,6 @@ def get_platform_und_symbols():
 def labelify(op):
   """Take string as input. Convert into string that passes as label."""
   return re.sub(r'[\/\.]', '_', op)
-
-def listify(lhs, rhs):
-  """Make a list of two elements if reasonable."""
-  if not lhs:
-    return rhs
-  if not rhs:
-    return lhs
-  if is_listing(lhs) and is_listing(rhs):
-    return lhs + rhs
-  if is_listing(lhs):
-    return lhs + [rhs]
-  if is_listing(rhs):
-    return [lhs] + rhs
-  return [lhs, rhs]
 
 def get_indent(op):
   """Get indentation for given level."""
@@ -3152,10 +3189,6 @@ def is_stack_save_register(op):
 def is_deconstructable(op):
   """Tell if a variable can be deconstructed."""
   return isinstance(op, int) or (isinstance(op, PlatformVar) and op.deconstructable())
-
-def is_listing(op):
-  """Tell if given parameter is a listing."""
-  return isinstance(op, (list, tuple))
 
 def is_verbose():
   """Tell if verbose mode is on."""
