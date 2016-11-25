@@ -281,8 +281,13 @@ class AssemblerFile:
     fd.close()
     current_section = AssemblerSection("text")
     sectionre = re.compile(r'^\s+\.section\s+\"?\.([a-zA-Z0-9_]+)[\.\s]')
+    directivere = re.compile(r'^\s+\.(bss|data|rodata|text)')
     for ii in lines:
+      # Try both expressions first.
       match = sectionre.match(ii)
+      if not match:
+        match = directivere.match(ii)
+      # If match, start new section.
       if match:
         self.add_sections(current_section)
         current_section = AssemblerSection(match.group(1), ii)
@@ -512,15 +517,15 @@ class AssemblerSection:
       #if lst:
       #  self.erase(lst[0])
       #  continue
+      #lst = self.want_line(r'\s*\.type\s+(.*)')
+      #if lst:
+      #  self.erase(lst[0])
+      #  continue
+      #lst = self.want_line(r'\s*\.size\s+(.*)')
+      #if lst:
+      #  self.erase(lst[0])
+      #  continue
       lst = self.want_line(r'\s*\.section\s+(.*)')
-      if lst:
-        self.erase(lst[0])
-        continue
-      lst = self.want_line(r'\s*\.type\s+(.*)')
-      if lst:
-        self.erase(lst[0])
-        continue
-      lst = self.want_line(r'\s*\.size\s+(.*)')
       if lst:
         self.erase(lst[0])
         continue
@@ -658,8 +663,8 @@ class AssemblerSection:
 
   def extract_bss(self, und_symbols):
     """Extract a variable that should go to .bss section."""
-    # Test for relevant .globl element.
-    found = self.extract_globl_object()
+    # Test for relevant .bss element.
+    found = self.extract_bss_object()
     if found:
       return AssemblerBssElement(found[0], found[1], und_symbols)
     found = self.extract_comm_object()
@@ -674,44 +679,52 @@ class AssemblerSection:
     idx = 0
     while True:
       lst = self.want_line(r'\s*\.local\s+(\S+).*', idx)
-      if lst:
-        attempt = lst[0]
-        name = lst[1]
-        idx = attempt + 1
-        lst = self.want_line(r'\s*\.comm\s+%s\s*,(.*)' % (name), idx)
-        if not lst:
-          continue
-        size = lst[1]
-        match = re.match(r'\s*(\d+)\s*,\s*(\d+).*', size)
-        if match:
-          size = int(match.group(1))
-        else:
-          size = int(size)
-        self.erase(attempt, lst[0] + 1)
-        return (name, size)
-      return None
+      if not lst:
+        break
+      attempt = lst[0]
+      name = lst[1]
+      idx = attempt + 1
+      lst = self.want_line(r'\s*\.comm\s+%s\s*,(.*)' % (name), idx)
+      if not lst:
+        continue
+      size = lst[1]
+      match = re.match(r'\s*(\d+)\s*,\s*(\d+).*', size)
+      if match:
+        size = int(match.group(1))
+      else:
+        size = int(size)
+      self.erase(attempt, lst[0] + 1)
+      return (name, size)
+    return None
 
-  def extract_globl_object(self):
-    """.globl extract."""
+  def extract_bss_object(self):
+    """Extract .bss objects signified with .object."""
     idx = 0
     while True:
-      lst = self.want_line(r'\s*\.globl\s+(\S+).*', idx)
+      lst = self.want_line(r'\s*.type\s+(\S+),\s+[@%]object', idx)
+      if not lst:
+        break
+      first_line = lst[0]
+      name = lst[1]
+      idx = first_line + 1
+      if not lst:
+        continue
+      lst = self.want_line(r'\s*(%s)\:' % (name), lst[0] + 1, 2)
+      if not lst:
+        continue
+      lst = self.want_line(r'\s*\.(?:space|zero)\s+(\d+)', lst[0] + 1, 2)
+      if not lst:
+        continue
+      last_line = lst[0] + 1
+      bss_size = int(lst[1])
+      # Check if there's an additional label to remove.
+      lst = self.want_line(r'\s*\.(globl|local)\s+%s\s*' % name, first_line - 1, 1)
       if lst:
-        attempt = lst[0]
-        name = lst[1]
-        idx = attempt + 1
-        lst = self.want_line("\s*.type\s+(%s),\s+@object" % (name), idx)
-        if not lst:
-          continue
-        lst = self.want_line("\s*(%s)\:" % (name), lst[0] + 1)
-        if not lst:
-          continue
-        lst = self.want_line("\s*\.zero\s+(\d+)", lst[0] + 1)
-        if not lst:
-          continue
-        self.erase(attempt, lst[0] + 1)
-        return (name, int(lst[1]))
-      return None
+        first_line = lst[0]
+      # Erase and exit.
+      self.erase(first_line, last_line)
+      return (name, bss_size)
+    return None
 
   def gather_labels(self):
     """Gathers all labels."""
@@ -791,9 +804,9 @@ class AssemblerSection:
     """Want a label from code."""
     return self.want_line(r'\s*\S*(%s)\S*\:.*' % (op))
 
-  def want_line(self, op, first = 0):
+  def want_line(self, op, first = 0, count = 0x7FFFFFFF):
     """Want a line matching regex from object."""
-    for ii in range(first, len(self.__content)):
+    for ii in range(first, min(len(self.__content), first + count)):
       match = re.match(op, self.__content[ii], re.IGNORECASE)
       if match:
         return (ii, match.group(1))
@@ -2866,49 +2879,45 @@ class SymbolSourceDatabase:
     return fname + ".o"
 
 g_symbol_sources = SymbolSourceDatabase((
-  ("__aeabi_idivmod", None, None, "extern \"C\" int __aeabi_idivmod(int, int);",
-"""int __aeabi_idivmod(int numerator, int denominator)
+  ("__aeabi_idivmod", "__aeabi_uidivmod", None, "extern \"C\" int __aeabi_idivmod(int, int);",
+"""int __aeabi_idivmod(int num, int den)
 {
-  int quotient = 0;
   int quotient_mul = 1;
   int remainder_mul = 1;\n
-  if(numerator < 0)
+  if(num < 0)
   {
     remainder_mul = -1;
-    numerator = -numerator;\n
-    if(denominator < 0)
+    num = -num;\n
+    if(den < 0)
     {
-      denominator = -denominator;
+      den = -den;
     }
     else
     {
       quotient_mul = -1;
     }
   }
-  else if(denominator < 0)
+  else if(den < 0)
   {
     quotient_mul = -1;
-    denominator = -denominator;
+    den = -den;
   }\n
-  while(numerator > denominator)
-  {
-    numerator -= denominator;
-    ++quotient;
-  }\n
-  volatile register int r1 asm("r1") = numerator * remainder_mul;
+  int ret = __aeabi_uidivmod(static_cast<unsigned>(num), static_cast<unsigned>(den)) * quotient_mul;
+  volatile register int r1 asm("r1");
+  r1 *= remainder_mul;
   asm("" : /**/ : "r"(r1) : /**/); // output: remainder
-  return quotient * quotient_mul; // r0
+  return ret;
 }"""),
-  ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned int __aeabi_uidivmod(unsigned int, unsigned int);",
-"""unsigned int __aeabi_uidivmod(unsigned int numerator, unsigned int denominator)
+  ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned int __aeabi_uidivmod(unsigned, unsigned);",
+"""unsigned int __aeabi_uidivmod(unsigned num, unsigned den)
 {
   int quotient = 0;\n
-  while(numerator > denominator)
+  while(num > den)
   {
-    numerator -= denominator;
+    num -= den;
     ++quotient;
   }\n
-  volatile register int r1 asm("r1") = numerator;
+  volatile register int r1 asm("r1") = num;
   asm("" : /**/ : "r"(r1) : /**/); // output: remainder
   return quotient; // r0
 }"""),
