@@ -2266,7 +2266,7 @@ class Template:
       for kk in substitutions:
         vv = substitutions[kk].replace("\\", "\\\\")
         (ret, num) = re.subn(r'\[\[\s*%s\s*\]\]' % (kk), vv, ret)
-        if not num and is_verbose():
+        if not num:
           print("WARNING: substitution '%s' has no matches" % (kk))
     unmatched = list(set(re.findall(r'\[\[([^\]]+)\]\]', ret)))
     (ret, num) = re.subn(r'\[\[[^\]]+\]\]', "", ret)
@@ -2964,6 +2964,13 @@ def collect_libraries(libraries, symbols, compilation_mode):
     libraries = list(library_set)
     output_message = "Autodetected libraries to link against: "
   else:
+    # Warn if libraries seem to be missing something.
+    library_set = set()
+    for ii in symbols:
+      library_set = library_set.union(set([ii.get_library().get_name()]))
+    missing_libraries = library_set.difference(set(libraries))
+    if missing_libraries:
+      print("WARNING: found symbols suggest libraries: %s" % (str(list(missing_libraries))))
     output_message = "Linking against libraries: "
   # Reorder libraries to ensure there is no problems with library scouring and UND symbols.
   problematic_libraries = ["gcc", "c", "m", "bcm_host"] # Order is important.
@@ -2973,7 +2980,7 @@ def collect_libraries(libraries, symbols, compilation_mode):
       libraries.remove(ii)
       front += [ii]
   ret = front + sorted(libraries)
-  if is_verbose:
+  if is_verbose():
     print("%s%s" % (output_message, str(ret)))
   return ret
 
@@ -3492,7 +3499,7 @@ def main():
   target_search_path = []
 
   parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (sys.argv[0]), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
-  parser.add_argument("-a", "--abstraction-layer", default = "sdl2", choices = ("sdl1", "sdl2"), help = "Abstraction layer to use.\n(default: %(default))")
+  parser.add_argument("-a", "--abstraction-layer", choices = ("sdl1", "sdl2"), help = "Specify abstraction layer to use instead of autodetecting.")
   parser.add_argument("-A", "--assembler", help = "Try to use given assembler executable as opposed to autodetect.")
   parser.add_argument("-B", "--objcopy", help = "Try to use given objcopy executable as opposed to autodetect.")
   parser.add_argument("-c", "--create-binary", action = "store_true", help = "Create output file, determine output file name from input file name.")
@@ -3570,7 +3577,7 @@ def main():
     print("%s %s" % (VERSION_REVISION, VERSION_DATE))
     return 0
 
-  abstraction_layer = args.abstraction_layer
+  abstraction_layer = listify(args.abstraction_layer)
   definition_ld = args.define
   compilation_mode = args.method
   nice_filedump = args.nice_filedump
@@ -3583,26 +3590,24 @@ def main():
   elif "hash" == compilation_mode:
     definitions += ["DNLOAD_NO_FIXED_R_DEBUG_ADDRESS"]
 
+  gles_reason = None
   if not no_glesv2:
     if os.path.exists(MALI_PATH):
       definitions += ["DNLOAD_MALI"]
-      opengl_reason = "'%s' (Mali)" % (MALI_PATH)
-      opengl_version = "ES2"
+      gles_reason = "'%s' (Mali)" % (MALI_PATH)
     if os.path.exists(VIDEOCORE_PATH):
       definitions += ["DNLOAD_VIDEOCORE"]
-      opengl_reason = "'%s' (VideoCore)" % (VIDEOCORE_PATH)
-      opengl_version = "ES2"
+      gles_reason = "'%s' (VideoCore)" % (VIDEOCORE_PATH)
       if 'armv7l' == g_osarch:
         repl_march = "armv6l"
         if is_verbose():
           print("Workaround (Raspberry Pi): targeting '%s' instead of '%s'" % (repl_march, g_osarch))
         g_osarch = repl_march
-
-  if "ES2" == opengl_version:
+  if gles_reason:
     definitions += ["DNLOAD_GLESV2"]
     replace_platform_variable("gl_library", "GLESv2")
     if is_verbose():
-      print("Assuming OpenGL ES 2.0: %s" % (opengl_reason))
+      print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
 
   if 0 >= len(target_search_path):
     for ii in source_files:
@@ -3616,7 +3621,6 @@ def main():
   if target_path:
     if is_verbose():
       print("Using explicit target header file '%s'." % (target))
-    touch(target)
   else:
     target_file = locate(target_search_path, target)
     if target_file:
@@ -3626,15 +3630,22 @@ def main():
         print("Header file '%s' found in path '%s/'." % (target_file, target_path))
     else:
       raise RuntimeError("no information where to put header file '%s' - not found in path(s) %s" % (target, str(target_search_path)))
+  # Erase contents of the header after it has been found.
+  touch(target)
 
   if 0 >= len(source_files):
-    potential_source_files = os.listdir(target_path)
-    sourcere = re.compile(r".*(c|cpp)$")
-    for ii in potential_source_files:
-      if sourcere.match(ii):
-        source_files += [target_path + "/" + ii]
-    if 0 >= len(source_files):
-      raise RuntimeError("could not find any source files in '%s'" % (target_path))
+    if target_search_path:
+      print("WARNING: no source files specified, searching '%s'" % (str(target_search_path)))
+      potential_source_files = os.listdir(target_search_path)
+      sourcere = re.compile(r".*(c|cpp)$")
+      for ii in potential_source_files:
+        if sourcere.match(ii):
+          source_files += [target_path + "/" + ii]
+  if 0 < len(source_files):
+    if is_verbose():
+      print("Compiling source files: %s" % (str(source_files)))
+  else:
+    raise RuntimeError("nothing to compile")
 
   if compiler:
     if not check_executable(compiler):
@@ -3652,15 +3663,6 @@ def main():
   if compiler.get_command() in ('gcc48', 'g++-4.8'):
     library_directories += ["/usr/lib/gcc/arm-linux-gnueabihf/4.8"]
   compiler.set_include_dirs(include_directories)
-
-  if abstraction_layer in ('sdl1', 'sdl2'):
-    sdl_config_executable_name = "sdl2-config"
-    if 'sdl1' == abstraction_layer:
-      sdl_config_executable_name = "sdl-config"
-    sdl_config = search_executable([sdl_config_executable_name], sdl_config_executable_name)
-    if sdl_config:
-      (sdl_stdout, sdl_stderr) = run_command([sdl_config, "--cflags"])
-      compiler.add_extra_compiler_flags(sdl_stdout.split())
 
   if elfling:
     elfling = search_executable(["elfling-packer", "./elfling-packer"], "elfling-packer")
@@ -3770,6 +3772,23 @@ def main():
 
   if is_verbose():
     print("Wrote header file '%s'." % (target))
+
+  # Determine abstraction layer if it's not been set.
+  if not abstraction_layer:
+    if symbols_has_library(symbols, "SDL"):
+      abstraction_layer += ["sdl1"]
+    if symbols_has_library(symbols, "SDL2"):
+      abstraction_layer += ["sdl2"]
+  if 1 < len(abstraction_layer):
+    raise RuntimeError("conflicting abstraction layers detected: %s" % (str(abstraction_layer)))
+  if "sdl2" in abstraction_layer:
+    (sdl_stdout, sdl_stderr) = run_command(["sdl2-config", "--cflags"])
+    compiler.add_extra_compiler_flags(sdl_stdout.split())
+  elif "sdl1" in abstraction_layer:
+    (sdl_stdout, sdl_stderr) = run_command(["sdl-config", "--cflags"])
+    compiler.add_extra_compiler_flags(sdl_stdout.split())
+  else:
+    raise RuntimeError("unknown abstraction layer '%s'" % (abstraction_layer[0]))
 
   if output_file:
     if 1 < len(source_files):
