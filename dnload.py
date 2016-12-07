@@ -3722,7 +3722,7 @@ def main():
   # Some libraries cannot co-exist, but have some symbols with identical names.
   symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
 
-  real_symbols = filter(lambda x: not x.is_verbatim(), symbols)
+  real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
   if is_verbose():
     symbol_strings = map(lambda x: str(x), symbols)
     print("Symbols found: %s" % (str(symbol_strings)))
