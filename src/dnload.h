@@ -36,11 +36,9 @@
 #include "windows.h"
 #include "GL/glew.h"
 #include "GL/glu.h"
-#include "SDL.h"
 #elif defined(__APPLE__)
 #include "GL/glew.h"
 #include <OpenGL/glu.h>
-#include "SDL.h"
 #else
 #if defined(DNLOAD_GLESV2)
 #include "GLES2/gl2.h"
@@ -49,7 +47,6 @@
 #include "GL/glew.h"
 #include "GL/glu.h"
 #endif
-#include "SDL.h"
 #endif
 #include "bsd_rand.h"
 #else
@@ -57,7 +54,6 @@
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #include <OpenGL/glu.h>
-#include "SDL.h"
 #else
 #if defined(DNLOAD_GLESV2)
 #include "GLES2/gl2.h"
@@ -67,7 +63,6 @@
 #include "GL/glext.h"
 #include "GL/glu.h"
 #endif
-#include "SDL.h"
 #endif
 #endif
 
@@ -139,39 +134,11 @@ static void asm_exit(void)
 
 #if defined(USE_LD)
 /** \cond */
-#define dnload_glUseProgramStages glUseProgramStages
-#define dnload_glBindProgramPipeline glBindProgramPipeline
-#define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
-#define dnload_SDL_PauseAudio SDL_PauseAudio
-#define dnload_SDL_OpenAudio SDL_OpenAudio
-#define dnload_SDL_CreateWindow SDL_CreateWindow
-#define dnload_SDL_PollEvent SDL_PollEvent
-#define dnload_SDL_Init SDL_Init
-#define dnload_glGenProgramPipelines glGenProgramPipelines
-#define dnload_SDL_Quit SDL_Quit
-#define dnload_glCreateShaderProgramv glCreateShaderProgramv
-#define dnload_SDL_ShowCursor SDL_ShowCursor
-#define dnload_glProgramUniform3fv glProgramUniform3fv
-#define dnload_glRects glRects
-#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
+#define dnload_puts puts
 /** \endcond */
 #else
 /** \cond */
-#define dnload_glUseProgramStages g_symbol_table.glUseProgramStages
-#define dnload_glBindProgramPipeline g_symbol_table.glBindProgramPipeline
-#define dnload_SDL_GL_SwapWindow g_symbol_table.SDL_GL_SwapWindow
-#define dnload_SDL_PauseAudio g_symbol_table.SDL_PauseAudio
-#define dnload_SDL_OpenAudio g_symbol_table.SDL_OpenAudio
-#define dnload_SDL_CreateWindow g_symbol_table.SDL_CreateWindow
-#define dnload_SDL_PollEvent g_symbol_table.SDL_PollEvent
-#define dnload_SDL_Init g_symbol_table.SDL_Init
-#define dnload_glGenProgramPipelines g_symbol_table.glGenProgramPipelines
-#define dnload_SDL_Quit g_symbol_table.SDL_Quit
-#define dnload_glCreateShaderProgramv g_symbol_table.glCreateShaderProgramv
-#define dnload_SDL_ShowCursor g_symbol_table.SDL_ShowCursor
-#define dnload_glProgramUniform3fv g_symbol_table.glProgramUniform3fv
-#define dnload_glRects g_symbol_table.glRects
-#define dnload_SDL_GL_CreateContext g_symbol_table.SDL_GL_CreateContext
+#define dnload_puts g_symbol_table.puts
 /** \endcond */
 /** \brief Symbol table structure.
  *
@@ -179,38 +146,10 @@ static void asm_exit(void)
  */
 static struct SymbolTableStruct
 {
-  void (DNLOAD_APIENTRY *glUseProgramStages)(GLuint, GLbitfield, GLuint);
-  void (DNLOAD_APIENTRY *glBindProgramPipeline)(GLuint);
-  void (*SDL_GL_SwapWindow)(SDL_Window*);
-  void (*SDL_PauseAudio)(int);
-  int (*SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
-  SDL_Window* (*SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
-  int (*SDL_PollEvent)(SDL_Event*);
-  int (*SDL_Init)(Uint32);
-  void (DNLOAD_APIENTRY *glGenProgramPipelines)(GLsizei, GLuint*);
-  void (*SDL_Quit)(void);
-  GLuint (DNLOAD_APIENTRY *glCreateShaderProgramv)(GLenum, GLsizei, const char**);
-  int (*SDL_ShowCursor)(int);
-  void (DNLOAD_APIENTRY *glProgramUniform3fv)(GLuint, GLint, GLsizei, const GLfloat*);
-  void (DNLOAD_APIENTRY *glRects)(GLshort, GLshort, GLshort, GLshort);
-  SDL_GLContext (*SDL_GL_CreateContext)(SDL_Window*);
+  int (*puts)(const char*);
 } g_symbol_table =
 {
-  (void (DNLOAD_APIENTRY *)(GLuint, GLbitfield, GLuint))0x212d8ad7,
-  (void (DNLOAD_APIENTRY *)(GLuint))0x2386bc04,
-  (void (*)(SDL_Window*))0x295bfb59,
-  (void (*)(int))0x29f14a4,
-  (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
-  (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
-  (int (*)(SDL_Event*))0x64949d97,
-  (int (*)(Uint32))0x70d6574,
-  (void (DNLOAD_APIENTRY *)(GLsizei, GLuint*))0x75e35418,
-  (void (*)(void))0x7eb657f3,
-  (GLuint (DNLOAD_APIENTRY *)(GLenum, GLsizei, const char**))0xa4fd03d8,
-  (int (*)(int))0xb88bf697,
-  (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLsizei, const GLfloat*))0xc969d24e,
-  (void (DNLOAD_APIENTRY *)(GLshort, GLshort, GLshort, GLshort))0xd419e20a,
-  (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+  (int (*)(const char*))0x950c8684,
 };
 #endif
 
@@ -461,7 +400,7 @@ static void* dnload_find_symbol(uint32_t hash)
 static void dnload(void)
 {
   unsigned ii;
-  for(ii = 0; (15 > ii); ++ii)
+  for(ii = 0; (1 > ii); ++ii)
   {
     void **iter = ((void**)&g_symbol_table) + ii;
     *iter = dnload_find_symbol(*(uint32_t*)iter);

@@ -3787,8 +3787,6 @@ def main():
   elif "sdl1" in abstraction_layer:
     (sdl_stdout, sdl_stderr) = run_command(["sdl-config", "--cflags"])
     compiler.add_extra_compiler_flags(sdl_stdout.split())
-  else:
-    raise RuntimeError("unknown abstraction layer '%s'" % (abstraction_layer[0]))
 
   if output_file:
     if 1 < len(source_files):
