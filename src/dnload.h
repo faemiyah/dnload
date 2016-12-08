@@ -36,11 +36,9 @@
 #include "windows.h"
 #include "GL/glew.h"
 #include "GL/glu.h"
-#include "SDL.h"
 #elif defined(__APPLE__)
 #include "GL/glew.h"
 #include <OpenGL/glu.h>
-#include "SDL.h"
 #else
 #if defined(DNLOAD_GLESV2)
 #include "GLES2/gl2.h"
@@ -49,15 +47,12 @@
 #include "GL/glew.h"
 #include "GL/glu.h"
 #endif
-#include "SDL.h"
 #endif
-#include "bsd_rand.h"
 #else
 #if defined(__APPLE__)
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 #include <OpenGL/glu.h>
-#include "SDL.h"
 #else
 #if defined(DNLOAD_GLESV2)
 #include "GLES2/gl2.h"
@@ -67,9 +62,10 @@
 #include "GL/glext.h"
 #include "GL/glu.h"
 #endif
+#endif
+#endif
+
 #include "SDL.h"
-#endif
-#endif
 
 #if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
 #define DNLOAD_MAIN SDL_main
@@ -139,39 +135,77 @@ static void asm_exit(void)
 
 #if defined(USE_LD)
 /** \cond */
-#define dnload_glUseProgramStages glUseProgramStages
-#define dnload_glBindProgramPipeline glBindProgramPipeline
-#define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
+#define dnload_glLinkProgram glLinkProgram
+#define dnload_bcm_host_init bcm_host_init
+#define dnload_eglInitialize eglInitialize
+#define dnload_glUniform3fv glUniform3fv
+#define dnload_glGetUniformLocation glGetUniformLocation
+#define dnload_eglCreateWindowSurface eglCreateWindowSurface
 #define dnload_SDL_PauseAudio SDL_PauseAudio
+#define dnload_eglSwapBuffers eglSwapBuffers
+#define dnload_glAttachShader glAttachShader
+#define dnload_vc_dispmanx_update_submit_sync vc_dispmanx_update_submit_sync
 #define dnload_SDL_OpenAudio SDL_OpenAudio
 #define dnload_SDL_CreateWindow SDL_CreateWindow
+#define dnload_vc_dispmanx_element_add vc_dispmanx_element_add
 #define dnload_SDL_PollEvent SDL_PollEvent
+#define dnload_glCreateShader glCreateShader
+#define dnload_vc_dispmanx_display_open vc_dispmanx_display_open
 #define dnload_SDL_Init SDL_Init
-#define dnload_glGenProgramPipelines glGenProgramPipelines
+#define dnload_glCreateProgram glCreateProgram
 #define dnload_SDL_Quit SDL_Quit
-#define dnload_glCreateShaderProgramv glCreateShaderProgramv
+#define dnload_graphics_get_display_size graphics_get_display_size
+#define dnload_eglGetDisplay eglGetDisplay
+#define dnload_bcm_host_deinit bcm_host_deinit
+#define dnload_eglTerminate eglTerminate
 #define dnload_SDL_ShowCursor SDL_ShowCursor
-#define dnload_glProgramUniform3fv glProgramUniform3fv
-#define dnload_glRects glRects
-#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
+#define dnload_vc_dispmanx_update_start vc_dispmanx_update_start
+#define dnload_glVertexAttribPointer glVertexAttribPointer
+#define dnload_glCompileShader glCompileShader
+#define dnload_glShaderSource glShaderSource
+#define dnload_glDrawArrays glDrawArrays
+#define dnload_glUseProgram glUseProgram
+#define dnload_eglCreateContext eglCreateContext
+#define dnload_glEnableVertexAttribArray glEnableVertexAttribArray
+#define dnload_eglChooseConfig eglChooseConfig
+#define dnload_eglMakeCurrent eglMakeCurrent
 /** \endcond */
 #else
 /** \cond */
-#define dnload_glUseProgramStages g_symbol_table.glUseProgramStages
-#define dnload_glBindProgramPipeline g_symbol_table.glBindProgramPipeline
-#define dnload_SDL_GL_SwapWindow g_symbol_table.SDL_GL_SwapWindow
+#define dnload_glLinkProgram g_symbol_table.glLinkProgram
+#define dnload_bcm_host_init g_symbol_table.bcm_host_init
+#define dnload_eglInitialize g_symbol_table.eglInitialize
+#define dnload_glUniform3fv g_symbol_table.glUniform3fv
+#define dnload_glGetUniformLocation g_symbol_table.glGetUniformLocation
+#define dnload_eglCreateWindowSurface g_symbol_table.eglCreateWindowSurface
 #define dnload_SDL_PauseAudio g_symbol_table.SDL_PauseAudio
+#define dnload_eglSwapBuffers g_symbol_table.eglSwapBuffers
+#define dnload_glAttachShader g_symbol_table.glAttachShader
+#define dnload_vc_dispmanx_update_submit_sync g_symbol_table.vc_dispmanx_update_submit_sync
 #define dnload_SDL_OpenAudio g_symbol_table.SDL_OpenAudio
 #define dnload_SDL_CreateWindow g_symbol_table.SDL_CreateWindow
+#define dnload_vc_dispmanx_element_add g_symbol_table.vc_dispmanx_element_add
 #define dnload_SDL_PollEvent g_symbol_table.SDL_PollEvent
+#define dnload_glCreateShader g_symbol_table.glCreateShader
+#define dnload_vc_dispmanx_display_open g_symbol_table.vc_dispmanx_display_open
 #define dnload_SDL_Init g_symbol_table.SDL_Init
-#define dnload_glGenProgramPipelines g_symbol_table.glGenProgramPipelines
+#define dnload_glCreateProgram g_symbol_table.glCreateProgram
 #define dnload_SDL_Quit g_symbol_table.SDL_Quit
-#define dnload_glCreateShaderProgramv g_symbol_table.glCreateShaderProgramv
+#define dnload_graphics_get_display_size g_symbol_table.graphics_get_display_size
+#define dnload_eglGetDisplay g_symbol_table.eglGetDisplay
+#define dnload_bcm_host_deinit g_symbol_table.bcm_host_deinit
+#define dnload_eglTerminate g_symbol_table.eglTerminate
 #define dnload_SDL_ShowCursor g_symbol_table.SDL_ShowCursor
-#define dnload_glProgramUniform3fv g_symbol_table.glProgramUniform3fv
-#define dnload_glRects g_symbol_table.glRects
-#define dnload_SDL_GL_CreateContext g_symbol_table.SDL_GL_CreateContext
+#define dnload_vc_dispmanx_update_start g_symbol_table.vc_dispmanx_update_start
+#define dnload_glVertexAttribPointer g_symbol_table.glVertexAttribPointer
+#define dnload_glCompileShader g_symbol_table.glCompileShader
+#define dnload_glShaderSource g_symbol_table.glShaderSource
+#define dnload_glDrawArrays g_symbol_table.glDrawArrays
+#define dnload_glUseProgram g_symbol_table.glUseProgram
+#define dnload_eglCreateContext g_symbol_table.eglCreateContext
+#define dnload_glEnableVertexAttribArray g_symbol_table.glEnableVertexAttribArray
+#define dnload_eglChooseConfig g_symbol_table.eglChooseConfig
+#define dnload_eglMakeCurrent g_symbol_table.eglMakeCurrent
 /** \endcond */
 /** \brief Symbol table structure.
  *
@@ -179,38 +213,76 @@ static void asm_exit(void)
  */
 static struct SymbolTableStruct
 {
-  void (DNLOAD_APIENTRY *glUseProgramStages)(GLuint, GLbitfield, GLuint);
-  void (DNLOAD_APIENTRY *glBindProgramPipeline)(GLuint);
-  void (*SDL_GL_SwapWindow)(SDL_Window*);
+  void (DNLOAD_APIENTRY *glLinkProgram)(GLuint);
+  void (*bcm_host_init)(void);
+  EGLBoolean (*eglInitialize)(EGLDisplay, EGLint*, EGLint*);
+  void (DNLOAD_APIENTRY *glUniform3fv)(GLint, GLsizei, const GLfloat*);
+  GLint (DNLOAD_APIENTRY *glGetUniformLocation)(GLuint, const GLchar*);
+  EGLSurface (*eglCreateWindowSurface)(EGLDisplay, EGLConfig, EGLNativeWindowType, EGLint const*);
   void (*SDL_PauseAudio)(int);
+  EGLBoolean (*eglSwapBuffers)(EGLDisplay, EGLSurface);
+  void (DNLOAD_APIENTRY *glAttachShader)(GLuint, GLuint);
+  int (*vc_dispmanx_update_submit_sync)(DISPMANX_UPDATE_HANDLE_T);
   int (*SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
   SDL_Window* (*SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
+  DISPMANX_ELEMENT_HANDLE_T (*vc_dispmanx_element_add)(DISPMANX_UPDATE_HANDLE_T, DISPMANX_DISPLAY_HANDLE_T, int32_t, const VC_RECT_T*, DISPMANX_RESOURCE_HANDLE_T, const VC_RECT_T*, DISPMANX_PROTECTION_T, VC_DISPMANX_ALPHA_T*, DISPMANX_CLAMP_T*, DISPMANX_TRANSFORM_T);
   int (*SDL_PollEvent)(SDL_Event*);
+  GLuint (DNLOAD_APIENTRY *glCreateShader)(GLenum);
+  DISPMANX_DISPLAY_HANDLE_T (*vc_dispmanx_display_open)(uint32_t);
   int (*SDL_Init)(Uint32);
-  void (DNLOAD_APIENTRY *glGenProgramPipelines)(GLsizei, GLuint*);
+  GLuint (DNLOAD_APIENTRY *glCreateProgram)(void);
   void (*SDL_Quit)(void);
-  GLuint (DNLOAD_APIENTRY *glCreateShaderProgramv)(GLenum, GLsizei, const char**);
+  int32_t (*graphics_get_display_size)(const uint16_t, uint32_t*, uint32_t*);
+  EGLDisplay (*eglGetDisplay)(NativeDisplayType);
+  void (*bcm_host_deinit)(void);
+  EGLBoolean (*eglTerminate)(EGLDisplay);
   int (*SDL_ShowCursor)(int);
-  void (DNLOAD_APIENTRY *glProgramUniform3fv)(GLuint, GLint, GLsizei, const GLfloat*);
-  void (DNLOAD_APIENTRY *glRects)(GLshort, GLshort, GLshort, GLshort);
-  SDL_GLContext (*SDL_GL_CreateContext)(SDL_Window*);
+  DISPMANX_UPDATE_HANDLE_T (*vc_dispmanx_update_start)(int32_t);
+  void (DNLOAD_APIENTRY *glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
+  void (DNLOAD_APIENTRY *glCompileShader)(GLuint);
+  void (DNLOAD_APIENTRY *glShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
+  void (DNLOAD_APIENTRY *glDrawArrays)(GLenum, GLint, GLsizei);
+  void (DNLOAD_APIENTRY *glUseProgram)(GLuint);
+  EGLContext (*eglCreateContext)(EGLDisplay, EGLConfig, EGLContext, EGLint const*);
+  void (DNLOAD_APIENTRY *glEnableVertexAttribArray)(GLuint);
+  EGLBoolean (*eglChooseConfig)(EGLDisplay, EGLint const*, EGLConfig*, EGLint, EGLint*);
+  EGLBoolean (*eglMakeCurrent)(EGLDisplay, EGLSurface, EGLSurface, EGLContext);
 } g_symbol_table =
 {
-  (void (DNLOAD_APIENTRY *)(GLuint, GLbitfield, GLuint))0x212d8ad7,
-  (void (DNLOAD_APIENTRY *)(GLuint))0x2386bc04,
-  (void (*)(SDL_Window*))0x295bfb59,
+  (void (DNLOAD_APIENTRY *)(GLuint))0x133a35c5,
+  (void (*)(void))0x152389b4,
+  (EGLBoolean (*)(EGLDisplay, EGLint*, EGLint*))0x1e979dfa,
+  (void (DNLOAD_APIENTRY *)(GLint, GLsizei, const GLfloat*))0x223459b4,
+  (GLint (DNLOAD_APIENTRY *)(GLuint, const GLchar*))0x25c12218,
+  (EGLSurface (*)(EGLDisplay, EGLConfig, EGLNativeWindowType, EGLint const*))0x28e70577,
   (void (*)(int))0x29f14a4,
+  (EGLBoolean (*)(EGLDisplay, EGLSurface))0x2bbe59d6,
+  (void (DNLOAD_APIENTRY *)(GLuint, GLuint))0x30b3cfcf,
+  (int (*)(DISPMANX_UPDATE_HANDLE_T))0x318e9a39,
   (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
   (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
+  (DISPMANX_ELEMENT_HANDLE_T (*)(DISPMANX_UPDATE_HANDLE_T, DISPMANX_DISPLAY_HANDLE_T, int32_t, const VC_RECT_T*, DISPMANX_RESOURCE_HANDLE_T, const VC_RECT_T*, DISPMANX_PROTECTION_T, VC_DISPMANX_ALPHA_T*, DISPMANX_CLAMP_T*, DISPMANX_TRANSFORM_T))0x5589e071,
   (int (*)(SDL_Event*))0x64949d97,
+  (GLuint (DNLOAD_APIENTRY *)(GLenum))0x6b4ffac6,
+  (DISPMANX_DISPLAY_HANDLE_T (*)(uint32_t))0x6df9e514,
   (int (*)(Uint32))0x70d6574,
-  (void (DNLOAD_APIENTRY *)(GLsizei, GLuint*))0x75e35418,
+  (GLuint (DNLOAD_APIENTRY *)(void))0x78721c3,
   (void (*)(void))0x7eb657f3,
-  (GLuint (DNLOAD_APIENTRY *)(GLenum, GLsizei, const char**))0xa4fd03d8,
+  (int32_t (*)(const uint16_t, uint32_t*, uint32_t*))0x97bb35db,
+  (EGLDisplay (*)(NativeDisplayType))0xabd36ff6,
+  (void (*)(void))0xadd96fb5,
+  (EGLBoolean (*)(EGLDisplay))0xb87f4317,
   (int (*)(int))0xb88bf697,
-  (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLsizei, const GLfloat*))0xc969d24e,
-  (void (DNLOAD_APIENTRY *)(GLshort, GLshort, GLshort, GLshort))0xd419e20a,
-  (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+  (DISPMANX_UPDATE_HANDLE_T (*)(int32_t))0xb8dfc099,
+  (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*))0xc443174a,
+  (void (DNLOAD_APIENTRY *)(GLuint))0xc5165dd3,
+  (void (DNLOAD_APIENTRY *)(GLuint, GLsizei, const GLchar**, const GLint*))0xc609c385,
+  (void (DNLOAD_APIENTRY *)(GLenum, GLint, GLsizei))0xcb871c63,
+  (void (DNLOAD_APIENTRY *)(GLuint))0xcc55bb62,
+  (EGLContext (*)(EGLDisplay, EGLConfig, EGLContext, EGLint const*))0xd95202a9,
+  (void (DNLOAD_APIENTRY *)(GLuint))0xe9e99723,
+  (EGLBoolean (*)(EGLDisplay, EGLint const*, EGLConfig*, EGLint, EGLint*))0xf4628a23,
+  (EGLBoolean (*)(EGLDisplay, EGLSurface, EGLSurface, EGLContext))0xf780cac1,
 };
 #endif
 
@@ -269,7 +341,7 @@ typedef Elf32_Sym dnload_elf_sym_t;
 typedef Elf32_Sword dnload_elf_tag_t;
 #endif
 /** \brief ELF base address. */
-#define ELF_BASE_ADDRESS 0x400000
+#define ELF_BASE_ADDRESS 0x10000
 /** \brief Get dynamic section element by tag.
  *
  * \param dyn Dynamic section.
@@ -461,7 +533,7 @@ static void* dnload_find_symbol(uint32_t hash)
 static void dnload(void)
 {
   unsigned ii;
-  for(ii = 0; (15 > ii); ++ii)
+  for(ii = 0; (34 > ii); ++ii)
   {
     void **iter = ((void**)&g_symbol_table) + ii;
     *iter = dnload_find_symbol(*(uint32_t*)iter);
@@ -487,5 +559,5 @@ void _start() DNLOAD_VISIBILITY;
 }
 #endif
 #endif
-
 #endif
+

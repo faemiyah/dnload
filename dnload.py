@@ -132,6 +132,8 @@ g_platform_variables = {
   "ei_class" : { "32-bit" : 1, "64-bit" : 2 },
   "ei_osabi" : { "FreeBSD" : 9, "Linux-armel" : 0, "Linux" : 3 },
   "entry" : { "64-bit" : 0x400000, "armv6l" : 0x10000, "armv7l" : 0x8000, "ia32" : 0x4000000 }, # ia32: 0x8048000
+  "function_rand" : { "default" : None },
+  "function_srand" : { "default" : None },
   "gl_library" : { "default" : "GL" },
   "interp" : { "FreeBSD" : "\"/libexec/ld-elf.so.1\"", "Linux-armel" : "\"/lib/ld-linux.so.3\"", "Linux-ia32" : "\"/lib/ld-linux.so.2\"", "Linux-amd64" : "\"/lib64/ld-linux-x86-64.so.2\"" },
   "march" : { "amd64" : "core2", "armv6l" : "armv6t2", "armv7l" : "armv7", "ia32" : "pentium4" },
@@ -2050,10 +2052,10 @@ g_library_definition_c = LibraryDefinition("c", (
   ("int", "puts", "const char*"),
   ("void", "qsort", "void*", "size_t", "size_t", "int (*)(const void*, const void*)"),
   ("void*", "realloc", "void*", "size_t"),
-  ("int", ("rand", "bsd_rand")),
+  ("int", ("rand", PlatformVar("function_rand"))),
   ("int", "random"),
   ("unsigned", "sleep", "unsigned"),
-  ("void", ("srand", "bsd_srand"), "unsigned int"),
+  ("void", ("srand", PlatformVar("function_srand")), "unsigned int"),
   ("void", "srandom", "unsigned int"),
   ))
 g_library_definition_bcm_host = LibraryDefinition("bcm_host", (
@@ -2301,45 +2303,8 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #else
 #include <math.h>
 #include <stdlib.h>
-#endif\n
-#if defined(DNLOAD_VIDEOCORE)
-#include \"bcm_host.h\"
-#include \"EGL/egl.h\"
-#endif\n
-#if defined([[DEFINITION_LD]])
-#if defined(WIN32)
-#include \"windows.h\"
-#include \"GL/glew.h\"
-#include \"GL/glu.h\"[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
-#elif defined(__APPLE__)
-#include \"GL/glew.h\"
-#include <OpenGL/glu.h>[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
-#else
-#if defined(DNLOAD_GLESV2)
-#include \"GLES2/gl2.h\"
-#include \"GLES2/gl2ext.h\"
-#else
-#include \"GL/glew.h\"
-#include \"GL/glu.h\"
-#endif[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
 #endif
-#include \"bsd_rand.h\"
-#else
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#include <OpenGL/glu.h>[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
-#else
-#if defined(DNLOAD_GLESV2)
-#include \"GLES2/gl2.h\"
-#include \"GLES2/gl2ext.h\"
-#else
-#include \"GL/gl.h\"
-#include \"GL/glext.h\"
-#include \"GL/glu.h\"
-#endif[[FREETYPE_INCLUDE]][[SDL_INCLUDE]]
-#endif
-#endif\n
+[[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_RAND]][[INCLUDE_SDL]]
 #if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
 #define DNLOAD_MAIN SDL_main
 #else
@@ -2433,8 +2398,63 @@ void _start() DNLOAD_VISIBILITY;[[UND_SYMBOLS]]
 #if defined(__cplusplus)
 }
 #endif
-#endif\n
 #endif
+#endif
+\n""")
+
+g_template_include_freetype = Template("""
+#include \"ft2build.h\"
+#include FT_FREETYPE_H
+""")
+
+g_template_include_opengl = Template("""
+#if defined(DNLOAD_VIDEOCORE)
+#include \"bcm_host.h\"
+#include \"EGL/egl.h\"
+#endif\n
+#if defined([[DEFINITION_LD]])
+#if defined(WIN32)
+#include \"windows.h\"
+#include \"GL/glew.h\"
+#include \"GL/glu.h\"
+#elif defined(__APPLE__)
+#include \"GL/glew.h\"
+#include <OpenGL/glu.h>
+#else
+#if defined(DNLOAD_GLESV2)
+#include \"GLES2/gl2.h\"
+#include \"GLES2/gl2ext.h\"
+#else
+#include \"GL/glew.h\"
+#include \"GL/glu.h\"
+#endif
+#endif
+#else
+#if defined(__APPLE__)
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#include <OpenGL/glu.h>
+#else
+#if defined(DNLOAD_GLESV2)
+#include \"GLES2/gl2.h\"
+#include \"GLES2/gl2ext.h\"
+#else
+#include \"GL/gl.h\"
+#include \"GL/glext.h\"
+#include \"GL/glu.h\"
+#endif
+#endif
+#endif
+""")
+
+g_template_include_rand = Template("""
+#if defined([[DEFINITION_LD]])
+#include \"[[HEADER_RAND]]\"
+#endif
+""")
+
+g_template_include_sdl = Template("""
+#include \"SDL.h\"
 """)
 
 g_template_symbol_table = Template("""
@@ -3229,16 +3249,18 @@ def locate(pth, fn, previous_paths = None):
   # Some specific directory trees would take too much time to traverse.
   if pth in ("/lib/modules"): 
     return None
-  pthfn = pth + "/" + fn
-  if os.path.isfile(pthfn):
-    return os.path.normpath(pthfn)
+  # Recurse, expect filesystem errors.
   try:
     for ii in os.listdir(pth):
-      iifn = os.path.realpath(pth + "/" + ii)
-      if os.path.isdir(iifn) and (not iifn in previous_paths):
-        ret = locate(iifn, fn, previous_paths + [iifn])
-        if ret:
-          return ret
+      ret = None
+      if (isinstance(fn, str) and (ii == fn)) or ((not isinstance(fn, str)) and fn.match(ii)):
+        ret = os.path.realpath(pth + "/" + ii)
+        if os.path.isfile(ret):
+          return os.path.normpath(ret)
+        elif os.path.isdir(ret):
+          ret = locate(ret, fn, previous_paths + [ret])
+          if ret:
+            return ret
   except OSError as ee: # Permission denied or the like.
     if 13 == ee.errno:
       return None
@@ -3419,9 +3441,21 @@ def set_program_start(op):
   """Set label to start program execution from."""
   replace_platform_variable("start", op)
 
-def symbols_has_library(symbols, name):
-  """Tell if symbol collection wants to link against a given library."""
-  return any((x.get_library().get_name() == name) for x in symbols)
+def symbols_has_library(symbols, op):
+  """Tell if symbol collection wants to link against any of the given libraries."""
+  name_list = listify(op)
+  for ii in symbols:
+    if ii.get_library().get_name() in name_list:
+      return True
+  return False
+
+def symbols_has_symbol(symbols, op):
+  """Tell if symbol collection has any of the given symbols."""
+  name_list = listify(op)
+  for ii in symbols:
+    if ii.get_name() in name_list:
+      return True
+  return False
 
 def touch(op):
   """Emulate *nix 'touch' command."""
@@ -3518,6 +3552,7 @@ def main():
   parser.add_argument("-o", "--output-file", help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
+  parser.add_argument("--rand", default = "bsd", choices = ("bsd", "gnu"), help = "rand() implementation to use.\n(default: %(default)")
   parser.add_argument("--rpath", action = "append", help = "Extra rpath locations for linking.")
   parser.add_argument("--safe-symtab", action = "store_true", help = "Handle DT_SYMTAB in a safe manner.")
   parser.add_argument("-s", "--search-path", action = "append", help = "Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
@@ -3580,6 +3615,7 @@ def main():
   abstraction_layer = listify(args.abstraction_layer)
   definition_ld = args.define
   compilation_mode = args.method
+  implementation_rand = args.rand
   nice_filedump = args.nice_filedump
   no_glesv2 = args.no_glesv2
   symbol_prefix = args.call_prefix
@@ -3736,9 +3772,25 @@ def main():
   # Header includes.
   subst = {}
   if symbols_has_library(symbols, "freetype"):
-    subst["FREETYPE_INCLUDE"] = "\n#include \"ft2build.h\"\n#include FT_FREETYPE_H"
-  if symbols_has_library(symbols, "SDL") or symbols_has_library(symbols, "SDL2"):
-    subst["SDL_INCLUDE"] = "\n#include \"SDL.h\""
+    subst["INCLUDE_FREETYPE"] = g_template_include_freetype.format()
+  if symbols_has_library(symbols, ("GL", "GLESv2")):
+    subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({ "DEFINITION_LD" : definition_ld })
+  if symbols_has_library(symbols, ("SDL", "SDL2")):
+    subst["INCLUDE_SDL"] = g_template_include_sdl.format()
+
+  # Workarounds for specific symbol implementations - must be done before symbol definitions.
+  if symbols_has_symbol(symbols, "rand"):
+    regex_rand = re.compile(r'%s[-_\s]+rand\.h(h|pp|xx)?' % (implementation_rand))
+    header_rand = locate(target_search_path, regex_rand)
+    if not header_rand:
+      raise RuntimeError("could not find rand implementation for '%s'" % (implementation_rand))
+    header_rand_path, header_rand = os.path.split(header_rand)
+    if is_verbose:
+      print("Using rand() implementation: '%s'" % (header_rand))
+    replace_platform_variable("function_rand", "%s_rand" % (implementation_rand))
+    replace_platform_variable("function_srand", "%s_srand" % (implementation_rand))
+    subst["INCLUDE_RAND"] = g_template_include_rand.format({ "DEFINITION_LD" : definition_ld,
+      "HEADER_RAND" : header_rand })
 
   # Symbol definitions.
   symbol_definitions_direct = generate_symbol_definitions_direct(symbols, symbol_prefix)
