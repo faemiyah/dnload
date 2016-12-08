@@ -3758,7 +3758,7 @@ def main():
   # Some libraries cannot co-exist, but have some symbols with identical names.
   symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
 
-  real_symbols = filter(lambda x: not x.is_verbatim(), symbols)
+  real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
   if is_verbose():
     symbol_strings = map(lambda x: str(x), symbols)
     print("Symbols found: %s" % (str(symbol_strings)))
@@ -3839,8 +3839,6 @@ def main():
   elif "sdl1" in abstraction_layer:
     (sdl_stdout, sdl_stderr) = run_command(["sdl-config", "--cflags"])
     compiler.add_extra_compiler_flags(sdl_stdout.split())
-  else:
-    raise RuntimeError("unknown abstraction layer '%s'" % (abstraction_layer[0]))
 
   if output_file:
     if 1 < len(source_files):
