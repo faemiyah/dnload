@@ -2932,14 +2932,30 @@ g_symbol_sources = SymbolSourceDatabase((
   asm("" : /**/ : "r"(r1) : /**/); // output: remainder
   return ret;
 }"""),
-  ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned int __aeabi_uidivmod(unsigned, unsigned);",
-"""unsigned int __aeabi_uidivmod(unsigned num, unsigned den)
+  ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned __aeabi_uidivmod(unsigned, unsigned);",
+"""unsigned __aeabi_uidivmod(unsigned num, unsigned den)
 {
-  int quotient = 0;\n
-  while(num > den)
+  unsigned shift = 1;
+  unsigned quotient = 0;\n
+  for(;;)
   {
-    num -= den;
-    ++quotient;
+    unsigned next = den << 1;
+    if(next > num)
+    {
+      break;
+    }
+    den = next;
+    shift <<= 1;
+  }\n
+  while(shift > 0)
+  {
+    if(den <= num)
+    {
+      num -= den;
+      quotient += shift;
+    }
+    den >>= 1;
+    shift >>= 1;
   }\n
   volatile register int r1 asm("r1") = num;
   asm("" : /**/ : "r"(r1) : /**/); // output: remainder
