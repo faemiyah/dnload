@@ -4,6 +4,9 @@
 
 #include <iostream>
 
+/// Define to do extra checking during cycles.
+#undef COMPRESSOR_STATE_EXTRA_CHECKS
+
 using namespace fcmp;
 
 /// Shorthand.
@@ -79,6 +82,22 @@ bool CompressorState::compressCycle()
 
 bool CompressorState::cycle()
 {
+#if defined(COMPRESSOR_STATE_EXTRA_CHECKS)
+  // Check that current best data is correct.
+  if(m_best_data)
+  {
+    DataBitsSptr verify_data = Compressor::extract(*m_best_data);
+
+    std::cout << *m_data;
+    if(*verify_data != *m_data)
+    {
+      std::ostringstream sstr;
+      sstr << "incorrect compression data created:\n" << *verify_data;
+      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+    }
+  }
+#endif
+
   if(!m_next_compressor)
   {
     if(m_compressor->rebase(false) && m_best_data)
@@ -104,6 +123,21 @@ bool CompressorState::cycle()
     }
     m_best_data->replaceModels(*m_compressor);
   }
+
+#if defined(COMPRESSOR_STATE_EXTRA_CHECKS)
+  // Check that best data is correct after replacing models.
+  if(m_best_data)
+  {
+    DataBitsSptr verify_data = Compressor::extract(*m_best_data);
+
+    if(*verify_data != *m_data)
+    {
+      std::ostringstream sstr;
+      sstr << "rebasing destroyed data:\n" << *verify_data;
+      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+    }
+  }
+#endif
 
   return true;
 }

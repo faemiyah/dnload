@@ -10,6 +10,9 @@
 /// Define to print extra debug info during (de)compression.
 #undef EXTRA_COMPRESSION_DEBUG
 
+/// Define to test with trivial compression (no model).
+#undef FCMP_COMPRESSION_TRIVIAL
+
 using namespace fcmp;
 
 /// Find greatest common divisor between two positive integers.
@@ -141,10 +144,9 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_lim
     std::cout << "denominator: " << getProbability(reader, true).getDenominator() << " || lower: " << getProbability(reader, true).getLower() << std::endl;
 #endif
 
-    uint32_t range = high - low + 1;
-    double flt_range = static_cast<double>(range);
-    high = low + static_cast<uint32_t>(flt_range * prob.getUpperDivision() + 0.5) - 1;
-    low = low + static_cast<uint32_t>(flt_range * prob.getLowerDivision() + 0.5);
+    uint64_t range = high - low + 1;
+    high = low + static_cast<uint32_t>(range * prob.getUpper() / prob.getDenominator());
+    low = low + static_cast<uint32_t>(range * prob.getLower() / prob.getDenominator());
 
     //std::cout << to_hex_string(high) << " / " << to_hex_string(low) << std::endl;
 
@@ -410,17 +412,15 @@ DataBitsSptr Compressor::extract(const DataCompressed &data)
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
 
-    uint32_t range = high - low + 1;
-    double flt_range = static_cast<double>(range);
+    uint64_t range = high - low + 1;
     Probability prob = cmp.getProbability(state, true);
-    double flt_denominator = static_cast<double>(prob.getDenominator());
 
 #if defined(EXTRA_COMPRESSION_DEBUG)
     std::cout << "denominator: " << flt_denominator << " || lower: " << prob.getLower() << std::endl;
 #endif
 
-    double prediction = (static_cast<double>(value - low + 1) * flt_denominator - 1.0) / flt_range;
-    bool decoded = (prediction >= static_cast<double>(prob.getLower()));
+    uint64_t prediction = (static_cast<uint64_t>(value - low + 1) * prob.getDenominator()) / range;
+    bool decoded = (prediction >= prob.getLower());
 
 #if defined(EXTRA_COMPRESSION_DEBUG)
     std::cout << "coded bit: " << decoded << " || prediction: " << prediction << std::endl;
@@ -449,8 +449,8 @@ DataBitsSptr Compressor::extract(const DataCompressed &data)
     {
       prob.invert();
     }
-    high = low + static_cast<uint32_t>(flt_range * prob.getUpperDivision() + 0.5) - 1;
-    low = low + static_cast<uint32_t>(flt_range * prob.getLowerDivision() + 0.5);
+    high = low + static_cast<uint32_t>(range * prob.getUpper() / prob.getDenominator());
+    low = low + static_cast<uint32_t>(range * prob.getLower() / prob.getDenominator());
 
     for(;;)
     {
