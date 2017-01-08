@@ -8,6 +8,10 @@ namespace fcmp
 {
   // Forward declaration.
   class CompressorState;
+  class CompressorThread;
+
+  /// Convenience typedef.
+  typedef std::unique_ptr<CompressorThread> CompressorThreadUptr;
 
   /// Compressor thread.
   class CompressorThread
@@ -81,9 +85,6 @@ namespace fcmp
       /// Thread function.
       void run();
   };
-
-  /// Convenience typedef.
-  typedef std::shared_ptr<CompressorThread> CompressorThreadSptr;
 }
 
 #endif

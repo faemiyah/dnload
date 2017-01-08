@@ -1,6 +1,7 @@
 #include "compressor_thread.hpp"
 
 #include "compressor_state.hpp"
+#include "model.hpp"
 
 using namespace fcmp;
 

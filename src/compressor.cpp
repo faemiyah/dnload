@@ -1,11 +1,15 @@
 #include "compressor.hpp"
 
-#include "common.hpp"
+#include "arithmetic_decoder.hpp"
+#include "arithmetic_encoder.hpp"
 #include "compressor_state.hpp"
 #include "data_bits_reader.hpp"
+#include "data_compressed.hpp"
 #include "data_compressed_reader.hpp"
+#include "model.hpp"
 
-#include <iostream>
+//#include <iostream>
+#include <sstream>
 
 /// Define to print extra debug info during (de)compression.
 #undef EXTRA_COMPRESSION_DEBUG
@@ -47,32 +51,6 @@ static uint8_t gcd(uint8_t lhs, uint8_t rhs)
   }
 }
 
-/// Write bits into a stream.
-///
-/// \param data Compressed data.
-/// \param bit Bit to output.
-/// \param pending_bits Number of pending bits to output.
-/// \return Size of compressed data after appending bits.
-static size_t output_bit_pending(DataCompressed &data, bool bit, unsigned &pending_bits)
-{
-  data.append(bit);
-
-#if defined(EXTRA_COMPRESSION_DEBUG)
-  std::cout << "stream bit: " << bit << std::endl;
-#endif
-
-  while(0 < pending_bits)
-  {
-#if defined(EXTRA_COMPRESSION_DEBUG)
-    std::cout << "stream bit: " << !bit << std::endl;
-#endif
-    data.append(!bit);
-    --pending_bits;
-  }
-
-  return data.getSizeBits();
-}
-
 bool Compressor::addModel(uint8_t context, uint8_t weight)
 {
   for(std::vector<Model>::iterator ii = m_models.begin(), ee = m_models.end(); (ii != ee); ++ii)
@@ -103,10 +81,8 @@ bool Compressor::addModel(uint8_t context, uint8_t weight)
 
 DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_limit)
 {
-  DataCompressedSptr ret(new DataCompressed(data.getSizeBits()));
+  DataCompressedSptr ret(new DataCompressed(data.getSizeBits(), *this));
 
-  // Models must be present even if no actual data is.
-  ret->replaceModels(*this);
   // If nothing to compress, exit immediately.
   if(data.empty())
   {
@@ -118,80 +94,38 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_lim
   {
     vv.reset();
   }
+
   DataBitsReader reader(&data);
+  ArithmeticEncoder coder;
 
-  // Adapted from Dr. Dobbs arithmetic coder example:
-  // http://www.drdobbs.com/cpp/data-compression-with-arithmetic-encodin/240169251?pgno=2
-  uint32_t high = CODE_MAX;
-  uint32_t low = 0;
-  unsigned pending_bits = 0;
-
-  do {
-    if(low >= high)
-    {
-      std::ostringstream sstr;
-      sstr << "range inconsistency: " << low << " / " << high;
-      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
-    }
-
+  for(;;)
+  {
     //std::cout << static_cast<double>(prob.getUpper() - prob.getLower()) /
     //  static_cast<double>(prob.getDenominator()) << std::endl;
 
     bool actual = reader.getCurrentBit();
     Probability prob = getProbability(reader, actual);
 
-#if defined(EXTRA_COMPRESSION_DEBUG)
-    std::cout << "denominator: " << getProbability(reader, true).getDenominator() << " || lower: " << getProbability(reader, true).getLower() << std::endl;
-#endif
-
-    uint64_t range = high - low + 1;
-    high = low + static_cast<uint32_t>(range * prob.getUpper() / prob.getDenominator());
-    low = low + static_cast<uint32_t>(range * prob.getLower() / prob.getDenominator());
-
-    //std::cout << to_hex_string(high) << " / " << to_hex_string(low) << std::endl;
-
-    for(;;)
+    size_t new_size = coder.encode(*ret, prob);
+    if(new_size > size_limit)
     {
-      if(CODE_HALF > high)
-      {
-        size_t cmp_size = output_bit_pending(*ret, false, pending_bits);
-        if(size_limit <= cmp_size)
-        {
-          return ret;
-        }
-      }
-      else if(CODE_HALF <= low)
-      {
-        size_t cmp_size = output_bit_pending(*ret, true, pending_bits);
-        if(size_limit <= cmp_size)
-        {
-          return ret;
-        }
-      }
-      else if((CODE_HIGH > high) && (CODE_LOW <= low))
-      {
-        ++pending_bits;
-        high -= CODE_LOW;
-        low -= CODE_LOW;
-      }
-      else
-      {
-        break;
-      }
-      high = ((high << 1) + 1) & CODE_MAX;
-      low = (low << 1) & CODE_MAX;
+      // Abort if size is larger than comparable size.
+      return ret;
     }
 
-#if defined(EXTRA_COMPRESSION_DEBUG)
-    std::cout << "coded bit: " << actual << std::endl;
+#if defined(FCMP_EXTRA_COMPRESSION_DEBUG)
+  std::cout << "coded bit: " << bit << std::endl;
 #endif
 
     update(reader, actual);
-  } while(reader.advance());
 
-  // Last write.
-  ++pending_bits;
-  output_bit_pending(*ret, (CODE_LOW <= low), pending_bits);
+    if(!reader.advance())
+    {
+      break;
+    }
+  }
+
+  coder.finishEncode(*ret);
 
   return ret;
 }
@@ -364,14 +298,12 @@ DataCompressedSptr Compressor::compress(const DataBits &data, unsigned threads)
 
   while(cmp.compressCycle());
 
-  DataCompressedSptr ret = cmp.getBestData();
-
-  return ret; 
+  return cmp.getBestData();
 }
 
-DataBitsSptr Compressor::extract(const DataCompressed &data)
+DataBitsUptr Compressor::extract(const DataCompressed &data)
 {
-  DataBitsSptr ret(new DataBits());
+  DataBitsUptr ret(new DataBits());
 
   // If nothing to extract, exit immediately.
   if(0 >= data.getExtractedSize())
@@ -380,6 +312,8 @@ DataBitsSptr Compressor::extract(const DataCompressed &data)
   }
 
   DataCompressedReader reader(&data);
+  ArithmeticDecoder coder(reader);
+  const size_t extracted_size = data.getExtractedSize();
   DataBitsState state;
   Compressor cmp;
 
@@ -388,99 +322,16 @@ DataBitsSptr Compressor::extract(const DataCompressed &data)
     cmp.addModel(data.getContext(ii), data.getWeight(ii));
   }
 
-  uint32_t high = CODE_MAX;
-  uint32_t low = 0;
-  uint32_t value = 0;
-  uint8_t output_flag = 0x80;
-  uint8_t output_byte = 0;
-
-  for(unsigned ii = 0 ; (31 > ii); ++ii)
-  {
-#if defined(EXTRA_COMPRESSION_DEBUG)
-    std::cout << "stream bit: " << reader.getCurrentBit() << std::endl;
-#endif
-    value = (value << 1) + static_cast<uint32_t>(reader.getCurrentBit());
-    reader.advance();
-  }
-
   for(;;)
   {
-    if((low >= high) || (value < low))
-    {
-      std::ostringstream sstr;
-      sstr << "range inconsistency: " << low << " / " << value << " / " << high;
-      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
-    }
-
-    uint64_t range = high - low + 1;
     Probability prob = cmp.getProbability(state, true);
 
-#if defined(EXTRA_COMPRESSION_DEBUG)
-    std::cout << "denominator: " << flt_denominator << " || lower: " << prob.getLower() << std::endl;
-#endif
-
-    uint64_t prediction = (static_cast<uint64_t>(value - low + 1) * prob.getDenominator()) / range;
-    bool decoded = (prediction >= prob.getLower());
-
-#if defined(EXTRA_COMPRESSION_DEBUG)
-    std::cout << "coded bit: " << decoded << " || prediction: " << prediction << std::endl;
-#endif
-
-    // Append decoded bit.
-    if(decoded)
-    {
-      output_byte |= output_flag;
-    }
-    output_flag = static_cast<uint8_t>(output_flag >> 1);
-    if(!output_flag)
-    {
-      ret->addByte(output_byte);
-      output_flag = 0x80;
-      output_byte = 0;
-    }
+    bool decoded = coder.decode(*ret, reader, prob);
 
     // Exit if at end.
-    if(ret->getSizeBits() >= data.getExtractedSize())
+    if(ret->getSizeBits() >= extracted_size)
     {
       return ret;
-    }
-
-    if(!decoded)
-    {
-      prob.invert();
-    }
-    high = low + static_cast<uint32_t>(range * prob.getUpper() / prob.getDenominator());
-    low = low + static_cast<uint32_t>(range * prob.getLower() / prob.getDenominator());
-
-    for(;;)
-    {
-      if(CODE_HALF > high)
-      {
-        // No normalization necessary.
-      }
-      else if(CODE_HALF <= low)
-      {
-        high -= CODE_HALF;
-        low -= CODE_HALF;
-        value -= CODE_HALF;
-      }
-      else if((CODE_HIGH > high) && (CODE_LOW <= low))
-      {
-        high -= CODE_LOW;
-        low -= CODE_LOW;
-        value -= CODE_LOW;
-      }
-      else
-      {
-        break;
-      }
-      high = (high << 1) + 1;
-      low = low << 1;
-#if defined(EXTRA_COMPRESSION_DEBUG)
-      std::cout << "stream bit: " << reader.getCurrentBit() << std::endl;
-#endif
-      value = (value << 1) + static_cast<uint32_t>(reader.getCurrentBit());
-      reader.advance();
     }
 
     cmp.update(state, decoded);

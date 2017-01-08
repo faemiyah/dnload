@@ -1,19 +1,16 @@
 #include "compressor_state.hpp"
 
 #include "common.hpp"
+#include "data_compressed.hpp"
 
 #include <iostream>
 
 /// Define to do extra checking during cycles.
-#undef COMPRESSOR_STATE_EXTRA_CHECKS
+#define COMPRESSOR_STATE_EXTRA_CHECKS
 
 using namespace fcmp;
 
-/// Shorthand.
-///
-/// \param vec Vector to erase from.
-/// \param thr Thread to erase.
-void erase(CompressorThreadVector &vec, CompressorThread *thr)
+void CompressorState::eraseCompressorThread(CompressorThreadVector &vec, CompressorThread *thr)
 {
   for(size_t ii = 0, ee = vec.size(); (ii != ee); ++ii)
   {
@@ -33,13 +30,13 @@ CompressorState::CompressorState(const DataBits *data, unsigned threads) :
 
   for(unsigned ii = 0; (ee > ii); ++ii)
   {
-    m_threads.push_back(CompressorThreadSptr(new CompressorThread(this, m_data)));
+    m_threads.push_back(CompressorThreadUptr(new CompressorThread(this, m_data)));
   }
 }
 
 void CompressorState::awaken(CompressorThread *thr, uint8_t context, uint8_t weight, size_t size_limit)
 {
-  erase(m_threads_dormant, thr);
+  eraseCompressorThread(m_threads_dormant, thr);
   m_threads_active.push_back(thr);
   thr->awaken(context, weight, size_limit);
 }
@@ -47,6 +44,8 @@ void CompressorState::awaken(CompressorThread *thr, uint8_t context, uint8_t wei
 bool CompressorState::compressCycle()
 {
   ScopedLock sl(m_mutex);
+
+  resetProgress();
 
   for(unsigned ii = 1; (256 > ii); ++ii)
   {
@@ -82,22 +81,6 @@ bool CompressorState::compressCycle()
 
 bool CompressorState::cycle()
 {
-#if defined(COMPRESSOR_STATE_EXTRA_CHECKS)
-  // Check that current best data is correct.
-  if(m_best_data)
-  {
-    DataBitsSptr verify_data = Compressor::extract(*m_best_data);
-
-    std::cout << *m_data;
-    if(*verify_data != *m_data)
-    {
-      std::ostringstream sstr;
-      sstr << "incorrect compression data created:\n" << *verify_data;
-      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
-    }
-  }
-#endif
-
   if(!m_next_compressor)
   {
     if(m_compressor->rebase(false) && m_best_data)
@@ -122,22 +105,18 @@ bool CompressorState::cycle()
       std::cout << *m_compressor << " (rebase)\n";
     }
     m_best_data->replaceModels(*m_compressor);
-  }
 
 #if defined(COMPRESSOR_STATE_EXTRA_CHECKS)
-  // Check that best data is correct after replacing models.
-  if(m_best_data)
-  {
-    DataBitsSptr verify_data = Compressor::extract(*m_best_data);
-
+    // Check that best data is correct after replacing models.
+    DataBitsUptr verify_data = Compressor::extract(*m_best_data);
     if(*verify_data != *m_data)
     {
       std::ostringstream sstr;
       sstr << "rebasing destroyed data:\n" << *verify_data;
       BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
     }
-  }
 #endif
+  }
 
   return true;
 }
@@ -152,12 +131,47 @@ void CompressorState::update(CompressorSptr compressor, DataCompressedSptr data)
     }
     m_next_compressor = compressor;
     m_best_data = data;
+
+#if defined(COMPRESSOR_STATE_EXTRA_CHECKS)
+    // Check that current best data is correct.
+    DataBitsUptr verify_data = Compressor::extract(*m_best_data);
+    if(*verify_data != *m_data)
+    {
+      std::ostringstream sstr;
+      sstr << "incorrect compression data created:\n" << *verify_data;
+      BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+    }
+#endif
+  }
+  else
+  {
+    ++m_progress;
+    printProgress();
+  }
+}
+
+void CompressorState::printProgress()
+{
+  if(!is_verbose())
+  {
+    return;
+  }
+
+  // Counter should reach 100% eventually.
+  // 65536 / 101 ~= 648.8713
+  // 65536 * 648.872 ~= 100.9999
+  int progress_print = static_cast<int>(static_cast<float>(m_progress) / 648.872f);
+
+  if(progress_print != m_progress_print)
+  {
+    m_progress_print = progress_print;
+    std::cout << "[ " << std::setw(3) << progress_print << "% ]" << std::flush << "\r        \r";
   }
 }
 
 void CompressorState::wait(CompressorThread *thr, ScopedLock &sl)
 {
-  erase(m_threads_active, thr);
+  eraseCompressorThread(m_threads_active, thr);
   waitInitial(thr, sl);
 }
 

@@ -7,6 +7,7 @@ namespace fcmp
 {
   // Forward declaration.
   class Compressor;
+  class DataCompressed;
 
   /// Model data.
   class DataModel
@@ -60,14 +61,14 @@ namespace fcmp
       std::ostream& put(std::ostream &lhs) const;
   };
 
-  /// Block of data (compressed).
-  class DataCompressed;
-
   /// Convenience typedef.
   typedef std::shared_ptr<DataCompressed> DataCompressedSptr;
 
+  /// Block of data (compressed).
   class DataCompressed
   {
+    public:
+
     private:
       /// Model data.
       std::vector<DataModel> m_models;
@@ -86,8 +87,7 @@ namespace fcmp
       /// Constructor.
       ///
       /// \param extracted_size Extracted size.
-      DataCompressed(size_t extracted_size) :
-        m_extracted_size(extracted_size) { }
+      DataCompressed(size_t extracted_size, Compressor& cmp);
 
     private:
       /// Read file from disk.

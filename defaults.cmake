@@ -183,7 +183,7 @@ function(check_videocore)
   endif()
 endfunction()
 
-set(MINIMUM_BOOST_VERSION 1.42.0)
+set(MINIMUM_BOOST_VERSION 1.44.0)
 
 function(find_boost_filesystem)
   if(MSVC)

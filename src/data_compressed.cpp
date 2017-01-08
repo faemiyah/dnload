@@ -3,6 +3,7 @@
 #include "bit_file.hpp"
 #include "common.hpp"
 #include "compressor.hpp"
+#include "model.hpp"
 
 using namespace fcmp;
 
@@ -58,6 +59,13 @@ std::ostream& DataCompressed::put(std::ostream &ostr) const
 
   return ostr << std::endl;
 }
+
+DataCompressed::DataCompressed(size_t extracted_size, Compressor& cmp) :
+  m_extracted_size(extracted_size)
+{
+  replaceModels(cmp);
+}
+
 void DataCompressed::read(const fs::path &filename)
 {
   BitFile bf(filename);

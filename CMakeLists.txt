@@ -7,9 +7,9 @@ enable_language(CXX)
 
 include("defaults.cmake")
 
+find_boost_system(TRUE)
 find_boost_filesystem(TRUE)
 find_boost_program_options(TRUE)
-find_boost_system(TRUE)
 find_png(TRUE)
 find_sdl2(TRUE)
 
@@ -68,6 +68,11 @@ else()
 endif()
 
 add_executable(fcmp
+  "src/arithmetic_coder.hpp"
+  "src/arithmetic_decoder.cpp"
+  "src/arithmetic_decoder.hpp"
+  "src/arithmetic_encoder.cpp"
+  "src/arithmetic_encoder.hpp"
   "src/bit_file.cpp"
   "src/bit_file.hpp"
   "src/common.cpp"
@@ -97,6 +102,7 @@ add_executable(fcmp
   "src/predictor_key.hpp"
   "src/predictor_value.cpp"
   "src/predictor_value.hpp"
+  "src/probability.hpp"
   "src/threading.hpp")
 if(${MSVC})
   target_link_libraries(fcmp "WINMM")

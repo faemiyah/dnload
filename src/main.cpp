@@ -1,5 +1,8 @@
 #include "common.hpp"
 #include "compressor.hpp"
+#include "data_bits.hpp"
+#include "data_compressed.hpp"
+#include "filesystem.hpp"
 
 #include <iostream>
 
@@ -142,7 +145,7 @@ int main(int argc, char **argv)
         std::cout << program_name << ": compressing " << input_file << std::endl;
       }
 
-      DataBitsSptr content = DataBits::create(input_file);
+      DataBitsUptr content = DataBits::create(input_file);
 
       if(is_very_verbose())
       {
@@ -154,7 +157,7 @@ int main(int argc, char **argv)
       // Perform trivial error check.
       {
         // Decompression time is insignificant compared to compression time,
-        DataBitsSptr cmp = Compressor::extract(*compressed_content);
+        DataBitsUptr cmp = Compressor::extract(*compressed_content);
 
         if(*cmp != *content)
         {
@@ -212,7 +215,7 @@ int main(int argc, char **argv)
         std::cout << *content;
       }
 
-      DataBitsSptr extracted_content = Compressor::extract(*content);
+      DataBitsUptr extracted_content = Compressor::extract(*content);
 
       if(is_verbose())
       {

@@ -5,6 +5,47 @@
 
 using namespace fcmp;
 
+void DataBits::addBit(bool op)
+{
+  if(0 >= m_output_bit)
+  {
+    m_output_bit = 8;
+    m_data.push_back(0);
+  }
+
+  m_data.back() |= op ? static_cast<uint8_t>(1 << (m_output_bit - 1)) : 0;
+  --m_output_bit;
+}
+
+void DataBits::addByte(uint8_t op)
+{
+  if(m_output_bit)
+  {
+    std::ostringstream sstr;
+    sstr << "cannot add byte with output bit set: " << m_output_bit;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+
+  m_data.push_back(op);
+}
+
+size_t DataBits::getSizeBits() const
+{
+  return (m_data.size() * 8) - m_output_bit;
+}
+
+size_t DataBits::getSizeBytes() const
+{
+  if(m_output_bit)
+  {
+    std::ostringstream sstr;
+    sstr << "bit data does not have an even byte size with output bit set: " << m_output_bit;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+
+  return m_data.size();
+}
+
 std::ostream& DataBits::put(std::ostream &ostr) const
 {
   size_t ll = 0;
@@ -57,9 +98,9 @@ void DataBits::write(const fs::path &filename) const
   }
 }
 
-DataBitsSptr DataBits::create(const fs::path &filename)
+DataBitsUptr DataBits::create(const fs::path &filename)
 {
-  DataBitsSptr ret(new DataBits());
+  DataBitsUptr ret(new DataBits());
 
   ret->read(filename);
 
