@@ -3,6 +3,13 @@
 
 #include <cstdint>
 
+/// Precision bits.
+#define FCMP_PRECISION 32
+
+#if (FCMP_PRECISION > 32)
+#error "precision too big for uint32_t"
+#endif
+
 /// Turn on to enable extra debug during (de)compression.
 #undef FCMP_EXTRA_COMPRESSION_DEBUG
 
@@ -12,20 +19,19 @@ namespace fcmp
   ///
   /// Adapted from Dr. Dobbs arithmetic coder example:
   /// http://www.drdobbs.com/cpp/data-compression-with-arithmetic-encodin/240169251?pgno=2
+  /// And from Data Compression With Arithmetic Coding by Nark Nelson:
+  /// http://marknelson.us/2014/10/19/data-compression-with-arithmetic-coding/
   class ArithmeticCoder
   {
     protected:
-      /// Bits of precision in coding.
-      static const unsigned PRECISION_BITS = 31;
-
-      /// Maximum value for coding, 31-bit precision.
-      static const uint32_t CODE_MAX = (1U << PRECISION_BITS) - 1;
+      /// Maximum value for coding.
+      static const uint32_t CODE_MAX = static_cast<uint32_t>((static_cast<uint64_t>(1) << FCMP_PRECISION) - 1);
 
       /// Half of the code.
-      static const uint32_t CODE_HALF = 1U << (PRECISION_BITS - 1);
+      static const uint32_t CODE_HALF = 1U << (FCMP_PRECISION - 1);
 
       /// Lower limit for renormalization (1/4).
-      static const uint32_t CODE_LOW = 1U << (PRECISION_BITS - 2);
+      static const uint32_t CODE_LOW = 1U << (FCMP_PRECISION - 2);
 
       /// High limit for renormalization (3/4).
       static const uint32_t CODE_HIGH = CODE_LOW + CODE_HALF;
@@ -42,6 +48,35 @@ namespace fcmp
       ArithmeticCoder() :
         m_high(CODE_MAX),
         m_low(0) { }
+
+    protected:
+      /// Get current range between low and high values.
+      ///
+      /// \return Value range.
+      uint64_t getRange() const
+      {
+        return static_cast<uint64_t>(m_high - m_low) + 1;
+      }
+
+      // Shift low and high values.
+      void shift()
+      {
+        m_high = ((m_high << 1) + 1) & CODE_MAX;
+        m_low = (m_low << 1) & CODE_MAX;
+      }
+
+      /// Update low and high values based on lower and upper limit.
+      ///
+      /// \param lower Lower limit.
+      /// \param upper Upper limit.
+      /// \param denominator Denominator.
+      void update(uint64_t lower, uint64_t upper, uint64_t denominator)
+      {
+        uint64_t range = getRange();
+
+        m_high = m_low + static_cast<uint32_t>(range * upper / denominator - 1);
+        m_low = m_low + static_cast<uint32_t>(range * lower / denominator);
+      }
   };
 }
 

@@ -5,7 +5,6 @@
 #include "compressor_state.hpp"
 #include "data_bits_reader.hpp"
 #include "data_compressed.hpp"
-#include "data_compressed_reader.hpp"
 #include "model.hpp"
 
 //#include <iostream>
@@ -100,11 +99,11 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_lim
 
   for(;;)
   {
-    //std::cout << static_cast<double>(prob.getUpper() - prob.getLower()) /
-    //  static_cast<double>(prob.getDenominator()) << std::endl;
-
     bool actual = reader.getCurrentBit();
     Probability prob = getProbability(reader, actual);
+
+    //std::cout << static_cast<double>(prob.getUpper() - prob.getLower()) /
+    //  static_cast<double>(prob.getDenominator()) << std::endl;
 
     size_t new_size = coder.encode(*ret, prob);
     if(new_size > size_limit)
@@ -132,6 +131,9 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_lim
 
 Probability Compressor::getProbability(const DataBitsState &state, bool value) const
 {
+#if defined(FCMP_COMPRESSION_TRIVIAL)
+  return value ? Probability(1, 2, 2) : Probability(0, 1, 2);
+#else
   unsigned count_one = 0;
   unsigned count_zero = 0;
 
@@ -160,9 +162,6 @@ Probability Compressor::getProbability(const DataBitsState &state, bool value) c
     count_total = 2;
   }
 
-#if defined(FCMP_COMPRESSION_TRIVIAL)
-  return value ? Probability(1, 2, 2) : Probability(0, 1, 2);
-#else
   if(value)
   {
     return Probability(count_zero, count_total, count_total);
@@ -207,7 +206,7 @@ std::ostream& Compressor::put(std::ostream &ostr) const
 
 bool Compressor::rebase(bool rescale)
 {
-  unsigned DEFAULT_WEIGHT = 16;
+  const unsigned DEFAULT_WEIGHT = 32;
   size_t ee = m_models.size();
 
   // Degenerate case.
@@ -269,6 +268,29 @@ bool Compressor::rebase(bool rescale)
           best_mul = static_cast<uint8_t>(ii);
         }
       }
+    }
+
+    // Avoid situation where rebase would leave lowest value at 1.
+    bool request_scale_up = false;
+    bool prevent_scale_up = false;
+
+    for(const Model &vv : m_models)
+    {
+      unsigned downscaled_weight = vv.getWeight() / min_gcd * best_mul;
+
+      if(1 >= downscaled_weight)
+      {
+        request_scale_up = true;
+      }
+      if(256 <= downscaled_weight * 2)
+      {
+        prevent_scale_up = true;
+      }
+    }
+
+    if(request_scale_up && !prevent_scale_up)
+    {
+      best_mul *= 2;
     }
   }
 

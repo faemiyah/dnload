@@ -100,7 +100,9 @@ namespace fcmp
       bool cycle();
 
       /// Print progress of current cycle.
-      void printProgress();
+      ///
+      /// \param force True to print even if progress is not significantly updated.
+      void printProgress(bool force = false);
 
     private:
       /// Shorthand for erasing compressorthread from a vector.

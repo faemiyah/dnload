@@ -128,6 +128,7 @@ void CompressorState::update(CompressorSptr compressor, DataCompressedSptr data)
     if(is_verbose()) 
     {
       std::cout << *compressor << " -> " << data->getSizeBits() << std::endl;
+      printProgress(true);
     }
     m_next_compressor = compressor;
     m_best_data = data;
@@ -146,23 +147,21 @@ void CompressorState::update(CompressorSptr compressor, DataCompressedSptr data)
   else
   {
     ++m_progress;
-    printProgress();
+    if(is_verbose())
+    {
+      printProgress();
+    }
   }
 }
 
-void CompressorState::printProgress()
+void CompressorState::printProgress(bool force)
 {
-  if(!is_verbose())
-  {
-    return;
-  }
-
   // Counter should reach 100% eventually.
   // 65536 / 101 ~= 648.8713
   // 65536 * 648.872 ~= 100.9999
   int progress_print = static_cast<int>(static_cast<float>(m_progress) / 648.872f);
 
-  if(progress_print != m_progress_print)
+  if(force || (progress_print != m_progress_print))
   {
     m_progress_print = progress_print;
     std::cout << "[ " << std::setw(3) << progress_print << "% ]" << std::flush << "\r        \r";
