@@ -43,9 +43,15 @@ namespace fcmp
       /// Predict next bit for all models.
       ///
       /// \param state Current read state.
-      /// \param value Desired prediction value.
-      /// \return Probability.
-      Probability getProbability(const DataBitsState &state, bool value) const;
+      /// \param value Actual value.
+      /// \return Probability for given value.
+      ProbabilityHL getProbabilityHL(const DataBitsState &state, bool value) const;
+
+      /// Predict next bit being one.
+      ///
+      /// \param state Current read state.
+      /// \return Probability for next bit being one.
+      ProbabilityPAQ getProbabilityPAQ(const DataBitsState &state) const;
 
       /// Update compressor with the next bit.
       ///

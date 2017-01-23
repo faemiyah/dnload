@@ -6,7 +6,7 @@
 
 using namespace fcmp;
 
-size_t ArithmeticEncoder::encode(DataCompressed &data, const Probability prob)
+size_t ArithmeticEncoder::encode(DataCompressed &data, const ProbabilityHL prob)
 {
 #if defined(FCMP_EXTRA_COMPRESSION_DEBUG)
   std::cout << "denominator: " << prob.getDenominator() << " || lower: " << prob.getLower() << std::endl;
@@ -19,7 +19,7 @@ size_t ArithmeticEncoder::encode(DataCompressed &data, const Probability prob)
     BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
   }
 
-  update(prob.getLower(), prob.getUpper(), prob.getDenominator());
+  update(prob);
 
   //std::cout << to_hex_string(high) << " / " << to_hex_string(low) << std::endl;
 
@@ -50,7 +50,49 @@ size_t ArithmeticEncoder::encode(DataCompressed &data, const Probability prob)
   return data.getSizeBits();
 }
 
-void ArithmeticEncoder::finishEncode(DataCompressed &data)
+size_t ArithmeticEncoder::encode(DataCompressed &data, bool actual, const ProbabilityPAQ prob)
+{
+#if defined(FCMP_EXTRA_COMPRESSION_DEBUG)
+  std::cout << "denominator: " << prob.getDenominator() << " || lower: " << prob.getLower() << std::endl;
+#endif
+
+  if(m_low >= m_high)
+  {
+    std::ostringstream sstr;
+    sstr << "range inconsistency: " << m_low << " / " << m_high;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+
+  uint32_t mid = calculateMidpoint(prob);
+
+  if((m_high <= mid) || (mid < m_low))
+  {
+    std::ostringstream sstr;
+    sstr << "range inconsistency: " << m_low << " / " << mid << " / " << m_high;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+
+  // Pick half.
+  if(actual)
+  {
+    m_high = mid;
+  }
+  else
+  {
+    m_low = mid;
+  }
+
+  // Shift out leading identical bits.
+  while((m_high & CODE_HALF) == (m_low & CODE_HALF))
+  {
+    write(data, static_cast<bool>(m_high & CODE_HALF));
+    shift();
+  }
+
+  return data.getSizeBits();
+}
+
+void ArithmeticEncoder::finishEncodeHL(DataCompressed &data)
 {
   ++m_pending;
 

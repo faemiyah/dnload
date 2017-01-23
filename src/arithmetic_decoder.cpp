@@ -21,7 +21,7 @@ ArithmeticDecoder::ArithmeticDecoder(DataCompressedReader &reader) :
   }
 }
 
-bool ArithmeticDecoder::decode(DataBits &data, DataCompressedReader &reader, const Probability prob)
+bool ArithmeticDecoder::decode(DataBits &data, DataCompressedReader &reader, const ProbabilityHL prob)
 {
   if((m_value >= m_high) || (m_value <= m_low))
   {
@@ -35,21 +35,21 @@ bool ArithmeticDecoder::decode(DataBits &data, DataCompressedReader &reader, con
 #endif
 
   uint64_t prediction = getPrediction(prob.getDenominator());
-  bool decoded = (prediction >= prob.getLower());
+  bool ret = (prediction >= prob.getLower());
 
 #if defined(FCMP_EXTRA_COMPRESSION_DEBUG)
-  std::cout << "decoded bit: " << decoded << " || prediction: " << prediction << std::endl;
+  std::cout << "decoded bit: " << ret << " || prediction: " << prediction << std::endl;
 #endif
 
-  data.addBit(decoded);
+  data.addBit(ret);
 
-  if(decoded)
+  if(ret)
   {
-    update(prob.getLower(), prob.getUpper(), prob.getDenominator());
+    update(prob);
   }
   else
   {
-    update(0, prob.getLower(), prob.getDenominator());
+    update(prob.lowerPortion());
   }
 
   for(;;)
@@ -82,6 +82,51 @@ bool ArithmeticDecoder::decode(DataBits &data, DataCompressedReader &reader, con
     shift(reader);
   }
 
-  return decoded;
+  return ret;
+}
+
+bool ArithmeticDecoder::decode(DataBits &data, DataCompressedReader &reader, const ProbabilityPAQ prob)
+{
+  if((m_value > m_high) || (m_value < m_low))
+  {
+    std::ostringstream sstr;
+    sstr << "range inconsistency: " << m_low << " / " << m_value << " / " << m_high;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+
+  uint32_t mid = calculateMidpoint(prob);
+
+  if((m_high <= mid) || (mid < m_low))
+  {
+    std::ostringstream sstr;
+    sstr << "range inconsistency: " << m_low << " / " << mid << " / " << m_high;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+
+  bool ret = (m_value <= mid);
+
+#if defined(FCMP_EXTRA_COMPRESSION_DEBUG)
+  std::cout << "decoded bit: " << ret << " || prediction: " << prediction << std::endl;
+#endif
+
+  data.addBit(ret);
+
+  if(ret)
+  {
+    m_high = mid;
+  }
+  else
+  {
+    m_low = mid;
+  }
+
+  // Shift out leading identical bits.
+  while((m_high & CODE_HALF) == (m_low & CODE_HALF))
+  {
+    ArithmeticCoder::shift();
+    shift(reader);
+  }
+
+  return ret;
 }
 

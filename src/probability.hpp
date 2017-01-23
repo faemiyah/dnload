@@ -8,25 +8,15 @@ namespace fcmp
   /// Probability element.
   class Probability
   {
-    private:
-      /// Lower limit.
-      uint32_t m_lower;
-
-      /// Upper limit.
-      uint32_t m_upper;
-
+    protected:
       /// Denominator.
       uint32_t m_denominator;
 
     public:
       /// Constructor.
       ///
-      /// \param lower Lower limit.
-      /// \param upper Upper limit.
       /// \param denominator Denominator.
-      Probability(uint32_t lower, uint32_t upper, uint32_t denominator) :
-        m_lower(lower),
-        m_upper(upper),
+      Probability(uint32_t denominator) :
         m_denominator(denominator) { }
 
     public:
@@ -37,21 +27,36 @@ namespace fcmp
       {
         return m_denominator;
       }
+  };
 
+  /// Probability element (High/Low).
+  class ProbabilityHL : public Probability
+  {
+    private:
+      /// Lower limit.
+      uint32_t m_lower;
+
+      /// Upper limit.
+      uint32_t m_upper;
+
+    public:
+      /// Constructor.
+      ///
+      /// \param lower Lower limit.
+      /// \param upper Upper limit.
+      /// \param denominator Denominator.
+      ProbabilityHL(uint32_t lower, uint32_t upper, uint32_t denominator) :
+        Probability(denominator),
+        m_lower(lower),
+        m_upper(upper) { }
+
+    public:
       /// Accessor.
       ///
       /// \return Lower limit.
       uint32_t getLower() const
       {
         return m_lower;
-      }
-
-      /// Get lower division.
-      ///
-      /// \return Lower value divided by denominator.
-      double getLowerDivision() const
-      {
-        return static_cast<double>(getLower()) / static_cast<double>(getDenominator());
       }
 
       /// Accessor.
@@ -62,21 +67,38 @@ namespace fcmp
         return m_upper;
       }
 
-      /// Get upper division.
+      /// Calculate lower portion of this probability.
       ///
-      /// \return Upper value divided by denominator.
-      double getUpperDivision() const
+      /// \return Lower portion version.
+      ProbabilityHL lowerPortion() const
       {
-        return static_cast<double>(getUpper()) / static_cast<double>(getDenominator());
+        return ProbabilityHL(0, m_lower, m_denominator);
       }
+  };
 
-      /// Invert.
+  /// Probability element (PAQ).
+  class ProbabilityPAQ : public Probability
+  {
+    private:
+      /// Count
+      uint32_t m_count;
+
+    public:
+      /// Constructor.
       ///
-      /// Transforms an 'upper' probability into a lower probability in-place.
-      void invert()
+      /// \param count Count.
+      /// \param denominator Denominator.
+      ProbabilityPAQ(uint32_t count, uint32_t denominator) :
+        Probability(denominator),
+        m_count(count) { }
+
+    public:
+      /// Accessor.
+      ///
+      /// \return Lower limit.
+      uint32_t getCount() const
       {
-        m_upper = m_lower;
-        m_lower = 0;
+        return m_count;
       }
   };
 }

@@ -1,0 +1,129 @@
+from dnload.symbol_source import SymbolSource
+from dnload.template import Template
+
+########################################
+# SymbolSourceDatabase #################
+########################################
+
+class SymbolSourceDatabase:
+  """Database of different symbol sources that generates missing code."""
+
+  def __init__(self, op):
+    """Constructor."""
+    self.__symbols = {}
+    for ii in op:
+      if 5 != len(ii):
+        raise RuntimeError("incorrect length for sybol source data: %i" % (len(ii)))
+      name = ii[0]
+      self.__symbols[name] = SymbolSource(name, ii[1], ii[2], ii[3], ii[4])
+
+  def compile_asm(self, compiler, assembler, required_symbols, fname):
+    """Compile given symbols into assembly and return it."""
+    headers = set()
+    prototypes = []
+    source = []
+    ii = 0
+    while ii < len(required_symbols):
+      name = required_symbols[ii]
+      if name in self.__symbols:
+        sym = self.__symbols[name]
+        # Add all dependencies to required symbols list.
+        for jj in sym.get_dependencies():
+          if not jj in required_symbols:
+            required_symbols += [jj]
+        # Extend collected source data.
+        headers = headers.union(sym.get_headers())
+        prototypes += sym.get_prototypes()
+        source += [sym.get_source()]
+      ii += 1
+    if not source:
+      return None
+    subst = { "HEADERS" : "\n".join(map(lambda x: "#include <%s>" % (x), headers)),
+        "PROTOTYPES" : "\n\n".join(prototypes),
+        "SOURCE" : "\n\n".join(source)
+        }
+    fd = open(fname + ".cpp", "w")
+    fd.write(g_template_extra_source.format(subst))
+    fd.close()
+    compiler.compile_asm(fname + ".cpp", fname + ".S")
+    assembler.assemble(fname + ".S", fname + ".o")
+    return fname + ".o"
+
+########################################
+# Globals ##############################
+########################################
+
+g_symbol_sources = SymbolSourceDatabase((
+  ("__aeabi_idivmod", "__aeabi_uidivmod", None, "extern \"C\" int __aeabi_idivmod(int, int);",
+"""int __aeabi_idivmod(int num, int den)
+{
+  int quotient_mul = 1;
+  int remainder_mul = 1;\n
+  if(num < 0)
+  {
+    remainder_mul = -1;
+    num = -num;\n
+    if(den < 0)
+    {
+      den = -den;
+    }
+    else
+    {
+      quotient_mul = -1;
+    }
+  }
+  else if(den < 0)
+  {
+    quotient_mul = -1;
+    den = -den;
+  }\n
+  int ret = __aeabi_uidivmod(static_cast<unsigned>(num), static_cast<unsigned>(den)) * quotient_mul;
+  volatile register int r1 asm("r1");
+  r1 *= remainder_mul;
+  asm("" : /**/ : "r"(r1) : /**/); // output: remainder
+  return ret;
+}"""),
+  ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned __aeabi_uidivmod(unsigned, unsigned);",
+"""unsigned __aeabi_uidivmod(unsigned num, unsigned den)
+{
+  unsigned shift = 1;
+  unsigned quotient = 0;\n
+  for(;;)
+  {
+    unsigned next = den << 1;
+    if(next > num)
+    {
+      break;
+    }
+    den = next;
+    shift <<= 1;
+  }\n
+  while(shift > 0)
+  {
+    if(den <= num)
+    {
+      num -= den;
+      quotient += shift;
+    }
+    den >>= 1;
+    shift >>= 1;
+  }\n
+  volatile register int r1 asm("r1") = num;
+  asm("" : /**/ : "r"(r1) : /**/); // output: remainder
+  return quotient; // r0
+}"""),
+  ("memset", None, ("cinttypes", "cstring"), None,
+"""void* memset(void *ptr, int value, size_t num)
+{
+  for(size_t ii = 0; (ii < num); ++ii)
+  {
+    reinterpret_cast<uint8_t*>(ptr)[ii] = static_cast<uint8_t>(value);
+  }\n
+  return ptr;
+}"""),
+  ))
+
+g_template_extra_source = Template("""[[HEADERS]]\n
+[[PROTOTYPES]]\n
+[[SOURCE]]
+""")

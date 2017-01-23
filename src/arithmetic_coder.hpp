@@ -1,7 +1,7 @@
 #ifndef ARITHMETIC_CODER_HPP
 #define ARITHMETIC_CODER_HPP
 
-#include <cstdint>
+#include "probability.hpp"
 
 /// Precision bits.
 #define FCMP_PRECISION 32
@@ -58,6 +58,16 @@ namespace fcmp
         return static_cast<uint64_t>(m_high - m_low) + 1;
       }
 
+      /// Calculate midpoint based on probability.
+      ///
+      /// \param count Count.
+      /// \param denominator Denominator.
+      uint32_t calculateMidpoint(const ProbabilityPAQ &prob) const
+      {
+        uint64_t portion = static_cast<uint64_t>(m_high - m_low) * prob.getCount() / prob.getDenominator();
+        return m_low + static_cast<uint32_t>(portion);
+      }
+
       // Shift low and high values.
       void shift()
       {
@@ -70,12 +80,12 @@ namespace fcmp
       /// \param lower Lower limit.
       /// \param upper Upper limit.
       /// \param denominator Denominator.
-      void update(uint64_t lower, uint64_t upper, uint64_t denominator)
+      void update(const ProbabilityHL &prob)
       {
         uint64_t range = getRange();
 
-        m_high = m_low + static_cast<uint32_t>(range * upper / denominator - 1);
-        m_low = m_low + static_cast<uint32_t>(range * lower / denominator);
+        m_high = m_low + static_cast<uint32_t>(range * prob.getUpper() / prob.getDenominator() - 1);
+        m_low = m_low + static_cast<uint32_t>(range * prob.getLower() / prob.getDenominator());
       }
   };
 }

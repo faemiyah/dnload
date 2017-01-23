@@ -7,7 +7,6 @@
 #include "data_compressed.hpp"
 #include "model.hpp"
 
-//#include <iostream>
 #include <sstream>
 
 /// Define to print extra debug info during (de)compression.
@@ -15,6 +14,9 @@
 
 /// Define to test with trivial compression (no model).
 #undef FCMP_COMPRESSION_TRIVIAL
+
+/// Define to enable PAQ variant.
+#define FCMP_COMPRESSION_PAQ
 
 using namespace fcmp;
 
@@ -100,12 +102,13 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_lim
   for(;;)
   {
     bool actual = reader.getCurrentBit();
-    Probability prob = getProbability(reader, actual);
-
-    //std::cout << static_cast<double>(prob.getUpper() - prob.getLower()) /
-    //  static_cast<double>(prob.getDenominator()) << std::endl;
-
+#if defined(FCMP_COMPRESSION_PAQ)
+    ProbabilityPAQ prob = getProbabilityPAQ(reader);
+    size_t new_size = coder.encode(*ret, actual, prob);
+#else
+    ProbabilityHL prob = getProbabilityHL(reader, actual);
     size_t new_size = coder.encode(*ret, prob);
+#endif
     if(new_size > size_limit)
     {
       // Abort if size is larger than comparable size.
@@ -124,12 +127,14 @@ DataCompressedSptr Compressor::compressRun(const DataBits &data, size_t size_lim
     }
   }
 
-  coder.finishEncode(*ret);
+#if !defined(FCMP_COMPRESSION_PAQ)
+  coder.finishEncodeHL(*ret);
+#endif
 
   return ret;
 }
 
-Probability Compressor::getProbability(const DataBitsState &state, bool value) const
+ProbabilityHL Compressor::getProbabilityHL(const DataBitsState &state, bool value) const
 {
 #if defined(FCMP_COMPRESSION_TRIVIAL)
   return value ? Probability(1, 2, 2) : Probability(0, 1, 2);
@@ -164,9 +169,44 @@ Probability Compressor::getProbability(const DataBitsState &state, bool value) c
 
   if(value)
   {
-    return Probability(count_zero, count_total, count_total);
+    return ProbabilityHL(count_zero, count_total, count_total);
   }
-  return Probability(0, count_zero, count_total);
+  return ProbabilityHL(0, count_zero, count_total);
+#endif
+}
+
+ProbabilityPAQ Compressor::getProbabilityPAQ(const DataBitsState &state) const
+{
+#if defined(FCMP_COMPRESSION_TRIVIAL)
+  return value ? ProbabilityPAQ(1, 2);
+#else
+  unsigned count_one = 0;
+  unsigned count_zero = 0;
+
+  for(const Model& vv : m_models)
+  {
+    Prediction pre = vv.predict(state);
+
+    if(pre.isValid())
+    {
+      count_one += pre.getCountOne() * vv.getWeight();
+      count_zero += pre.getCountZero() * vv.getWeight();
+    }
+  }
+
+  unsigned count_total = count_one + count_zero;
+  if(1 == count_total)
+  {
+    std::ostringstream sstr;
+    sstr << "illegal total value counts: " << count_one << " / " << count_zero;
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+  }
+  else if(0 >= count_total)
+  {
+    return ProbabilityPAQ(1, 2);
+  }
+
+  return ProbabilityPAQ(count_one, count_total);
 #endif
 }
 
@@ -346,7 +386,11 @@ DataBitsUptr Compressor::extract(const DataCompressed &data)
 
   for(;;)
   {
-    Probability prob = cmp.getProbability(state, true);
+#if defined(FCMP_COMPRESSION_PAQ)
+    ProbabilityPAQ prob = cmp.getProbabilityPAQ(state);
+#else
+    ProbabilityHL prob = cmp.getProbabilityHL(state, true);
+#endif
 
     bool decoded = coder.decode(*ret, reader, prob);
 

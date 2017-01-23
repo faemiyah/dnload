@@ -2,7 +2,6 @@
 #define ARITHMETIC_ENCODER_HPP
 
 #include "arithmetic_coder.hpp"
-#include "probability.hpp"
 
 #include <cstddef>
 
@@ -24,17 +23,24 @@ namespace fcmp
         m_pending(0) { }
 
     public:
-      /// Encode a bit.
+      /// Encode a bit (High/Low version).
       ///
       /// \param data Compressed data to write to.
       /// \param prob Probability of the bit to be encoded.
       /// \return Size of data after encoding.
-      size_t encode(DataCompressed &data, const Probability prob);
+      size_t encode(DataCompressed &data, const ProbabilityHL prob);
+
+      /// Encode a bit (PAQ version).
+      ///
+      /// \param data Compressed data to write to.
+      /// \param prob Probability of the bit to be encoded.
+      /// \return Size of data after encoding.
+      size_t encode(DataCompressed &data, bool actual, const ProbabilityPAQ prob);
 
       /// Finish an encode.
       ///
       /// \param data Compressed data to write to.
-      void finishEncode(DataCompressed &data);
+      void finishEncodeHL(DataCompressed &data);
 
     private:
       /// Write bits into a stream.
