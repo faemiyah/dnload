@@ -78,24 +78,28 @@ def locate(pth, fn, previous_paths = None):
       if ret:
         return ret
     return None
+  # If path is not given or is empty, assume current path.
+  if not pth:
+    pth = "."
   # Initialize previous paths on first execution.
   if not previous_paths:
-    pth = os.path.realpath(pth)
-    previous_paths = [pth]
+    previous_paths = [os.path.realpath(pth)]
   # Some specific directory trees would take too much time to traverse.
   if pth in IGNORE_PATHS: 
     return None
   # Recurse, expect filesystem errors.
   try:
     for ii in os.listdir(pth):
-      ret = os.path.realpath(pth + "/" + ii)
+      ret = os.path.normpath(pth + "/" + ii)
       if (isinstance(fn, str) and (ii == fn)) or ((not isinstance(fn, str)) and fn.match(ii)):
         if os.path.isfile(ret):
-          return os.path.normpath(ret)
-      elif os.path.isdir(ret):
-        ret = locate(ret, fn, previous_paths + [ret])
-        if ret:
           return ret
+      elif os.path.isdir(ret):
+        real_path = os.path.realpath(ret)
+        if not real_path in previous_paths:
+          ret = locate(ret, fn, previous_paths + [real_path])
+          if ret:
+            return ret
   except OSError as ee: # Permission denied or the like.
     if 13 == ee.errno:
       return None

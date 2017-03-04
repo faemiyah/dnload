@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 project(dnload)
 
@@ -7,11 +7,10 @@ enable_language(CXX)
 
 include("defaults.cmake")
 
-find_boost_filesystem(TRUE)
-find_boost_program_options(TRUE)
-find_boost_system(TRUE)
-find_png(TRUE)
-find_sdl2(TRUE)
+find_boost("filesystem" "program_options" "system")
+find_png()
+find_sdl2()
+find_threads()
 
 check_mali()
 check_videocore()
@@ -25,8 +24,8 @@ elseif(VIDEOCORE_FOUND)
   set(EGL_LIBRARY "EGL")
   set(OPENGL_gl_LIBRARY "GLESv2")
 else()
-  find_opengl(TRUE)
-  find_glew(TRUE)
+  find_opengl()
+  find_glew()
 endif()
 
 output_flags("DEBUG" on)
@@ -66,6 +65,7 @@ else()
   target_link_libraries(intro "${PNG_LIBRARY}")
   target_link_libraries(intro "${SDL2_LIBRARY}")
 endif()
+target_link_libraries(intro "${THREADS_LIBRARY}")
 
 add_executable(fcmp
   "src/arithmetic_coder.hpp"
@@ -110,5 +110,5 @@ else()
   target_link_libraries(fcmp "${BOOST_FILESYSTEM_LIBRARY}")
   target_link_libraries(fcmp "${BOOST_PROGRAM_OPTIONS_LIBRARY}")
   target_link_libraries(fcmp "${BOOST_SYSTEM_LIBRARY}")
-  target_link_libraries(fcmp "pthread")
 endif()
+target_link_libraries(fcmp "${THREADS_LIBRARY}")

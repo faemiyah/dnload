@@ -16,6 +16,7 @@ from dnload.common import locate
 from dnload.common import run_command
 from dnload.common import set_verbose
 from dnload.compiler import Compiler
+from dnload.glsl import Glsl
 from dnload.library_definition import g_library_definitions
 from dnload.linker import Linker
 from dnload.platform_var import g_osarch
@@ -453,17 +454,6 @@ class CustomHelpFormatter(argparse.HelpFormatter):
 # Functions ############################
 ########################################
 
-def analyze_source(source, prefix):
-  """Analyze given preprocessed C source for symbol names."""
-  symbolre =  re.compile(r"[\s:;&\|\<\>\=\^\+\-\*/\(\)\?]" + prefix + "([a-zA-Z0-9_]+)(?=[\s\(])")
-  results = symbolre.findall(source, re.MULTILINE)
-  ret = set()
-  for ii in results:
-    symbolset = set()
-    symbolset.add(ii)
-    ret = ret.union(symbolset)
-  return ret
-
 def check_executable(op):
   """Check for existence of a single binary."""
   try:
@@ -533,6 +523,17 @@ def compress_file(compression, pretty, src, dst):
   wfd.close()
   make_executable(dst)
   print("Wrote '%s': %i bytes" % (dst, os.path.getsize(dst)))
+
+def extract_symbol_names(source, prefix):
+  """Analyze given preprocessed C source for symbol names."""
+  symbolre =  re.compile(r"[\s:;&\|\<\>\=\^\+\-\*/\(\)\?]" + prefix + "([a-zA-Z0-9_]+)(?=[\s\(])")
+  results = symbolre.findall(source, re.MULTILINE)
+  ret = set()
+  for ii in results:
+    symbolset = set()
+    symbolset.add(ii)
+    ret = ret.union(symbolset)
+  return ret
 
 def find_library_definition(op):
   """Find library definition with name."""
@@ -678,6 +679,23 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   linker.link_binary(link_files, output_file + ".bin")
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
   readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
+
+def generate_glsl(fname):
+  """Generate GLSL for source file."""
+  fd = open(fname, "r")
+  lines = fd.readlines()
+  fd.close()
+  glslre = re.compile(r'#\s*include [\<\"](.*\.glsl)\.(h|hh|hpp|hxx)[\>\"]\s*(\/\*|\/\/)\s*([^\*\/\s]+)', re.I)
+  glsl_db = Glsl()
+  for ii in lines:
+    match = glslre.match(ii)
+    if match:
+      glsl_path, glsl_filename = os.path.split(match.group(1))
+      glsl_filename = locate(glsl_path, glsl_filename)
+      glsl_db.read(glsl_filename, match.group(4), glsl_filename + "." + match.group(2))
+  glsl_db.parse()
+  print(str(glsl_db))
+  glsl_db.write()
 
 def get_platform_und_symbols():
   """Get the UND symbols required for this platform."""
@@ -1085,12 +1103,17 @@ def main():
   fd.write("\n")
   fd.close()
 
+  if is_verbose():
+    print("Analyzing source files: %s" % (str(source_files)))
+
+  # Prepare GLSL headers before preprocessing.
+  for ii in source_files:
+    generate_glsl(ii)
+
   symbols = set()
   for ii in source_files:
-    if is_verbose():
-      print("Analyzing source file '%s'." % (ii))
     source = compiler.preprocess(ii)
-    source_symbols = analyze_source(source, symbol_prefix)
+    source_symbols = extract_symbol_names(source, symbol_prefix)
     symbols = symbols.union(source_symbols)
   symbols = find_symbols(symbols)
   if "dlfcn" == compilation_mode:
