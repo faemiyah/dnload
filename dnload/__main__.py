@@ -25,6 +25,7 @@ from dnload.platform_var import osarch_is_32_bit
 from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import PlatformVar
 from dnload.platform_var import platform_map_iterate
+from dnload.platform_var import replace_platform_variable
 from dnload.symbol import generate_loader_dlfcn
 from dnload.symbol import generate_loader_hash
 from dnload.symbol import generate_loader_vanilla
@@ -694,7 +695,7 @@ def generate_glsl(fname):
       glsl_filename = locate(glsl_path, glsl_filename)
       glsl_db.read(glsl_filename, match.group(4), glsl_filename + "." + match.group(2))
   glsl_db.parse()
-  print(str(glsl_db))
+  #print(str(glsl_db))
   glsl_db.write()
 
 def get_platform_und_symbols():
