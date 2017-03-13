@@ -20,10 +20,10 @@ class Glsl:
     """Read source file."""
     self.__sources += [GlslBlockSource(filename, varname, output_name)]
 
-  def write(self):
+  def write(self, definition_ld):
     """Write processed source headers."""
     for ii in self.__sources:
-      ii.write()
+      ii.write(definition_ld)
 
   def __str__(self):
     """String representation."""

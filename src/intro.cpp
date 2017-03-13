@@ -8,7 +8,7 @@
 #include "dnload.h"
 
 #if defined(USE_LD)
-#include "glsl_shader_source.hpp"
+#include "glsl_program.hpp"
 #include "image_png.hpp"
 #include <cstdio>
 #include <iomanip>
@@ -402,7 +402,7 @@ GLuint create_program(const char *vertex, const char *fragment)
   return ret;
 }
 
-#elif defined(USE_LD)
+#elif defined(USE_LD) && 0
 
 /// \brief Create a shader.
 ///
@@ -697,13 +697,33 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
 #endif
 
 #if defined(DNLOAD_GLESV2)
+#if defined(USE_LD)
+  GlslProgram program;
+  program.addShader(GL_VERTEX_SHADER, g_shader_vertex_quad);
+  program.addShader(GL_FRAGMENT_SHADER, g_shader_fragment_quad);
+  if(!program.link())
+  {
+    BOOST_THROW_EXCEPTION(std::runtime_error("program creation failure"));
+  }
+  g_program_fragment = program.getId();
+  glUseProgram(g_program_fragment);
+  g_uniform_u = glGetUniformLocation(g_program_fragment, "u");
+#else
   g_program_fragment = create_program(g_shader_vertex_quad, g_shader_fragment_quad);
   dnload_glUseProgram(g_program_fragment);
   g_uniform_u = dnload_glGetUniformLocation(g_program_fragment, "u");
-#elif defined(USE_LD)
-  GLuint pipeline = pipeline_create();
-  program_attach(GL_VERTEX_SHADER, g_shader_vertex_quad, pipeline, 1);
-  g_program_fragment = program_attach(GL_FRAGMENT_SHADER, g_shader_fragment_quad, pipeline, 2);
+#endif
+#else
+#if defined(USE_LD)
+  GlslProgram program;
+  program.addShader(GL_VERTEX_SHADER, g_shader_vertex_quad);
+  program.addShader(GL_FRAGMENT_SHADER, g_shader_fragment_quad);
+  if(!program.link(true))
+  {
+    BOOST_THROW_EXCEPTION(std::runtime_error("pipeline creation failure"));
+  }
+  glBindProgramPipeline(program.getPipelineId());
+  g_program_fragment = program.getPipelineId(GL_FRAGMENT_SHADER);
 #else
   // Shader generation inline.
   GLuint pipeline;
@@ -714,6 +734,7 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
   dnload_glBindProgramPipeline(pipeline);
   dnload_glUseProgramStages(pipeline, 1, program_vert);
   dnload_glUseProgramStages(pipeline, 2, g_program_fragment);
+#endif
 #endif
 
   g_uniform_array[10] = static_cast<float>(screen_w) / static_cast<float>(screen_h);

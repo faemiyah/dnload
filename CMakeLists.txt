@@ -38,8 +38,10 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 add_executable(intro
   "src/bsd_rand.c"
   "src/bsd_rand.h"
-  "src/glsl_shader_source.cpp"
-  "src/glsl_shader_source.hpp"
+  "src/glsl_program.cpp"
+  "src/glsl_program.hpp"
+  "src/glsl_shader.cpp"
+  "src/glsl_shader.hpp"
   "src/image_png.cpp"
   "src/image_png.hpp"
   "src/intro.cpp")
@@ -61,7 +63,9 @@ else()
   else()
     target_link_libraries(intro "${GLEW_LIBRARY}")
   endif()
+  target_link_libraries(intro "${BOOST_FILESYSTEM_LIBRARY}")
   target_link_libraries(intro "${BOOST_PROGRAM_OPTIONS_LIBRARY}")
+  target_link_libraries(intro "${BOOST_SYSTEM_LIBRARY}")
   target_link_libraries(intro "${PNG_LIBRARY}")
   target_link_libraries(intro "${SDL2_LIBRARY}")
 endif()
