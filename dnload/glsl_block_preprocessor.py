@@ -15,7 +15,7 @@ class GlslBlockPreprocessor(GlslBlock):
 
   def format(self):
     """Return formatted output."""
-    return "%s\\n" % (self.__content)
+    return "%s\n" % (self.__content)
 
   def __str__(self):
     """String representation."""

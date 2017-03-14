@@ -16,14 +16,14 @@ class Glsl:
     for ii in self.__sources:
       ii.parse()
 
-  def read(self, filename, varname, output_name):
+  def read(self, definition_ld, filename, varname, output_name):
     """Read source file."""
-    self.__sources += [GlslBlockSource(filename, varname, output_name)]
+    self.__sources += [GlslBlockSource(definition_ld, filename, varname, output_name)]
 
-  def write(self, definition_ld):
+  def write(self):
     """Write processed source headers."""
     for ii in self.__sources:
-      ii.write(definition_ld)
+      ii.write()
 
   def __str__(self):
     """String representation."""

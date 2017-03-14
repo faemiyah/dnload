@@ -681,7 +681,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
   readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
 
-def generate_glsl(fname, definition_ld):
+def generate_glsl(definition_ld, fname):
   """Generate GLSL for source file."""
   fd = open(fname, "r")
   lines = fd.readlines()
@@ -693,10 +693,12 @@ def generate_glsl(fname, definition_ld):
     if match:
       glsl_path, glsl_filename = os.path.split(match.group(1))
       glsl_filename = locate(glsl_path, glsl_filename)
-      glsl_db.read(glsl_filename, match.group(4), glsl_filename + "." + match.group(2))
+      glsl_varname = match.group(4)
+      glsl_output_name = glsl_filename + "." + match.group(2)
+      glsl_db.read(definition_ld, glsl_filename, glsl_varname, glsl_output_name)
   glsl_db.parse()
   #print(str(glsl_db))
-  glsl_db.write(definition_ld)
+  glsl_db.write()
 
 def get_platform_und_symbols():
   """Get the UND symbols required for this platform."""
@@ -1109,7 +1111,7 @@ def main():
 
   # Prepare GLSL headers before preprocessing.
   for ii in source_files:
-    generate_glsl(ii, definition_ld)
+    generate_glsl(definition_ld, ii)
 
   symbols = set()
   for ii in source_files:
