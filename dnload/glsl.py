@@ -1,4 +1,4 @@
-from glsl_block_source import GlslBlockSource
+from glsl_block_source import glsl_read_source
 
 ########################################
 # Glsl #################################
@@ -16,9 +16,9 @@ class Glsl:
     for ii in self.__sources:
       ii.parse()
 
-  def read(self, definition_ld, filename, varname, output_name):
+  def read(self, preprocessor, definition_ld, filename, varname, output_name):
     """Read source file."""
-    self.__sources += [GlslBlockSource(definition_ld, filename, varname, output_name)]
+    self.__sources += [glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)]
 
   def write(self):
     """Write processed source headers."""

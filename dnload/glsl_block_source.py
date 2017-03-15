@@ -1,8 +1,8 @@
 import os
-import re
 
 from dnload.common import is_verbose
 from dnload.glsl_block import GlslBlock
+from dnload.glsl_block_preprocessor import glsl_parse_preprocessor
 from dnload.glsl_parse import glsl_parse
 from dnload.template import Template
 
@@ -32,7 +32,8 @@ class GlslBlockSource(GlslBlock):
     self.__filename = filename
     self.__variable_name = varname
     self.__output_name = output_name
-    self.read()
+    self.__content = ""
+    self._parse_tree = []
 
   def format(self):
     """Return formatted output."""
@@ -43,64 +44,37 @@ class GlslBlockSource(GlslBlock):
 
   def parse(self):
     """Parse code into blocks and statements."""
-    self._parse_tree = glsl_parse(self.__content)
+    self._parse_tree += glsl_parse(self.__content)
 
-  def preprocess(self, content):
-    """Preprocess GLSL source content."""
-    # First, remove all /* - */.
-    content = re.sub(r'(\/\*.*\*\/)', "", content)
-    # Declare all supported preprocessing.
-    remove_slash = re.compile(r'\/\/.*$')
-    pos = re.compile(r'\s*#\s*(if\s+defined\s*\(\s*%s\s*\)|ifdef\s+%s)\s*' % (self.__definition_ld, self.__definition_ld))
-    into_pos = re.compile(r'\s*#\s*elif\s+defined\s*\(\s*%s\s*\)\s*' % self.__definition_ld)
-    neg = re.compile(r'\s*#\s*(if\s+\!\s*defined\(\s*%s\s*\)|ifndef\s+%s)\s*' % (self.__definition_ld, self.__definition_ld))
-    into_neg = re.compile(r'\s*#\s*elif\s+\!\s*defined\s*\(\s*%s\s*\)\s*' % self.__definition_ld)
-    invert = re.compile(r'\s*#\s*else\s*')
-    end = re.compile(r'\s*#\s*endif\s*')
-    # Iterate over source.
-    ret = []
-    include = []
-    for ii in content.split("\n"):
-      ii = remove_slash.sub("", ii)
-      match = pos.match(ii)
-      if match:
-        include.push(False)
-        continue
-      match = neg.match(ii)
-      if match:
-        include.push(True)
-        continue
-      match = into_pos.match(ii)
-      if match:
-        include.pop()
-        include.push(False)
-        continue
-      match = into_neg.match(ii)
-      if match:
-        include.pop()
-        include.push(True)
-        continue
-      match = invert.match(ii)
-      if match:
-        val = include.pop()
-        include.push(not val)
-        continue
-      match = end.match(ii)
-      if match:
-        include.pop()
-        continue
-      # No match, add line unless denied in the chain.
-      if not False in include:
-        ret += [ii]
-    return "\n".join(ret)
+  def preprocess(self, preprocessor, source):
+    """Preprocess GLSL source, store preprocessor directives into parse tree and content."""
+    self._parse_tree = []
+    content = []
+    for ii in source.splitlines():
+      block = glsl_parse_preprocessor(ii)
+      if block:
+        self._parse_tree += [block]
+      else:
+        content += [ii]
+    # Removed known preprocessor directives, write result into intermediate file.
+    fname = self.__output_name + ".preprocessed"
+    fd = open(fname, "w")
+    fd.write(("\n".join(content)).strip())
+    fd.close()
+    # Preprocess and reassemble content.
+    intermediate = preprocessor.preprocess(fname)
+    content = []
+    for ii in intermediate.splitlines():
+      if not ii.strip().startswith("#"):
+        content += [ii]
+    self.__content = "\n".join(content)
 
-  def read(self):
+  def read(self, preprocessor):
     """Read file contents."""
-    # Read file content.
     fd = open(self.__filename, "r")
     if not fd:
       raise RuntimeError("could not read GLSL source '%s'" % (fname))
-    self.__content = self.preprocess(fd.read())
+    self.preprocess(preprocessor, fd.read())
     fd.close()
     if is_verbose():
       print("Read GLSL source: '%s'" % (self.__filename))
@@ -151,4 +125,10 @@ def glsl_cstr_readable(op):
     line += ii
   if line:
     ret += [line]
+  return ret
+
+def glsl_read_source(preprocessor, definition_ld, filename, varname, output_name):
+  """Read source into a GLSL source construct."""
+  ret = GlslBlockSource(definition_ld, filename, varname, output_name)
+  ret.read(preprocessor)
   return ret

@@ -1,3 +1,5 @@
+import re
+
 from dnload.glsl_block import GlslBlock
 
 ########################################
@@ -22,11 +24,19 @@ class GlslBlockPreprocessor(GlslBlock):
     return "Preprocessor('%s')" % (self.__content)
     
 ########################################
+# Globals ##############################
+########################################
+
+g_directives = ("version",)
+
+########################################
 # Functions ############################
 ########################################
 
 def glsl_parse_preprocessor(source):
-  """Parse preprocessor block."""
-  if not source.startswith("#"):
-    return (None, source)
-  return GlslBlockPreprocessor(source)
+  """Parse preprocessor line."""
+  match = re.match(r'^\s*#\s*(\S+)\s+.*$', source)
+  if match:
+    if match.group(1) in g_directives:
+      return GlslBlockPreprocessor(source)
+  return None

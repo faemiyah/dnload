@@ -26,6 +26,7 @@ from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import PlatformVar
 from dnload.platform_var import platform_map_iterate
 from dnload.platform_var import replace_platform_variable
+from dnload.preprocessor import Preprocessor
 from dnload.symbol import generate_loader_dlfcn
 from dnload.symbol import generate_loader_hash
 from dnload.symbol import generate_loader_vanilla
@@ -681,7 +682,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
   readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
 
-def generate_glsl(definition_ld, fname):
+def generate_glsl(preprocessor, definition_ld, fname):
   """Generate GLSL for source file."""
   fd = open(fname, "r")
   lines = fd.readlines()
@@ -695,7 +696,7 @@ def generate_glsl(definition_ld, fname):
       glsl_filename = locate(glsl_path, glsl_filename)
       glsl_varname = match.group(4)
       glsl_output_name = glsl_filename + "." + match.group(2)
-      glsl_db.read(definition_ld, glsl_filename, glsl_varname, glsl_output_name)
+      glsl_db.read(preprocessor, definition_ld, glsl_filename, glsl_varname, glsl_output_name)
   glsl_db.parse()
   #print(str(glsl_db))
   glsl_db.write()
@@ -878,10 +879,12 @@ def main():
   assembler = None
   cross_compile = False
   compiler = None
+  preprocessor = None
   compression = str(PlatformVar("compression"))
   default_assembler_list = ["/usr/local/bin/as", "as"]
   default_compiler_list = ["g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
   default_linker_list = ["/usr/local/bin/ld", "ld"]
+  default_preprocessor_list = ["cpp", "clang-cpp"]
   default_objcopy_list = ["/usr/local/bin/objcopy", "objcopy"]
   default_strip_list = ["/usr/local/bin/strip", "strip"]
   definitions = []
@@ -920,6 +923,7 @@ def main():
   parser.add_argument("-o", "--output-file", help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
+  parser.add_argument("--preprocessor", help = "Try to use given preprocessor executable as opposed to autodetect.")
   parser.add_argument("--rand", default = "bsd", choices = ("bsd", "gnu"), help = "rand() implementation to use.\n(default: %(default)")
   parser.add_argument("--rpath", action = "append", help = "Extra rpath locations for linking.")
   parser.add_argument("--safe-symtab", action = "store_true", help = "Handle DT_SYMTAB in a safe manner.")
@@ -962,6 +966,8 @@ def main():
       g_osname = new_osname
   if args.output_file:
     output_file = args.output_file
+  if args.preprocessor:
+    preprocessor = args.preprocessor
   if args.rpath:
     rpath = args.rpath
   if args.safe_symtab:
@@ -1068,6 +1074,20 @@ def main():
     library_directories += ["/usr/lib/gcc/arm-linux-gnueabihf/4.8"]
   compiler.set_include_dirs(include_directories)
 
+  if preprocessor:
+    if not check_executable(preprocessor):
+      raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
+  else:
+    preprocessor_list = default_preprocessor_list
+    if os.name == "nt":
+      preprocessor_list = ["cl.exe"] + preprocessor_list
+    preprocessor = search_executable(preprocessor_list, "preprocessor")
+  if not preprocessor:
+    raise RuntimeError("suitable preprocessor not found")
+  preprocessor = Preprocessor(preprocessor)
+  preprocessor.set_definitions(definitions)
+  preprocessor.set_include_dirs(include_directories)
+
   if elfling:
     elfling = search_executable(["elfling-packer", "./elfling-packer"], "elfling-packer")
     if elfling:
@@ -1111,11 +1131,11 @@ def main():
 
   # Prepare GLSL headers before preprocessing.
   for ii in source_files:
-    generate_glsl(definition_ld, ii)
+    generate_glsl(preprocessor, definition_ld, ii)
 
   symbols = set()
   for ii in source_files:
-    source = compiler.preprocess(ii)
+    source = preprocessor.preprocess(ii)
     source_symbols = extract_symbol_names(source, symbol_prefix)
     symbols = symbols.union(source_symbols)
   symbols = find_symbols(symbols)

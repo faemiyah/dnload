@@ -17,10 +17,10 @@ class Compiler(Linker):
     """Constructor."""
     Linker.__init__(self, op)
     self.__compiler_flags = []
-    self.__compiler_flags_extra = []
     self.__compiler_flags_whole_program = []
-    self.__definitions = []
-    self.__include_directories = []
+    self._compiler_flags_extra = []
+    self._definitions = []
+    self._include_directories = []
     self.generate_standard()
 
   def add_extra_compiler_flags(self, op):
@@ -28,12 +28,12 @@ class Compiler(Linker):
     if is_listing(op):
       for ii in op:
         self.add_extra_compiler_flags(ii)
-    elif not op in self.__include_directories and not op in self.__definitions:
-      self.__compiler_flags_extra += [op]
+    elif not op in self._include_directories and not op in self._definitions:
+      self._compiler_flags_extra += [op]
 
   def compile_asm(self, src, dst, whole_program = False):
     """Compile a file into assembler source."""
-    cmd = [self.get_command(), "-S", src, "-o", dst] + self.__standard + self.__compiler_flags + self.__compiler_flags_extra + self.__definitions + self.__include_directories
+    cmd = [self.get_command(), "-S", src, "-o", dst] + self.__standard + self.__compiler_flags + self._compiler_flags_extra + self._definitions + self._include_directories
     if whole_program:
       cmd += self.__compiler_flags_whole_program
     (so, se) = run_command(cmd)
@@ -42,7 +42,7 @@ class Compiler(Linker):
 
   def compile_and_link(self, src, dst):
     """Compile and link a file directly."""
-    cmd = [self.get_command(), src, "-o", dst] + self.__standard + self.__compiler_flags + self.__compiler_flags_extra + self.__definitions + self.__include_directories + self.get_linker_flags() + self.get_library_directory_list() + self.get_library_list()
+    cmd = [self.get_command(), src, "-o", dst] + self.__standard + self.__compiler_flags + self._compiler_flags_extra + self._definitions + self._include_directories + self.get_linker_flags() + self.get_library_directory_list() + self.get_library_list()
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)
@@ -72,42 +72,28 @@ class Compiler(Linker):
     else:
       self.__standard = []
 
-  def preprocess(self, op):
-    """Preprocess a file, return output."""
-    args = [self.get_command(), op] + self.__standard + self.__compiler_flags_extra + self.__definitions + self.__include_directories
-    if self.command_basename_startswith("cl."):
-      args += ["/E"]
-    else:
-      args += ["-E"]
-    (so, se) = run_command(args)
-    if 0 < len(se) and is_verbose():
-      print(se)
-    return so
-
   def set_definitions(self, lst):
     """Set definitions."""
     prefix = "-D"
-    self.__definitions = []
+    self._definitions = []
     if self.command_basename_startswith("cl."):
       prefix = "/D"
-      self.__definitions += [prefix + "WIN32"]
+      self._definitions += [prefix + "WIN32"]
     if isinstance(lst, (list, tuple)):
       for ii in lst:
-        self.__definitions += [prefix + ii]
+        self._definitions += [prefix + ii]
     else:
-      self.__definitions += [prefix + lst]
+      self._definitions += [prefix + lst]
 
   def set_include_dirs(self, lst):
     """Set include directory listing."""
     prefix = "-I"
     if self.command_basename_startswith("cl."):
       prefix = "/I"
-    self.__include_directories = []
+    self._include_directories = []
     for ii in lst:
       if os.path.isdir(ii):
         new_include_directory = prefix + ii
-        if new_include_directory in self.__compiler_flags_extra:
-          self.__compiler_flags_extra.remove(new_include_directory)
-        self.__include_directories += [new_include_directory]
-
-
+        if new_include_directory in self._compiler_flags_extra:
+          self._compiler_flags_extra.remove(new_include_directory)
+        self._include_directories += [new_include_directory]
