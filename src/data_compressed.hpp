@@ -50,7 +50,7 @@ namespace fcmp
       /// \return Size of this.
       static size_t size()
       {
-        return (sizeof(m_context) + sizeof(m_weight)) * 8;
+        return (sizeof(DataModel)) * 8;
       }
 
     public:

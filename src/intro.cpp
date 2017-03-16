@@ -873,6 +873,25 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
             time_delta = 1;
             break;
 
+          case SDLK_F5:
+#if defined(DNLOAD_GLESV2)
+            if(!program.link())
+            {
+              BOOST_THROW_EXCEPTION(std::runtime_error("program recreation failure"));
+            }
+            g_program_fragment = program.getId();
+            glUseProgram(g_program_fragment);
+            g_uniform_u = glGetUniformLocation(g_program_fragment, "u");
+#else
+            if(!program.link(true))
+            {
+              BOOST_THROW_EXCEPTION(std::runtime_error("pipeline recreation failure"));
+            }
+            glBindProgramPipeline(program.getPipelineId());
+            g_program_fragment = program.getPipelineId(GL_FRAGMENT_SHADER);
+#endif
+            break;
+
           case SDLK_ESCAPE:
             quit = true;
             break;
