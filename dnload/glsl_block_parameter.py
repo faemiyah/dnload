@@ -38,11 +38,11 @@ def glsl_parse_parameter_list(source):
   (parameter, content) = glsl_parse_parameter(source)
   if not parameter:
     return (None, source)
-  lst = [parameter]
+  ret = [parameter]
   while content:
     (typeid, name, remaining) = extract_tokens(content, (",", "?t", "?n"))
     if not typeid:
       raise RuntimeError("could not parse parameter declaration from '%s'" % (str(content)))
-    lst += [GlslBlockParameter(typeid, name)]
+    ret += [GlslBlockParameter(typeid, name)]
     content = remaining
-  return lst
+  return ret

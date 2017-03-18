@@ -276,9 +276,12 @@ static GLint g_uniform_u;
 #else
 
 #if 1
+
 #include "quad_430_vert.glsl.hpp" // g_shader_vertex_quad
 #include "quad_430_frag.glsl.hpp" // g_shader_fragment_quad
+
 #else
+
 /// Quad vertex shader.
 static const char *g_shader_vertex_quad = ""
 "#version 430\n"
@@ -319,6 +322,7 @@ static const char *g_shader_fragment_quad = ""
 "o=vec4(0.0,0.0,0.0,1.0);"
 "}"
 "}";
+
 #endif
 
 /// Fixed uniform location.

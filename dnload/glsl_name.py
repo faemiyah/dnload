@@ -49,9 +49,12 @@ g_locked = ("cross",
     "gl_PerVertex",
     "gl_Position",
     "layout",
+    "length",
     "location",
     "main",
+    "mix",
     "normalize",
+    "return",
     "uniform")
 
 ########################################

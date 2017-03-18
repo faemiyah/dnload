@@ -1,7 +1,7 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_block import extract_statement
-import re
+from dnload.glsl_block_layout import glsl_parse_layout
 
 ########################################
 # GlslBlockUniform #####################
@@ -10,10 +10,10 @@ import re
 class GlslBlockUniform(GlslBlock):
   """Uniform declaration."""
 
-  def __init__(self, location, typeid, size, name):
+  def __init__(self, layout, typeid, size, name):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__location = location
+    self.__layout = layout
     self.__typeid = typeid
     self.__size = size
     self.__name = name
@@ -21,8 +21,8 @@ class GlslBlockUniform(GlslBlock):
   def format(self):
     """Return formatted output."""
     ret = ""
-    if self.__location:
-      ret += "layout(location=%s)" % (self.__location.format())
+    if self.__layout:
+      ret += self.__layout.format()
     ret += "uniform " + self.__typeid.format()
     if self.__size:
       ret += "[%s]" % (self.__size.format())
@@ -38,19 +38,22 @@ class GlslBlockUniform(GlslBlock):
 
 def glsl_parse_uniform(source):
   """Parse preprocessor block."""
-  location = None
-  # Extract layout scope in case it has more complex elements.
-  (location_scope, content) = extract_tokens(source, ("layout", "?("))
-  if location_scope:
-    (location, discarded) = extract_tokens(location_scope, ("location", "=", "?u"))
-    if location is None:
-      return (None, source)
+  (layout, content) = glsl_parse_layout(source)
+  if not layout:
+    content = source
   # Extract actual uniform definition.
   (typeid, content) = extract_tokens(content, ("uniform", "?t"))
   if not typeid:
     return (None, source)
-  (size, content) = extract_tokens(content, ("[", "?u", "]"))
+  # Try array types.
+  (name, size, content) = extract_tokens(content, ("?n", "[", "?u", "]", ";"))
+  if name and size:
+    return (GlslBlockUniform(layout, typeid, size, name), content)
+  (size, name, content) = extract_tokens(content, ("[", "?u", "]", "?n", ";"))
+  if size and name:
+    return (GlslBlockUniform(layout, typeid, size, name), content)
+  # No array types, default to just name.
   (name, content) = extract_tokens(content, ("?n", ";"))
   if not name:
     return (None, source)
-  return (GlslBlockUniform(location, typeid, size, name), content)
+  return (GlslBlockUniform(layout, typeid, size, name), content)

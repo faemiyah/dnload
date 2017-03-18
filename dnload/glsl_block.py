@@ -1,3 +1,8 @@
+import re
+
+from dnload.common import is_listing
+from dnload.glsl_access import interpret_access
+from dnload.glsl_access import is_glsl_access
 from dnload.glsl_control import interpret_control
 from dnload.glsl_control import is_glsl_control
 from dnload.glsl_int import interpret_int
@@ -11,11 +16,12 @@ from dnload.glsl_name import interpret_name
 from dnload.glsl_name import is_glsl_name
 from dnload.glsl_operator import interpret_operator
 from dnload.glsl_operator import is_glsl_operator
+from dnload.glsl_paren import interpret_paren
+from dnload.glsl_paren import is_glsl_paren
 from dnload.glsl_type import interpret_type
 from dnload.glsl_type import is_glsl_type
 from dnload.glsl_swizzle import interpret_swizzle
 from dnload.glsl_swizzle import is_glsl_swizzle
-import re
 
 ########################################
 # GlslBlock ############################
@@ -35,13 +41,20 @@ class GlslBlock:
 
 def check_token(token, req):
   """Check if token is acceptable but do not compare against types."""
+  # Check against list, any option is ok.
+  if is_listing(req):
+    for ii in req:
+      if check_token(token, ii):
+        return True
+    return False
   if not isinstance(req, str):
     raise RuntimeError("request '%s' is not a string" % (str(req)))
+  # Tokens are converted to strings for comparison.
   if isinstance(token, str) and (token == req):
     return True
   if is_glsl_name(token) and token.isLocked() and (token.format() == req):
     return True
-  if is_glsl_operator(token) and (token.format() == req):
+  if (is_glsl_operator(token) or is_glsl_paren(token)) and (token.format() == req):
     return True
   return False
 
@@ -55,23 +68,14 @@ def extract_statement(source):
 
 def extract_scope(tokens, opener):
   """Extract scope from token list. Needs scope opener to already be extracted."""
-  if "{" == opener:
-    closer = "}"
-  elif "[" == opener:
-    closer = "]"
-  elif "(" == opener:
-    closer = ")"
-  else:
-    return (None, tokens)
-  # Must find exact matching paren.
+  if not is_glsl_paren(opener):
+    raise RuntimeError("no opener passed to scope extraction")
   paren_count = 1
   ret = []
   for ii in range(len(tokens)):
     elem = tokens[ii]
-    if elem == opener:
-      paren_count += 1
-    elif elem == closer:
-      paren_count -= 1
+    if is_glsl_paren(elem):
+      paren_count = opener.update(elem, paren_count)
       if 0 >= paren_count:
         return (ret, tokens[ii + 1:])
     ret += [elem]
@@ -80,7 +84,6 @@ def extract_scope(tokens, opener):
 
 def extract_tokens(tokens, required):
   """Require tokens from token string, return selected elements and the rest of tokens."""
-  #print("'%s' vs:\n%s" % (str(required), str(tokens)))
   ret = []
   # Generate array for returning on failure.
   failure_array = []
@@ -103,7 +106,7 @@ def extract_tokens(tokens, required):
       desc = req[1:]
       # Extracting scope.
       if desc in ("{", "[", "("):
-        if curr == desc:
+        if is_glsl_paren(curr) and (curr.format() == desc):
           (scope, remaining) = extract_scope(content, curr)
           if not (scope is None):
             ret += [scope]
@@ -135,6 +138,12 @@ def tokenize_interpret(tokens):
   ii = 0
   while len(tokens) > ii:
     element = tokens[ii]
+    # Try paren.
+    paren = interpret_paren(element)
+    if paren:
+      ret += [paren]
+      ii += 1
+      continue
     # Try control.
     control = interpret_control(element)
     if control:
@@ -153,16 +162,16 @@ def tokenize_interpret(tokens):
       ret += [typeid]
       ii += 1
       continue
-    # Period may signify swizzle or truncated floating point.
+    # Period may signify truncated floating point or member/swizzle access.
     if "." == tokens[ii] and (ii + 1) < len(tokens):
       decimal = interpret_int(tokens[ii + 1])
       if decimal:
         ret += [interpret_float(0, decimal)]
         ii += 2
         continue
-      swizzle = interpret_swizzle(tokens[ii + 1])
-      if swizzle:
-        ret += [swizzle]
+      access = interpret_access(tokens[ii + 1])
+      if access:
+        ret += [access]
         ii += 2
         continue
     # Number may be just an integer or floating point.
@@ -232,9 +241,9 @@ def validate_token(token, validation):
   elif "f" == validation:
     if not is_glsl_float(token):
       return None
-  # Swizzle.
-  elif "s" == validation:
-    if not is_glsl_swizzle(token):
+  # Access.
+  elif "a" == validation:
+    if not is_glsl_access(token):
       return None
   # Operator =.
   elif validation in ("="):
@@ -258,7 +267,8 @@ def validate_token(token, validation):
       return None
   # Select from options.
   elif validation.find("|") >= 0:
-    if not token in validation.split("|"):
+    variations = filter(lambda x: x, validation.split("|"))
+    if not check_token(token, variations):
       return None
   # Unknown validation.
   else:

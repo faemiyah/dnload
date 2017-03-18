@@ -9,7 +9,7 @@ class GlslType:
 
   def __init__(self, source):
     """Constructor."""
-    self.__type = source.lower()
+    self.__type = source
 
   def format(self):
     """Return formatted output."""
@@ -25,7 +25,7 @@ class GlslType:
 
 def interpret_type(source):
   """Try to interpret type identifier."""
-  if re.match(r'^(float|int|ivec\d|vec\d|void)$', source, re.I):
+  if re.match(r'^(float|int|ivec\d|mat\d|sampler\dD|vec\d|void)$', source):
     return GlslType(source)
   return None
 

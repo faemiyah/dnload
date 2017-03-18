@@ -14,7 +14,11 @@ class GlslFloat:
 
   def format(self):
     """Return formatted output."""
-    return self.__integer1.format() + "." + self.__integer2.get_str().rstrip("0")
+    if 0 == self.__integer1.getInt():
+      if 0 == self.__integer2.getInt():
+        return ".0"
+      return "." + self.__integer2.getStr().rstrip("0")
+    return "%s.%s" % (str(self.__integer1.getInt()), self.__integer2.getStr().rstrip("0"))
   
   def __str__(self):
     """String representation."""

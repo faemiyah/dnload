@@ -1,6 +1,7 @@
 from dnload.common import is_listing
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
+from dnload.glsl_paren import is_glsl_paren
 
 ########################################
 # GlslBlockStatement ###################
@@ -34,26 +35,21 @@ class GlslBlockStatement(GlslBlock):
 
 def glsl_parse_statement(source, explicit = True):
   """Parse statement block."""
-  paren_count = 0
   bracket_count = 0
+  paren_count = 0
   lst = []
   for ii in range(len(source)):
     elem = source[ii]
     # Count all scope-y things.
-    if "(" == elem:
-      paren_count += 1
-    elif ")" == elem:
-      paren_count -= 1
-      if 0 > paren_count:
-        raise RuntimeError("negative paren parity")
-    elif "[" == elem:
-      bracket_count += 1
-    elif "]" == elem:
-      bracket_count -= 1
+    if is_glsl_paren(elem):
+      bracket_count = elem.updateBracket(bracket_count)
       if 0 > bracket_count:
         raise RuntimeError("negative bracket parity")
-    elif elem in ("{", "}"):
-      raise RuntimeError("scope declaration within statement")
+      paren_count = elem.updateParen(paren_count)
+      if 0 > paren_count:
+        raise RuntimeError("negative paren parity")
+      if elem.isCurlyBrace():
+        raise RuntimeError("scope declaration within statement")
     # Statement end.
     elif (elem in (",", ";")) and (0 >= paren_count) and (0 >= bracket_count):
       return (GlslBlockStatement(lst, elem), source[ii + 1:])

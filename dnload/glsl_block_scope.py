@@ -3,6 +3,7 @@ from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_assignment import glsl_parse_assignment
 from dnload.glsl_block_control import glsl_parse_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
+from dnload.glsl_block_return import glsl_parse_return
 
 ########################################
 # GlslBlockScope #######################
@@ -23,6 +24,10 @@ class GlslBlockScope(GlslBlock):
     if self.__explicit or (1 < len(self.__content)):
       return "{%s}" % (ret)
     return ret
+
+  def __str__(self):
+    """String representation."""
+    return "Scope(%u)" % (len(self.__content))
 
 ########################################
 # Functions ############################
@@ -56,7 +61,12 @@ def glsl_parse_content(source):
       ret += [block]
       source = remaining
       continue
-    raise RuntimeError("cannot parse content: %s" % (str(source)))
+    (block, remaining) = glsl_parse_return(source)
+    if block:
+      ret += [block]
+      source = remaining
+      continue
+    raise RuntimeError("cannot parse content: %s" % (str(map(str, source))))
   return ret
 
 def glsl_parse_scope(source, explicit = True):
