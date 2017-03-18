@@ -35,44 +35,6 @@ add_definitions(-DVERSION="r14")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
-add_executable(intro
-  "src/bsd_rand.c"
-  "src/bsd_rand.h"
-  "src/glsl_program.cpp"
-  "src/glsl_program.hpp"
-  "src/glsl_shader.cpp"
-  "src/glsl_shader.hpp"
-  "src/image_png.cpp"
-  "src/image_png.hpp"
-  "src/intro.cpp")
-if(MSVC)
-  target_link_libraries(intro "WINMM")
-  target_link_libraries(intro "${OPENGL_gl_LIBRARY}")
-  target_link_libraries(intro debug "${GLEW_LIBRARY_DEBUG}" optimized "${GLEW_LIBRARY}")
-  target_link_libraries(intro debug "${PNG_LIBRARY_DEBUG}" optimized "${PNG_LIBRARY}")
-  target_link_libraries(intro debug "${SDL2_LIBRARY_DEBUG}" optimized "${SDL2_LIBRARY}")
-  target_link_libraries(intro debug "${ZLIB_LIBRARY_DEBUG}" optimized "${ZLIB_LIBRARY}")
-else()
-  if(MALI_FOUND)
-    target_link_libraries(intro "${EGL_LIBRARY}")
-    target_link_libraries(intro "${OPENGL_gl_LIBRARY}")
-  elseif(VIDEOCORE_FOUND)
-    target_link_libraries(intro "${BCM_HOST_LIBRARY}")
-    target_link_libraries(intro "${EGL_LIBRARY}")
-    target_link_libraries(intro "${OPENGL_gl_LIBRARY}")
-  else()
-    target_link_libraries(intro "${GLEW_LIBRARY}")
-  endif()
-  target_link_libraries(intro "${BOOST_FILESYSTEM_LIBRARY}")
-  target_link_libraries(intro "${BOOST_PROGRAM_OPTIONS_LIBRARY}")
-  target_link_libraries(intro "${BOOST_SYSTEM_LIBRARY}")
-  target_link_libraries(intro "${BOOST_THREAD_LIBRARY}")
-  target_link_libraries(intro "${BOOST_WAVE_LIBRARY}")
-  target_link_libraries(intro "${PNG_LIBRARY}")
-  target_link_libraries(intro "${SDL2_LIBRARY}")
-endif()
-target_link_libraries(intro "${THREADS_LIBRARY}")
-
 add_executable(fcmp
   "src/arithmetic_coder.hpp"
   "src/arithmetic_decoder.cpp"
@@ -119,6 +81,45 @@ else()
 endif()
 target_link_libraries(fcmp "${THREADS_LIBRARY}")
 
+add_executable(intro
+  "src/bsd_rand.c"
+  "src/bsd_rand.h"
+  "src/glsl_program.cpp"
+  "src/glsl_program.hpp"
+  "src/glsl_shader.cpp"
+  "src/glsl_shader.hpp"
+  "src/glsl_wave.cpp"
+  "src/glsl_wave.hpp"
+  "src/image_png.cpp"
+  "src/image_png.hpp"
+  "src/intro.cpp")
+if(MSVC)
+  target_link_libraries(intro "WINMM")
+  target_link_libraries(intro "${OPENGL_gl_LIBRARY}")
+  target_link_libraries(intro debug "${GLEW_LIBRARY_DEBUG}" optimized "${GLEW_LIBRARY}")
+  target_link_libraries(intro debug "${PNG_LIBRARY_DEBUG}" optimized "${PNG_LIBRARY}")
+  target_link_libraries(intro debug "${SDL2_LIBRARY_DEBUG}" optimized "${SDL2_LIBRARY}")
+  target_link_libraries(intro debug "${ZLIB_LIBRARY_DEBUG}" optimized "${ZLIB_LIBRARY}")
+else()
+  if(MALI_FOUND)
+    target_link_libraries(intro "${EGL_LIBRARY}")
+    target_link_libraries(intro "${OPENGL_gl_LIBRARY}")
+  elseif(VIDEOCORE_FOUND)
+    target_link_libraries(intro "${BCM_HOST_LIBRARY}")
+    target_link_libraries(intro "${EGL_LIBRARY}")
+    target_link_libraries(intro "${OPENGL_gl_LIBRARY}")
+  else()
+    target_link_libraries(intro "${GLEW_LIBRARY}")
+  endif()
+  target_link_libraries(intro "${BOOST_FILESYSTEM_LIBRARY}")
+  target_link_libraries(intro "${BOOST_PROGRAM_OPTIONS_LIBRARY}")
+  target_link_libraries(intro "${BOOST_SYSTEM_LIBRARY}")
+  target_link_libraries(intro "${BOOST_THREAD_LIBRARY}")
+  target_link_libraries(intro "${BOOST_WAVE_LIBRARY}")
+  target_link_libraries(intro "${PNG_LIBRARY}")
+  target_link_libraries(intro "${SDL2_LIBRARY}")
+endif()
+target_link_libraries(intro "${THREADS_LIBRARY}")
+
 # TODO: Remove when Wave works with C++11.
-output_flags_remove_cxx11()
-set_target_properties(fcmp PROPERTIES COMPILE_FLAGS "-std=c++11")
+set_property(SOURCE "src/glsl_wave.cpp" APPEND_STRING PROPERTY COMPILE_FLAGS "-std=c++03")
