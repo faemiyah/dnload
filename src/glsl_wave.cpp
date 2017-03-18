@@ -20,7 +20,7 @@ namespace
 ///
 /// \param source Source input.
 /// \return Tuple of GLSL shader compiler preprocessor input and rest of the source.
-static boost::tuple<std::string, std::string> glsl_split(const std::string &source)
+boost::tuple<std::string, std::string> glsl_split(const std::string &source)
 {
   std::vector<std::string> lines;
 
@@ -37,7 +37,8 @@ static boost::tuple<std::string, std::string> glsl_split(const std::string &sour
     {
       ii = boost::trim_copy(ii.substr(1));
 
-      if(boost::starts_with(ii, "version"))
+      if(boost::starts_with(ii, "define") ||
+          boost::starts_with(ii, "version"))
       {
         glsl_list.push_back(vv);
         continue;
