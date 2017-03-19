@@ -13,7 +13,7 @@ class GlslName:
     self.__name = source
     self.__rename = None
     # Reserved words are considered locked in all cases.
-    if self.__name in g_locked:
+    if self.__name in get_list_locked():
       self.__rename = self.__name
 
   def format(self):
@@ -44,6 +44,8 @@ class GlslName:
 
 g_locked = ("cross",
     "dot",
+    "EmitVertex",
+    "EndPrimitive",
     "gl_FragCoord",
     "gl_FragColor",
     "gl_PerVertex",
@@ -52,14 +54,29 @@ g_locked = ("cross",
     "length",
     "location",
     "main",
+    "max_vertices",
     "mix",
     "normalize",
     "return",
     "uniform")
 
+g_primitives = ("lines",
+    "lines_adjacency",
+    "points",
+    "triangles",
+    "triangle_strip")
+
 ########################################
 # Functions ############################
 ########################################
+
+def get_list_locked():
+  """Get list of all locked words."""
+  return g_locked + g_primitives
+
+def get_list_primitives():
+  """Get list of primitive words."""
+  return g_primitives
 
 def interpret_name(source):
   """Try to interpret name identifier."""

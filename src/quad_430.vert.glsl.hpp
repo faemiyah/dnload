@@ -1,6 +1,6 @@
 static const char *g_shader_vertex_quad = ""
 #if defined(USE_LD)
-"quad_430_vert.glsl"
+"quad_430.vert.glsl"
 #else
 "#version 430\n"
 "in vec2 vertex;"

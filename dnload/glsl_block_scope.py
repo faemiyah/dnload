@@ -1,6 +1,7 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_assignment import glsl_parse_assignment
+from dnload.glsl_block_call import glsl_parse_call
 from dnload.glsl_block_control import glsl_parse_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
 from dnload.glsl_block_return import glsl_parse_return
@@ -57,6 +58,11 @@ def glsl_parse_content(source):
       source = remaining
       continue
     (block, remaining) = glsl_parse_assignment(source)
+    if block:
+      ret += [block]
+      source = remaining
+      continue
+    (block, remaining) = glsl_parse_call(source)
     if block:
       ret += [block]
       source = remaining

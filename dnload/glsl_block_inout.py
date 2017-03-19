@@ -10,52 +10,77 @@ from dnload.glsl_block_member import glsl_parse_member_list
 class GlslBlockInOut(GlslBlock):
   """Input (attribute / varying) declaration block."""
 
-  def __init__(self, layout, inout, typeid, name):
+  def __init__(self, layout, inout):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__layout = layout
-    self.__inout = inout
+    self._layout = layout
+    self._inout = inout
+
+  def formatBase(self):
+    """Return base of formatted output."""
+    ret = ""
+    if self._layout:
+      ret += self._layout.format()
+    return ret + self._inout.format()
+
+  def format(self):
+    """Return formatted output."""
+    return self.formatBase() + ";"
+
+  def __str__(self):
+    """String representation."""
+    return "InOut()"
+
+########################################
+# GlslBlockInOutStruct #################
+########################################
+
+class GlslBlockInOutStruct(GlslBlockInOut):
+  """Input (attribute / varying) struct declaration block."""
+
+  def __init__(self, layout, inout, type_name, members, name, size = 0):
+    """Constructor."""
+    GlslBlockInOut.__init__(self, layout, inout)
+    self.__type_name = type_name
+    self.__members = members
+    self.__name = name
+    self.__size = size
+
+  def format(self):
+    """Return formatted output."""
+    ret = self.formatBase()
+    print(str(map(str, self.__members)))
+    lst = "".join(map(lambda x: x.format(), self.__members))
+    ret += (" %s{%s}%s" % (self.__type_name.format(), lst, self.__name.format()))
+    if self.__size:
+      ret += "[%s]" % (self.__size.format())
+    return ret + ";"
+
+  def __str__(self):
+    """String representation."""
+    return "InOutStruct('%s')" % (self.__name.getName())
+
+########################################
+# GlslBlockInOutTyped ##################
+########################################
+ 
+class GlslBlockInOutTyped(GlslBlockInOut):
+  """Input (attribute / varying) struct declaration block."""
+
+  def __init__(self, layout, inout, typeid, name):
+    """Constructor."""
+    GlslBlockInOut.__init__(self, layout, inout)
     self.__typeid = typeid
     self.__name = name
 
   def format(self):
     """Return formatted output."""
-    ret = ""
-    if self.__layout:
-      ret += self.__layout.format()
-    return ret + "%s %s %s;" % (self.__inout.format(), self.__typeid.format(), self.__name.format())
+    ret = self.formatBase()
+    return ret + (" %s %s;" % (self.__typeid.format(), self.__name.format()))
 
   def __str__(self):
     """String representation."""
-    return "InOut('%s')" % (self.__name.getName())
-
-########################################
-# GlslBlockInOutStruct #################
-########################################
- 
-class GlslBlockInOutStruct(GlslBlock):
-  """Input (attribute / varying) struct declaration block."""
-
-  def __init__(self, layout, inout, type_name, members, name):
-    """Constructor."""
-    GlslBlock.__init__(self)
-    self.__layout = layout
-    self.__inout = inout
-    self.__type_name = type_name
-    self.__members = members
-    self.__name = name
-
-  def format(self):
-    """Return formatted output."""
-    lst = "".join(map(lambda x: x.format(), self.__members))
-    ret = ""
-    if self.__layout:
-      ret += self.__layout.format()
-    return ret + "%s %s{%s}%s;" % (self.__inout.format(), self.__type_name.format(), lst, self.__name.format())
-
-  def __str__(self):
-    """String representation."""
-    return "InOutStruct('%s')" % (self.__type_name.getName())
+    return "InOutTyped('%s')" % (self.__type_name.getName())
 
 ########################################
 # Functions ############################
@@ -66,15 +91,30 @@ def glsl_parse_inout(source):
   (layout, content) = glsl_parse_layout(source)
   if not layout:
     content = source
+  # It is possible to have an inout block without anything.
+  (inout, remaining) = extract_tokens(content, ("?o", ";"))
+  if inout:
+    return (GlslBlockInOut(layout, inout), remaining)
   # Scoped version first.
-  (inout, type_name, scope, name, remaining) = extract_tokens(content, ("?o", "?n", "?{", "?n", ";"))
+  (inout, type_name, scope, name, intermediate) = extract_tokens(content, ("?o", "?n", "?{", "?n"))
   if inout and type_name and scope and name:
+    print("got members: %s" % (str(map(str, scope))))
     members = glsl_parse_member_list(scope)
+    print("parsed members: %s" % (str(map(str, members))))
+    if not members[0]:
+      raise RuntimeError("wat?")
     if not members:
       raise RuntimeError("empty member list for inout struct")
-    return (GlslBlockInOutStruct(layout, inout, type_name, members, name), remaining)
+    # May have an array.
+    (size, remaining) = extract_tokens(intermediate, ("[", "?u", "]", ";"))
+    if size:
+      return (GlslBlockInOutStruct(layout, inout, type_name, members, name, size), remaining)
+    # Did not have an array.
+    (terminator, remaining) = extract_tokens(intermediate, "?|;")
+    if terminator:
+      return (GlslBlockInOutStruct(layout, inout, type_name, members, name), remaining)
   # Regular inout.
   (inout, typeid, name, remaining) = extract_tokens(content, ("?o", "?t", "?n", ";"))
   if not inout or not typeid or not name:
     return (None, source)
-  return (GlslBlockInOut(layout, inout, typeid, name), remaining)
+  return (GlslBlockInOutTyped(layout, inout, typeid, name), remaining)

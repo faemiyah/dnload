@@ -1,6 +1,5 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
-from dnload.glsl_block import extract_statement
 from dnload.glsl_block_layout import glsl_parse_layout
 
 ########################################

@@ -32,14 +32,10 @@ class GlslBlockReturn(GlslBlock):
  
 def glsl_parse_return(source):
   """Parse return block."""
-  print("trying return: %s" % (str(map(str, source))))
-  (ret, content,) = extract_tokens(source, ("?|return",))
+  (ret, content,) = extract_tokens(source, "?|return")
   if not ret:
-    print("did not have return")
     return (None, source)
-  print("trying statement %s" % (str(map(str, content))))
   (statement, remaining) = glsl_parse_statement(content)
   if not statement or (statement.getTerminator() != ";"):
-    print("did not have statement")
     return (None, source)
   return (GlslBlockReturn(statement), remaining)

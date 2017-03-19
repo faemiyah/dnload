@@ -1,6 +1,6 @@
 static const char *g_shader_fragment_quad = ""
 #if defined(USE_LD)
-"quad_430_frag.glsl"
+"quad_430.frag.glsl"
 #else
 "#version 430\n"
 "layout(location=0)uniform vec3[4] uniform_array;"

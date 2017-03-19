@@ -84,7 +84,9 @@ def extract_scope(tokens, opener):
 
 def extract_tokens(tokens, required):
   """Require tokens from token string, return selected elements and the rest of tokens."""
-  ret = []
+  # If required is just a string, make it a listing of length one.
+  if not is_listing(required):
+    required = (required,)
   # Generate array for returning on failure.
   failure_array = []
   for ii in required:
@@ -97,6 +99,7 @@ def extract_tokens(tokens, required):
   # Iterate over requests.
   content = tokens[:]
   required = list(required)
+  ret = []
   success = True
   while content and required:
     curr = content.pop(0)
@@ -156,6 +159,13 @@ def tokenize_interpret(tokens):
       ret += [inout]
       ii += 1
       continue
+    # Try modified type.
+    if (ii + 1) < len(tokens):
+      typeid = interpret_type(element, tokens[ii + 1])
+      if typeid:
+        ret += [typeid]
+        ii += 2
+        continue
     # Try type.
     typeid = interpret_type(element)
     if typeid:

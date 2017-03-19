@@ -277,8 +277,8 @@ static GLint g_uniform_u;
 
 #if 1
 
-#include "quad_430_vert.glsl.hpp" // g_shader_vertex_quad
-#include "quad_430_frag.glsl.hpp" // g_shader_fragment_quad
+#include "quad_430.vert.glsl.hpp" // g_shader_vertex_quad
+#include "quad_430.frag.glsl.hpp" // g_shader_fragment_quad
 
 #else
 

@@ -57,7 +57,7 @@ class GlslBlockSource(GlslBlock):
       else:
         content += [ii]
     # Removed known preprocessor directives, write result into intermediate file.
-    fname = self.__output_name + ".preprocessed"
+    fname = self.__filename + ".preprocessed"
     fd = open(fname, "w")
     fd.write(("\n".join(content)).strip())
     fd.close()

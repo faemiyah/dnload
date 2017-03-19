@@ -41,12 +41,12 @@ def glsl_parse_member_list(source):
     return []
   (member, content) = glsl_parse_member(source)
   if not member:
-    return (None, source)
+    raise RuntimeError("error parsing members: %s" % (str(map(str, source))))
   ret = [member]
   while content:
     (member, remaining) = glsl_parse_member(content);
     if not member:
-      return (None, source)
+      raise RuntimeError("error parsing members: %s" % (str(map(str, content))))
     ret += [member]
     content = remaining
   return ret

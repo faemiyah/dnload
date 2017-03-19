@@ -1,6 +1,7 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_block import extract_statement
+from dnload.glsl_name import get_list_primitives
 
 ########################################
 # GlslBlockLayout ######################
@@ -9,14 +10,17 @@ from dnload.glsl_block import extract_statement
 class GlslBlockLayout(GlslBlock):
   """Uniform declaration."""
 
-  def __init__(self, location):
+  def __init__(self, elements):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__location = location
+    self.__elements = elements
 
   def format(self):
     """Return formatted output."""
-    return "layout(location=%s)" % (self.__location.format())
+    ret = []
+    for ii in self.__elements:
+      ret += ["".join(map(lambda x: x.format(), ii))]
+    return "layout(%s)" % (",".join(ret))
 
   def __str__(self):
     """String representation."""
@@ -31,7 +35,28 @@ def glsl_parse_layout(source):
   (scope, remaining) = extract_tokens(source, ("layout", "?("))
   if not scope:
     return (None, source)
-  (location, discarded) = extract_tokens(scope, ("location", "=", "?u"))
-  if location is None:
-    return (None, source)
-  return (GlslBlockLayout(location), remaining)
+  lst = []
+  while scope:
+    (location, assignment, index, intermediate) = extract_tokens(scope, ("?|location", "?=", "?u"))
+    if location and assignment and index:
+      lst += [[location, assignment, index]]
+      scope = intermediate
+      continue
+    primitive_selector = "?" + "|".join(get_list_primitives())
+    (primitive, intermediate) = extract_tokens(scope, (primitive_selector,))
+    if primitive:
+      lst += [[primitive]]
+      scope = intermediate
+      continue
+    (max_vertices, assignment, amount, intermediate) = extract_tokens(scope, ("?|max_vertices", "?=", "?u"))
+    if max_vertices and assignment and amount:
+      lst += [[max_vertices, assignment, amount]]
+      scope = intermediate
+      continue
+    print("trying comma: %s" % (str(map(str, scope))))
+    (comma, intermediate) = extract_tokens(scope, "?|,")
+    if comma:
+      scope = intermediate
+      continue
+    raise RuntimeError("unknown layout directive %s" % (str(map(str, scope))))
+  return (GlslBlockLayout(lst), remaining)
