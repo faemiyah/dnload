@@ -147,9 +147,18 @@ def tokenize_interpret(tokens):
       ret += [paren]
       ii += 1
       continue
+    # Try 2-stage control.
+    if (ii + 1) < len(tokens):
+      control = interpret_control(element, tokens[ii + 1])
+      if control:
+        print("found control: %s" % (control.format()))
+        ret += [control]
+        ii += 2
+        continue
     # Try control.
     control = interpret_control(element)
     if control:
+      print("found control: %s" % (control.format()))
       ret += [control]
       ii += 1
       continue
@@ -159,7 +168,7 @@ def tokenize_interpret(tokens):
       ret += [inout]
       ii += 1
       continue
-    # Try modified type.
+    # Try 2-stage type.
     if (ii + 1) < len(tokens):
       typeid = interpret_type(element, tokens[ii + 1])
       if typeid:

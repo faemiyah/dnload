@@ -49,7 +49,6 @@ class GlslBlockInOutStruct(GlslBlockInOut):
   def format(self):
     """Return formatted output."""
     ret = self.formatBase()
-    print(str(map(str, self.__members)))
     lst = "".join(map(lambda x: x.format(), self.__members))
     ret += (" %s{%s}%s" % (self.__type_name.format(), lst, self.__name.format()))
     if self.__size:
@@ -98,9 +97,7 @@ def glsl_parse_inout(source):
   # Scoped version first.
   (inout, type_name, scope, name, intermediate) = extract_tokens(content, ("?o", "?n", "?{", "?n"))
   if inout and type_name and scope and name:
-    print("got members: %s" % (str(map(str, scope))))
     members = glsl_parse_member_list(scope)
-    print("parsed members: %s" % (str(map(str, members))))
     if not members[0]:
       raise RuntimeError("wat?")
     if not members:

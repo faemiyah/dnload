@@ -27,7 +27,6 @@ class GlslBlockControl(GlslBlock):
     # Add declaration and/or content.
     ret += "("
     if self.__declaration:
-      print("declaration in")
       ret += self.__declaration.format()
     return ret + ("%s)" % ("".join(map(lambda x: x.format(), self.__content))))
 

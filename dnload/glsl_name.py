@@ -43,6 +43,7 @@ class GlslName:
 ########################################
 
 g_locked = ("cross",
+    "discard",
     "dot",
     "EmitVertex",
     "EndPrimitive",

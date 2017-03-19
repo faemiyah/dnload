@@ -53,7 +53,6 @@ def glsl_parse_layout(source):
       lst += [[max_vertices, assignment, amount]]
       scope = intermediate
       continue
-    print("trying comma: %s" % (str(map(str, scope))))
     (comma, intermediate) = extract_tokens(scope, "?|,")
     if comma:
       scope = intermediate
