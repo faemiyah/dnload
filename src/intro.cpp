@@ -633,7 +633,7 @@ void update_window_position()
 #endif
 
 //######################################
-// _start ##############################
+// intro / _start ######################
 //######################################
 
 /// \cond
@@ -644,6 +644,7 @@ void update_window_position()
 #endif
 /// \endcond
 
+#if defined(USE_LD)
 /// \brief Intro body function.
 ///
 /// \param screen_w Screen width.
@@ -651,6 +652,12 @@ void update_window_position()
 /// \param flag_fullscreen Fullscreen toggle.
 /// \param flag_record Record toggle.
 void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_record)
+#else
+#define screen_w static_cast<unsigned>(SCREEN_W)
+#define screen_h static_cast<unsigned>(SCREEN_H)
+#define flag_fullscreen static_cast<bool>(SCREEN_F)
+void _start()
+#endif
 {
   dnload();
   dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
@@ -696,8 +703,6 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
   {
     update_window_position();
   }
-#else
-  (void)flag_record;
 #endif
 
 #if defined(DNLOAD_GLESV2)
@@ -1078,6 +1083,7 @@ void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag
   }
 
   teardown();
+  asm_exit();
 }
 
 //######################################
@@ -1154,12 +1160,6 @@ int DNLOAD_MAIN(int argc, char **argv)
     return -1;
   }
   return 0;
-}
-#else
-void _start()
-{
-  intro(SCREEN_W, SCREEN_H, static_cast<bool>(SCREEN_F), false);
-  asm_exit();
 }
 #endif
 
