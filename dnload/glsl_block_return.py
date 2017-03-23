@@ -13,6 +13,8 @@ class GlslBlockReturn(GlslBlock):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__statement = statement
+    # Hierarchy.
+    self.addChildren(statement)
 
   def format(self):
     """Return formatted output."""

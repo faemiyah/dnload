@@ -18,6 +18,8 @@ class GlslBlockScope(GlslBlock):
     GlslBlock.__init__(self)
     self.__content = lst
     self.__explicit = explicit
+    # Hierarchy.
+    self.addChildren(lst)
 
   def format(self):
     """Return formatted output."""

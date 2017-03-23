@@ -19,6 +19,9 @@ class GlslBlockAssignment(GlslBlock):
     self.__statement = statement
     if self.__assign and (not self.__statement):
       raise RuntimeError("if assigning, must have a statement")
+    # Hierarchy.
+    self.addNames(name)
+    self.addChildren(statement)
 
   def format(self):
     """Return formatted output."""

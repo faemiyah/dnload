@@ -13,6 +13,9 @@ class GlslBlockCall(GlslBlock):
     GlslBlock.__init__(self)
     self.__name = name
     self.__scope = scope
+    # Hierarchy.
+    self.addNames(name)
+    self.addChildren(scope)
 
   def format(self):
     """Return formatted output."""

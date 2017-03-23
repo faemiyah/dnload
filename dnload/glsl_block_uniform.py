@@ -16,6 +16,8 @@ class GlslBlockUniform(GlslBlock):
     self.__typeid = typeid
     self.__size = size
     self.__name = name
+    # Hierarchy.
+    self.addNames(name)
 
   def format(self):
     """Return formatted output."""

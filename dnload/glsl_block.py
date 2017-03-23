@@ -34,6 +34,44 @@ class GlslBlock:
     """Constructor."""
     self._parse_tree = []
     self._source = source
+    self.__names = set()
+    self.__parent = None
+    self.__children = []
+
+  def addChildren(self, lst):
+    """Add another block as a child of this."""
+    if not is_listing(lst):
+      self.addChildren([lst])
+      return
+    for ii in lst:
+      if (not is_glsl_block(ii)) or ii.getParent():
+        raise RuntimeError("GlslBlock::addChild() hierarchy inconsistency")
+      self.__children += [ii]
+      ii.setParent(self)
+
+  def addNames(self, lst):
+    """Add given names to this block specifically."""
+    if not is_listing(lst):
+      self.addNames([lst])
+      return
+    for ii in lst:
+      if is_glsl_name(ii):
+        if not ii in self.__names:
+          self.__names.add(ii)
+
+  def getParent(self):
+    """Accessor."""
+    return self.__parent
+
+  def hasChild(self, op):
+    """Tell if list of children contains given child."""
+    return (op in self.__children)
+
+  def setParent(self, op):
+    """Set parent of this block."""
+    if not op.hasChild(self):
+      raise RuntimeError("GlslBlock::setParent() hierarchy inconsistency")
+    self.__parent = op
     
 ########################################
 # Functions ############################
@@ -131,6 +169,10 @@ def extract_tokens(tokens, required):
   # Successful, return the remaining elements.
   return ret + [content]
 
+def is_glsl_block(op):
+  """Tell if given object is a Glsl block."""
+  return isinstance(op, GlslBlock)
+
 def tokenize(source):
   """Split statement into tokens."""
   return tokenize_interpret(tokenize_split(source))
@@ -151,14 +193,12 @@ def tokenize_interpret(tokens):
     if (ii + 1) < len(tokens):
       control = interpret_control(element, tokens[ii + 1])
       if control:
-        print("found control: %s" % (control.format()))
         ret += [control]
         ii += 2
         continue
     # Try control.
     control = interpret_control(element)
     if control:
-      print("found control: %s" % (control.format()))
       ret += [control]
       ii += 1
       continue

@@ -20,6 +20,10 @@ class GlslBlockFunction(GlslBlock):
     self.__scope = scope
     if not is_listing(self.__parameters):
       raise RuntimeError("parameters must be a listing")
+    # Hierarchy.
+    self.addNames(name)
+    self.addChildren(lst)
+    self.addChildren(scope)
 
   def format(self):
     """Return formatted output."""

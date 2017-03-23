@@ -28,6 +28,7 @@ class GlslBlockSource(GlslBlock):
 
   def __init__(self, definition_ld, filename, varname, output_name):
     """Constructor."""
+    GlslBlock.__init__(self)
     self.__definition_ld = definition_ld
     self.__filename = filename
     self.__variable_name = varname
@@ -45,6 +46,8 @@ class GlslBlockSource(GlslBlock):
   def parse(self):
     """Parse code into blocks and statements."""
     self._parse_tree += glsl_parse(self.__content)
+    # Hierarchy.
+    self.addChildren(self._parse_tree)
 
   def preprocess(self, preprocessor, source):
     """Preprocess GLSL source, store preprocessor directives into parse tree and content."""

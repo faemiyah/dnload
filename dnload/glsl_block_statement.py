@@ -17,6 +17,8 @@ class GlslBlockStatement(GlslBlock):
     self.__terminator = terminator
     if (not is_listing(self.__content)) or (None in self.__content):
       raise RuntimeError("content must be a listing")
+    # Hierarchy.
+    self.addNames(lst)
 
   def format(self):
     """Return formatted output."""

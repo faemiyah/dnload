@@ -45,6 +45,8 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     self.__members = members
     self.__name = name
     self.__size = size
+    # Hierarchy.
+    self.addNames(name)
 
   def format(self):
     """Return formatted output."""
@@ -71,6 +73,8 @@ class GlslBlockInOutTyped(GlslBlockInOut):
     GlslBlockInOut.__init__(self, layout, inout)
     self.__typeid = typeid
     self.__name = name
+    # Hierarchy.
+    self.addNames(name)
 
   def format(self):
     """Return formatted output."""

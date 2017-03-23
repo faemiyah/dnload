@@ -15,6 +15,8 @@ class GlslBlockDeclaration(GlslBlock):
     GlslBlock.__init__(self)
     self.__typeid = typeid
     self.__assignments = lst
+    # Hierarchy.
+    self.addChildren(lst)
 
   def format(self):
     """Return formatted output."""

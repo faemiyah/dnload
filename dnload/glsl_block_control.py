@@ -17,6 +17,11 @@ class GlslBlockControl(GlslBlock):
     self.__control = control
     self.__declaration = declaration
     self.__content = lst
+    # Hierarchy.
+    if declaration:
+      self.addChildren(declaration)
+    if lst:
+      self.addChildren(lst)
 
   def format(self):
     """Return formatted output."""
