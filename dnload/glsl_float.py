@@ -12,7 +12,7 @@ class GlslFloat:
     self.__integer1 = integer1
     self.__integer2 = integer2
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     if 0 == self.__integer1.getInt():
       if 0 == self.__integer2.getInt():
@@ -22,7 +22,7 @@ class GlslFloat:
   
   def __str__(self):
     """String representation."""
-    return "GlslFloat('%s.%s')" % (self.__integer1.format(), self.__integer2.format())
+    return "GlslFloat('%s.%s')" % (self.__integer1.format(False), self.__integer2.format(False))
     
 ########################################
 # Functions ############################

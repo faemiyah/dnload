@@ -23,21 +23,21 @@ class GlslBlockControl(GlslBlock):
     if lst:
       self.addChildren(lst)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    ret = self.__control.format()
+    ret = self.__control.format(force)
     # Simple case.
     if not self.__declaration and not self.__content:
       return ret
     # Add declaration and/or content.
     ret += "("
     if self.__declaration:
-      ret += self.__declaration.format()
-    return ret + ("%s)" % ("".join(map(lambda x: x.format(), self.__content))))
+      ret += self.__declaration.format(force)
+    return ret + ("%s)" % ("".join(map(lambda x: x.format(force), self.__content))))
 
-  def getTerminator(self):
-    """Accessor."""
-    return self.__terminator
+  def __str__(self):
+    """String representation."""
+    return "Control('%s')" % (self.__control.format(False))
 
 ########################################
 # Functions ############################
@@ -49,7 +49,7 @@ def glsl_parse_control(source):
   if not control:
     return (None, source)
   # 'else' is simpler.
-  if control.format() == "else":
+  if control.format(False) == "else":
     return (GlslBlockControl(control, None, None), content)
   # Other control structures require scope.
   (scope, remaining) = extract_tokens(content, "?(")
@@ -57,7 +57,7 @@ def glsl_parse_control(source):
     return (None, source)
   # 'for' may require declaration at the beginning.
   declaration = None
-  if control.format() == "for":
+  if control.format(False) == "for":
     (declaration, intermediate) = glsl_parse_declaration(scope)
     if declaration:
       scope = intermediate

@@ -14,13 +14,13 @@ class GlslBlockCall(GlslBlock):
     self.__name = name
     self.__scope = scope
     # Hierarchy.
-    self.addNames(name)
+    self.addNamesUsed(name)
     self.addChildren(scope)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    lst = "".join(map(lambda x: x.format(), self.__scope))
-    return "%s(%s);" % (self.__name.format(), lst)
+    lst = "".join(map(lambda x: x.format(force), self.__scope))
+    return "%s(%s);" % (self.__name.format(force), lst)
 
   def __str__(self):
     """String representation."""

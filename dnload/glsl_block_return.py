@@ -16,9 +16,9 @@ class GlslBlockReturn(GlslBlock):
     # Hierarchy.
     self.addChildren(statement)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    return "return %s" % (self.__statement.format())
+    return "return %s" % (self.__statement.format(force))
 
   def getStatement(self):
     """Accessor."""

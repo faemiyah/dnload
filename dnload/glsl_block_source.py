@@ -34,29 +34,31 @@ class GlslBlockSource(GlslBlock):
     self.__variable_name = varname
     self.__output_name = output_name
     self.__content = ""
-    self._parse_tree = []
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    ret = "".join(map(lambda x: x.format(), self._parse_tree))
+    return "".join(map(lambda x: x.format(force), self._children))
+
+  def generateFileOutput(self):
+    """Generate output to be written into a file."""
+    ret = self.format(True)
     ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
     subst = { "DEFINITION_LD" : self.__definition_ld, "FILE_NAME" : os.path.basename(self.__filename), "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
     return g_template_glsl.format(subst)
 
   def parse(self):
     """Parse code into blocks and statements."""
-    self._parse_tree += glsl_parse(self.__content)
+    array = glsl_parse(self.__content)
     # Hierarchy.
-    self.addChildren(self._parse_tree)
+    self.addChildren(array)
 
   def preprocess(self, preprocessor, source):
     """Preprocess GLSL source, store preprocessor directives into parse tree and content."""
-    self._parse_tree = []
     content = []
     for ii in source.splitlines():
       block = glsl_parse_preprocessor(ii)
       if block:
-        self._parse_tree += [block]
+        self.addChildren(block)
       else:
         content += [ii]
     # Removed known preprocessor directives, write result into intermediate file.
@@ -87,14 +89,14 @@ class GlslBlockSource(GlslBlock):
     fd = open(self.__output_name, "w")
     if not fd:
       raise RuntimeError("could not write GLSL header '%s'" % (self.__output_name))
-    fd.write(self.format())
+    fd.write(self.generateFileOutput())
     fd.close()
     if is_verbose():
       print("Wrote GLSL header: '%s' => '%s'" % (self.__variable_name, self.__output_name))
 
   def __str__(self):
     return "'%s' => '%s': %s" % (self.__variable_name, self.__output_name,
-        str(map(str, self._parse_tree)))
+        str(map(str, self._children)))
 
 ########################################
 # Functions ############################

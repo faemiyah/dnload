@@ -20,17 +20,21 @@ class GlslBlockAssignment(GlslBlock):
     if self.__assign and (not self.__statement):
       raise RuntimeError("if assigning, must have a statement")
     # Hierarchy.
-    self.addNames(name)
+    self.addNamesUsed(name)
     self.addChildren(statement)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    ret = self.__name.format()
+    ret = self.__name.format(force)
     if self.__modifiers:
-      ret += "".join(map(lambda x: x.format(), self.__modifiers))
+      ret += "".join(map(lambda x: x.format(force), self.__modifiers))
     if not self.__assign:
-      return ret + self.__statement.format()
-    return ret + ("%s%s" % (self.__assign.format(), self.__statement.format()))
+      return ret + self.__statement.format(force)
+    return ret + ("%s%s" % (self.__assign.format(force), self.__statement.format(force)))
+
+  def getName(self):
+    """Accessor."""
+    return self.__name
 
   def getStatement(self):
     """Accessor."""

@@ -9,7 +9,7 @@ class GlslOperator:
     """Constructor."""
     self.__operator = operator
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     return self.__operator
 

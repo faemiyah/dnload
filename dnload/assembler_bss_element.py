@@ -24,7 +24,7 @@ class AssemblerBssElement:
     return self.__und
 
   def __eq__(self, rhs):
-    """Equality operator."""
+    """Equals operator."""
     return (self.__name == rhs.get_name()) and (self.__size == rhs.get_size()) and (self.__und == rhs.is_und_symbol())
 
   def __lt__(self, rhs):

@@ -17,17 +17,27 @@ class GlslAccess:
     """Return formatted output."""
     return "." + self.__name.format()
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     ret = "."
     if self.__swizzle:
-      if self.__swizzle_export:
-        for ii in self.__swizzle:
-          ret += self.__swizzle_export[ii]
-        return ret
-      elif is_verbose():
-        print("WARNING: %s swizzle status unconfirmed" % (str(self)))
-    return ret + self.__name.format()
+      if not self.__swizzle_export:
+        if force:
+          if is_verbose():
+            print("WARNING: %s swizzle status unconfirmed" % (str(self)))
+          return ret + self.__name.format(force)
+        return ""
+      return ret + self.generateSwizzle()
+    return ret + self.__name.format(force)
+
+  def generateSwizzle(self):
+    """Generate exportable swizzled version."""
+    if not self.__swizzle_export:
+      raise RuntimeError("must have swizzle export selected before genrating")
+    ret = ""
+    for ii in self.__swizzle:
+      ret += self.__swizzle_export[ii]
+    return ret
 
   def interpretSwizzle(self):
     """Interpret potential swizzle."""

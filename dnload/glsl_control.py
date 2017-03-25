@@ -10,7 +10,7 @@ class GlslControl:
     self.__control1 = control1
     self.__control2 = control2
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     if self.__control2:
       return "%s %s" % (self.__control1, self.__control2)

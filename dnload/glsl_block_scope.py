@@ -16,21 +16,20 @@ class GlslBlockScope(GlslBlock):
   def __init__(self, lst, explicit):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__content = lst
     self.__explicit = explicit
     # Hierarchy.
     self.addChildren(lst)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    ret = "".join(map(lambda x: x.format(), self.__content))
-    if self.__explicit or (1 < len(self.__content)):
+    ret = "".join(map(lambda x: x.format(force), self._children))
+    if self.__explicit or (1 < len(self._children)):
       return "{%s}" % (ret)
     return ret
 
   def __str__(self):
     """String representation."""
-    return "Scope(%u)" % (len(self.__content))
+    return "Scope(%u)" % (len(self._children))
 
 ########################################
 # Functions ############################
@@ -39,7 +38,7 @@ class GlslBlockScope(GlslBlock):
 def glsl_parse_content(source):
   """Parse generic content."""
   # Nested scopes without extra content make no sense.
-  if 2 <= len(source) and ("{" == source[0]) and ("}" == source[-1]):
+  if 2 <= len(source) and ("{" == source[0].format(False)) and ("}" == source[-1].format(False)):
     return glsl_parse_content(source[1:-1])
   # Loop over content.
   ret = []

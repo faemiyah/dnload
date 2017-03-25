@@ -12,7 +12,7 @@ class GlslInt:
     self.__string = source
     self.__number = int(source)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     return str(self.__number)
 

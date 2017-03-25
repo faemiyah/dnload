@@ -15,11 +15,12 @@ class GlslBlockParameter(GlslBlock):
     self.__typeid = typeid
     self.__name = name
     # Hierarchy.
-    self.addNames(name)
+    self.addNamesDeclared(name)
+    self.addNamesUsed(name)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    return "%s %s" % (self.__typeid.format(), self.__name.format())
+    return "%s %s" % (self.__typeid.format(force), self.__name.format(force))
 
 ########################################
 # Functions ############################

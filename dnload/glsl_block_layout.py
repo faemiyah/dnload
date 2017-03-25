@@ -15,11 +15,11 @@ class GlslBlockLayout(GlslBlock):
     GlslBlock.__init__(self)
     self.__elements = elements
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     ret = []
     for ii in self.__elements:
-      ret += ["".join(map(lambda x: x.format(), ii))]
+      ret += ["".join(map(lambda x: x.format(force), ii))]
     return "layout(%s)" % (",".join(ret))
 
   def __str__(self):

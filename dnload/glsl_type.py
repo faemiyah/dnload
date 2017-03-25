@@ -12,11 +12,23 @@ class GlslType:
     self.__modifier = modifier
     self.__type = source
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     if self.__modifier:
-      return "%s %s" % (self.__modifier, self.__type.format())
+      return "%s %s" % (self.__modifier, self.__type)
     return self.__type
+
+  def __eq__(self, other):
+    """Equals operator."""
+    if is_glsl_type(other) and (self.__type == other.__type):
+      return True
+    return (self.__type == other)
+
+  def __ne__(self, other):
+    """Not equals operator."""
+    if is_glsl_type(other) and (self.__type != other.__type):
+      return True
+    return (self.__type != other)
 
   def __str__(self):
     """String representation."""

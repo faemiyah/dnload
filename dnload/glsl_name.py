@@ -16,12 +16,14 @@ class GlslName:
     if self.__name in get_list_locked():
       self.__rename = self.__name
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     if not self.__rename:
-      if is_verbose():
-        print("WARNING: %s not locked" % (self))
-      return self.__name
+      if force:
+        if is_verbose():
+          print("WARNING: %s not locked" % (self))
+        return self.__name
+      return ""
     return self.__rename
 
   def getName(self):
@@ -33,6 +35,22 @@ class GlslName:
     if self.__rename:
       return True
     return False
+
+  def __eq__(self, other):
+    """Equals operator."""
+    if is_glsl_name(other):
+      return (other.__name == self.__name)
+    return (self.__name == other)
+
+  def __ne__(self, other):
+    """Not equals operator."""
+    if is_glsl_name(other):
+      return (other.__name != self.__name)
+    return (self.__name != other)
+
+  def __hash__(self):
+    """Hashing operator."""
+    return hash(self.__name)
 
   def __str__(self):
     """String representation."""

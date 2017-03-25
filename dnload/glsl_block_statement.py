@@ -18,18 +18,22 @@ class GlslBlockStatement(GlslBlock):
     if (not is_listing(self.__content)) or (None in self.__content):
       raise RuntimeError("content must be a listing")
     # Hierarchy.
-    self.addNames(lst)
+    self.addNamesUsed(lst)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     lst = ""
     if 0 < len(self.__content):
-      lst = "".join(map(lambda x: x.format(), self.__content))
+      lst = "".join(map(lambda x: x.format(force), self.__content))
     return lst + self.__terminator
 
   def getTerminator(self):
     """Accessor."""
     return self.__terminator
+
+  def setTerminator(self, op):
+    """Set terminating character."""
+    self.__terminator = op
 
 ########################################
 # Functions ############################
@@ -53,7 +57,7 @@ def glsl_parse_statement(source, explicit = True):
       if elem.isCurlyBrace():
         raise RuntimeError("scope declaration within statement")
     # Statement end.
-    elif (elem in (",", ";")) and (0 >= paren_count) and (0 >= bracket_count):
+    elif (elem.format(False) in (",", ";")) and (0 >= paren_count) and (0 >= bracket_count):
       return (GlslBlockStatement(lst, elem), source[ii + 1:])
     # Element is going into the statement.
     lst += [elem]

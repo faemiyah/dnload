@@ -20,8 +20,6 @@ from dnload.glsl_paren import interpret_paren
 from dnload.glsl_paren import is_glsl_paren
 from dnload.glsl_type import interpret_type
 from dnload.glsl_type import is_glsl_type
-from dnload.glsl_swizzle import interpret_swizzle
-from dnload.glsl_swizzle import is_glsl_swizzle
 
 ########################################
 # GlslBlock ############################
@@ -32,11 +30,11 @@ class GlslBlock:
 
   def __init__(self, source = None):
     """Constructor."""
-    self._parse_tree = []
     self._source = source
-    self.__names = set()
+    self._children = []
+    self._names_used = []
+    self.__names_declared = set()
     self.__parent = None
-    self.__children = []
 
   def addChildren(self, lst):
     """Add another block as a child of this."""
@@ -46,18 +44,121 @@ class GlslBlock:
     for ii in lst:
       if (not is_glsl_block(ii)) or ii.getParent():
         raise RuntimeError("GlslBlock::addChild() hierarchy inconsistency")
-      self.__children += [ii]
+      self._children += [ii]
       ii.setParent(self)
 
-  def addNames(self, lst):
-    """Add given names to this block specifically."""
-    if not is_listing(lst):
-      self.addNames([lst])
+  def addNamesDeclared(self, op):
+    """Add given names as names declared by this block."""
+    if is_listing(op):
+      for ii in op:
+        self.addNamesDeclared(ii)
       return
-    for ii in lst:
-      if is_glsl_name(ii):
-        if not ii in self.__names:
-          self.__names.add(ii)
+    if not is_glsl_name(op):
+      return
+    if op in self.__names_declared:
+      raise RuntimeError("declaring name '%s' twice" % (op))
+    self.__names_declared.add(op)
+
+  def addNamesUsed(self, op):
+    """Add given names as names used by this block."""
+    if is_listing(op):
+      for ii in op:
+        self.addNamesUsed(ii)
+      return
+    if not is_glsl_name(op):
+      return
+    self._names_used += [op]
+
+  def collapse(self, other):
+    """Default collapse implementation, returns False because no collapse happened."""
+    return False
+
+  def collapseRecursive(self):
+    """Collapse collapsable elements."""
+    while True:
+      if not self.collapseRun():
+        break
+    for ii in self._children:
+      ii.collapseRecursive()
+
+  def collapseRun(self):
+    """Perform one collapse run. Return true if collapse was made."""
+    for ii in range(len(self._children) - 1):
+      vv = self._children[ii]
+      ww = self._children[ii + 1]
+      if vv.collapse(ww):
+        self._children.pop(ii + 1)
+        return True
+    return False
+
+  def collect(self):
+    """Collect all uses of identifiers."""
+    ret = []
+    for ii in range(len(self._children)):
+      vv = self._children[ii]
+      for name in vv.getDeclaredNames():
+        if name.isLocked():
+          continue
+        array = vv.collectRecursive(name)
+        for jj in range(ii + 1, len(self._children)):
+          ww = self._children[jj]
+          if ww.hasDeclaredName(name):
+            break
+          array += ww.collectRecursive(name)
+        if not array:
+          raise RuntimeError("identifier '%s' never referenced" % (name))
+        ret += [array]
+      ret += vv.collect()
+    return ret
+
+  def collectRecursive(self, name):
+    """Collect all uses of given name recursively."""
+    ret = self.collectUsed(name)
+    for ii in self._children:
+      if ii.hasDeclaredName(name):
+        return ret
+      ret += ii.collectRecursive(name)
+    return ret
+
+  def collectUsed(self, name):
+    """Collect all uses of given name."""
+    ret = []
+    for ii in self._names_used:
+      if name == ii:
+        ret += [ii]
+    return ret
+
+  def expand(self):
+    """Default implementation of expand, returns node itself."""
+    return [self]
+
+  def expandRecursive(self):
+    """Expand all expandable children."""
+    while True:
+      if not self.expandRun():
+        break
+    for ii in self._children:
+      ii.expandRecursive()
+
+  def expandRun(self):
+    """Perform one child expansion run. Return true if expansion was made."""
+    for ii in range(len(self._children)):
+      array = self._children[ii].expand()
+      if 1 < len(array):
+        self._children.pop(ii)
+        self._children.insert(ii, array)
+        for jj in array:
+          jj.setParent(self)
+        return True
+    return False
+
+  def getDeclaredNames(self):
+    """Accessor."""
+    return self.__names_declared
+
+  def getChildren(self):
+    """Accessor."""
+    return self._children
 
   def getParent(self):
     """Accessor."""
@@ -65,11 +166,15 @@ class GlslBlock:
 
   def hasChild(self, op):
     """Tell if list of children contains given child."""
-    return (op in self.__children)
+    return (op in self._children)
+
+  def hasDeclaredName(self, op):
+    """Tell if this declares given name."""
+    return op in self.__names_declared
 
   def setParent(self, op):
     """Set parent of this block."""
-    if not op.hasChild(self):
+    if op and (not op.hasChild(self)):
       raise RuntimeError("GlslBlock::setParent() hierarchy inconsistency")
     self.__parent = op
     
@@ -90,11 +195,7 @@ def check_token(token, req):
   # Tokens are converted to strings for comparison.
   if isinstance(token, str) and (token == req):
     return True
-  if is_glsl_name(token) and token.isLocked() and (token.format() == req):
-    return True
-  if (is_glsl_operator(token) or is_glsl_paren(token)) and (token.format() == req):
-    return True
-  return False
+  return (token.format(False) == req)
 
 def extract_statement(source):
   """Extracts one statement for parsing."""
@@ -147,7 +248,7 @@ def extract_tokens(tokens, required):
       desc = req[1:]
       # Extracting scope.
       if desc in ("{", "[", "("):
-        if is_glsl_paren(curr) and (curr.format() == desc):
+        if curr.format(False) == desc:
           (scope, remaining) = extract_scope(content, curr)
           if not (scope is None):
             ret += [scope]

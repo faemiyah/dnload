@@ -9,7 +9,7 @@ class GlslInOut:
     """Constructor."""
     self.__inout = inout
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     return self.__inout
 

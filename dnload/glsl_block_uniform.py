@@ -17,17 +17,18 @@ class GlslBlockUniform(GlslBlock):
     self.__size = size
     self.__name = name
     # Hierarchy.
-    self.addNames(name)
+    self.addNamesDeclared(name)
+    self.addNamesUsed(name)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     ret = ""
     if self.__layout:
-      ret += self.__layout.format()
-    ret += "uniform " + self.__typeid.format()
+      ret += self.__layout.format(force)
+    ret += "uniform " + self.__typeid.format(force)
     if self.__size:
-      ret += "[%s]" % (self.__size.format())
-    return ret + " " + self.__name.format() + ";"
+      ret += "[%s]" % (self.__size.format(force))
+    return ret + " " + self.__name.format(force) + ";"
 
   def __str__(self):
     """String representation."""

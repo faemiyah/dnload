@@ -14,13 +14,43 @@ class GlslBlockDeclaration(GlslBlock):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__typeid = typeid
-    self.__assignments = lst
     # Hierarchy.
+    for ii in lst:
+      self.addNamesDeclared(ii.getName())
     self.addChildren(lst)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    return "%s %s" % (self.__typeid.format(), "".join(map(lambda x: x.format(), self.__assignments)))
+    return "%s %s" % (self.__typeid.format(force), "".join(map(lambda x: x.format(force), self._children)))
+
+  def collapse(self, other):
+    """Collapse another declaration."""
+    if is_glsl_declaration(other) and (other.getType() == self.__typeid):
+      for ii in other.getChildren():
+        ii.setParent(None)
+        self.addChildren(ii)
+        self.addNamesDeclared(ii.getName())
+      for ii in range(len(self._children) - 1):
+        vv = self._children[ii]
+        vv.getStatement().setTerminator(",")
+      return True
+    return False
+
+  def expand(self):
+    """Expand into multiple declarations."""
+    ret = []
+    for ii in self._children:
+      ii.setParent(None)
+      ret += [GlslBlockDeclaration(self.__typeid, [ii])]
+    return ret
+
+  def getType(self):
+    """Accessor."""
+    return self.__typeid
+
+  def __str__(self):
+    """String representation."""
+    return "Declaration('%s')" % (self.__typeid.format(False))
 
 ########################################
 # Functions ############################
@@ -45,3 +75,7 @@ def glsl_parse_declaration(source):
       continue
     # Unknown element, not a valid declaration.
     return (None, source)
+
+def is_glsl_declaration(op):
+  """Tell if given element is a GLSL declaration block."""
+  return isinstance(op, GlslBlockDeclaration)

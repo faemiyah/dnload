@@ -9,7 +9,7 @@ class GlslParen:
     """Constructor."""
     self.__paren = paren
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     return self.__paren
 

@@ -16,16 +16,16 @@ class GlslBlockInOut(GlslBlock):
     self._layout = layout
     self._inout = inout
 
-  def formatBase(self):
+  def formatBase(self, force):
     """Return base of formatted output."""
     ret = ""
     if self._layout:
-      ret += self._layout.format()
-    return ret + self._inout.format()
+      ret += self._layout.format(force)
+    return ret + self._inout.format(force)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    return self.formatBase() + ";"
+    return self.formatBase(force) + ";"
 
   def __str__(self):
     """String representation."""
@@ -46,15 +46,16 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     self.__name = name
     self.__size = size
     # Hierarchy.
-    self.addNames(name)
+    self.addNamesDeclared(name)
+    self.addNamesUsed(name)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    ret = self.formatBase()
-    lst = "".join(map(lambda x: x.format(), self.__members))
-    ret += (" %s{%s}%s" % (self.__type_name.format(), lst, self.__name.format()))
+    ret = self.formatBase(force)
+    lst = "".join(map(lambda x: x.format(force), self.__members))
+    ret += (" %s{%s}%s" % (self.__type_name.format(force), lst, self.__name.format(force)))
     if self.__size:
-      ret += "[%s]" % (self.__size.format())
+      ret += "[%s]" % (self.__size.format(force))
     return ret + ";"
 
   def __str__(self):
@@ -74,16 +75,17 @@ class GlslBlockInOutTyped(GlslBlockInOut):
     self.__typeid = typeid
     self.__name = name
     # Hierarchy.
-    self.addNames(name)
+    self.addNamesDeclared(name)
+    self.addNamesUsed(name)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
-    ret = self.formatBase()
-    return ret + (" %s %s;" % (self.__typeid.format(), self.__name.format()))
+    ret = self.formatBase(force)
+    return ret + (" %s %s;" % (self.__typeid.format(force), self.__name.format(force)))
 
   def __str__(self):
     """String representation."""
-    return "InOutTyped('%s')" % (self.__type_name.getName())
+    return "InOutTyped('%s')" % (self.__typeid.format(False))
 
 ########################################
 # Functions ############################

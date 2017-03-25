@@ -698,7 +698,7 @@ def generate_glsl(preprocessor, definition_ld, fname):
       glsl_output_name = glsl_filename + "." + match.group(2)
       glsl_db.read(preprocessor, definition_ld, glsl_filename, glsl_varname, glsl_output_name)
   glsl_db.parse()
-  #print(str(glsl_db))
+  glsl_db.crunch()
   glsl_db.write()
 
 def get_platform_und_symbols():

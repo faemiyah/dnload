@@ -15,7 +15,7 @@ class GlslBlockPreprocessor(GlslBlock):
     lines = self._source.strip().split()
     self.__content = " ".join(lines)
 
-  def format(self):
+  def format(self, force):
     """Return formatted output."""
     return "%s\n" % (self.__content)
 
