@@ -1,5 +1,6 @@
 from dnload.common import is_verbose
 from dnload.glsl_name import interpret_name
+from dnload.glsl_name import is_glsl_name
 
 ########################################
 # GlslAccess ###########################
@@ -11,6 +12,7 @@ class GlslAccess:
   def __init__(self, name):
     """Constructor."""
     self.__name = name
+    self.__source = None
     self.interpretSwizzle()
 
   def format(self):
@@ -39,6 +41,12 @@ class GlslAccess:
       ret += self.__swizzle_export[ii]
     return ret
 
+  def getType(self):
+    """Access type from name if present."""
+    if self.__source and is_glsl_name(self.__source):
+      return self.__source.getType()
+    return None
+
   def interpretSwizzle(self):
     """Interpret potential swizzle."""
     self.__swizzle = []
@@ -59,13 +67,20 @@ class GlslAccess:
     if 4 < len(self.__swizzle):
       self.__swizzle = []
 
-  def selectSwizzleRgba(self):
-    """Select rgba for exporting."""
-    self.__swizzle_export = ("r", "g", "b", "a")
+  def selectSwizzle(self, op):
+    """Select swizzle mode  for exporting."""
+    if op not in (("r", "g", "b", "a"), ("x", "y", "z", "w")):
+      raise RuntimeError("cannot select swizzle '%s'" % (str(op)))
+    self.__swizzle_export = op
 
-  def selectSwizzleXyzw(self):
-    """Select xyzw for exporting."""
-    self.__swizzle_export = ("x", "y", "z", "w")
+  def setSource(self, lst):
+    """Set source name for access."""
+    for ii in reversed(range(len(lst))):
+      vv = lst[ii]
+      if is_glsl_name(vv) or is_glsl_access(vv):
+        self.__source = vv
+        return
+    raise RuntimeError("could not find source for access")
 
   def __str__(self):
     """String representation."""

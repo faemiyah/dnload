@@ -32,8 +32,18 @@ class GlslBlock:
     """Constructor."""
     self._children = []
     self._names_used = []
+    self.__accesses = []
     self.__names_declared = set()
     self.__parent = None
+
+  def addAccesses(self, op):
+    if is_listing(op):
+      for ii in op:
+        self.addAccesses(ii)
+      return
+    if not is_glsl_access(op):
+      return
+    self.__accesses += [op]
 
   def addChildren(self, lst):
     """Add another block as a child of this."""
@@ -178,6 +188,16 @@ class GlslBlock:
   def hasUsedName(self, op):
     """Tell if given name is used somewhere in this."""
     return op in self._names_used
+
+  def selectSwizzle(self, op):
+    """Recursively select swizzle method."""
+    # Select here.
+    for ii in self.__accesses:
+      if ii.getType():
+        ii.selectSwizzle(op)
+    # Recursively descend to children.
+    for ii in self._children:
+      ii.selectSwizzle(op)
 
   def setParent(self, op):
     """Set parent of this block."""
@@ -330,6 +350,7 @@ def tokenize_interpret(tokens):
         continue
       access = interpret_access(tokens[ii + 1])
       if access:
+        access.setSource(ret)
         ret += [access]
         ii += 2
         continue

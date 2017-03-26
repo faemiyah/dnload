@@ -1,4 +1,5 @@
 from dnload.common import is_listing
+from dnload.common import is_verbose
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_scope import is_glsl_block_scope
@@ -17,14 +18,20 @@ class Glsl:
     self.__sources = []
 
   def count(self):
+    """Count instances of alpha letters within the code."""
     source = "".join(map(lambda x: x.format(False), self.__sources))
-    counted = {}
+    ret = {}
     for ii in source:
       if ii.isalpha():
-        if ii in counted:
-          counted[ii] += 1
+        if ii in ret:
+          ret[ii] += 1
         else:
-          counted[ii] = 1
+          ret[ii] = 1
+    return ret
+
+  def countSorted(self):
+    """Get sorted listing of counted alpha letters within the code."""
+    counted = self.count()
     ret = []
     for kk in counted.keys():
       ret += [(kk, counted[kk])]
@@ -41,6 +48,10 @@ class Glsl:
       collected += ii.collect()
     # Merge multiple matching inout names.
     merged = sorted(merge_collected_names(collected), key=len, reverse=True)
+    # After names have been collected, it's possible to collapse swizzles.
+    swizzle = self.selectSwizzle()
+    for ii in self.__sources:
+      ii.selectSwizzle(swizzle)
     # Run rename passes until done.
     while merged:
       self.renamePass(merged[0][0], merged[0][1:])
@@ -60,7 +71,7 @@ class Glsl:
 
   def renamePass(self, block, names):
     """Perform rename pass from given block."""
-    counted = self.count()
+    counted = self.countSorted()
     targets = map(lambda x: x[0], counted)
     for ii in targets:
       if not has_name_conflict(block, ii):
@@ -68,6 +79,34 @@ class Glsl:
           jj.lock(ii)
         return
     raise RuntimeError("TODO: implement inventing a new name")
+
+  def selectSwizzle(self):
+    counted = self.count()
+    ret = ("r", "g", "b", "a")
+    rgba = 0
+    if "r" in counted:
+      rgba += counted["r"]
+    if "g" in counted:
+      rgba += counted["g"]
+    if "b" in counted:
+      rgba += counted["b"]
+    if "a" in counted:
+      rgba += counted["a"]
+    xyzw = 0
+    if "x" in counted:
+      xyzw += counted["x"]
+    if "y" in counted:
+      xyzw += counted["y"]
+    if "z" in counted:
+      xyzw += counted["z"]
+    if "w" in counted:
+      xyzw += counted["w"]
+    print("xyzw: %i, rgba: %i" % (xyzw, rgba))
+    if xyzw >= rgba:
+      ret = ("x", "y", "z", "w")
+    if is_verbose:
+      print("Selected GLSL swizzle: %s" % (str(ret)))
+    return ret
 
   def write(self):
     """Write processed source headers."""
@@ -118,6 +157,7 @@ def has_name_conflict(block, name):
 def merge_collected_names(lst):
   """Merge different matching lists in collected names."""
   ret = []
+  # First merge multiple same inout blocks to match.
   for ii in lst:
     if is_glsl_block_inout(ii[0]):
       found = False
@@ -130,6 +170,17 @@ def merge_collected_names(lst):
       if found:
         continue
     ret += [ii]
+  # Then, set proper type information for all elements.
+  for ii in ret:
+    typeid = None
+    for jj in ii[1:]:
+      found_type = jj.getType()
+      if found_type:
+        if typeid and (typeid != found_type):
+          raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0]), str([typeid, found_type])))
+        typeid = found_type
+    for jj in ii[1:]:
+      jj.setType(typeid)
   return ret
 
 def find_parent_scope(block):

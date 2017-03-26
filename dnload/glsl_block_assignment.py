@@ -21,6 +21,7 @@ class GlslBlockAssignment(GlslBlock):
       raise RuntimeError("if assigning, must have a statement")
     # Hierarchy.
     self.addNamesUsed(name)
+    self.addAccesses(lst)
     self.addChildren(statement)
 
   def format(self, force):

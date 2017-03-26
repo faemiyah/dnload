@@ -18,6 +18,7 @@ class GlslBlockStatement(GlslBlock):
     if (not is_listing(self.__content)) or (None in self.__content):
       raise RuntimeError("content must be a listing")
     # Hierarchy.
+    self.addAccesses(lst)
     self.addNamesUsed(lst)
 
   def format(self, force):

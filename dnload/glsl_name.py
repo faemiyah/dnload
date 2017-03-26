@@ -11,6 +11,7 @@ class GlslName:
   def __init__(self, source):
     """Constructor."""
     self.__name = source
+    self.__typeid = None
     self.__rename = None
     # Reserved words are considered locked in all cases.
     if self.__name in get_list_locked():
@@ -29,6 +30,10 @@ class GlslName:
   def getName(self):
     """Gets the original, non-renamed name."""
     return self.__name
+
+  def getType(self):
+    """Accessor."""
+    return self.__typeid
 
   def isLocked(self):
     """Tell if this is using a locked string."""
@@ -49,6 +54,10 @@ class GlslName:
     if self.__rename:
       return self.__rename
     return self.__name
+
+  def setType(self, op):
+    """Set type information of this."""
+    self.__typeid = op
 
   def __eq__(self, other):
     """Equals operator."""
@@ -95,6 +104,7 @@ g_locked = ("cos",
     "normalize",
     "return",
     "sin",
+    "sqrt",
     "tan",
     "uniform")
 

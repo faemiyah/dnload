@@ -18,6 +18,7 @@ class GlslBlockUniform(GlslBlock):
     self.__name = name
     # Hierarchy.
     self.addNamesDeclared(name)
+    name.setType(typeid)
     self.addNamesUsed(name)
 
   def format(self, force):

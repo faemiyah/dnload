@@ -16,7 +16,9 @@ class GlslBlockDeclaration(GlslBlock):
     self.__typeid = typeid
     # Hierarchy.
     for ii in lst:
-      self.addNamesDeclared(ii.getName())
+      name = ii.getName()
+      name.setType(typeid)
+      self.addNamesDeclared(name)
     self.addChildren(lst)
 
   def format(self, force):
