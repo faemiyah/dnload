@@ -121,3 +121,7 @@ def glsl_parse_inout(source):
   if not inout or not typeid or not name:
     return (None, source)
   return (GlslBlockInOutTyped(layout, inout, typeid, name), remaining)
+
+def is_glsl_block_inout(op):
+  """Tell if given object is GlslBlockInout."""
+  return isinstance(op, GlslBlockInOut)

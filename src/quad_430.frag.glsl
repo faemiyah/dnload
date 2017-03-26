@@ -4,7 +4,7 @@ layout(location=0) uniform vec3[4] uniform_array;
 
 in vec2 position;
 
-out vec4 gl_FragColor;
+out vec4 output_color;
 
 void main()
 {
@@ -30,10 +30,10 @@ void main()
   if(squared <= radius)
   {
     vec3 e = (product - sqrt(radius * radius - squared * squared)) * direction + uniform_array[0];
-    gl_FragColor = vec4(e * dot(e, vec3(1.0)), 1.0);
+    output_color = vec4(e * dot(e, vec3(1.0)), 1.0);
   }
   else
   {
-    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    output_color = vec4(0.0, 0.0, 0.0, 1.0);
   }
 }

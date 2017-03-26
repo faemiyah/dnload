@@ -66,3 +66,7 @@ def glsl_parse_control(source):
   if not statements:
     return (None, source)
   return (GlslBlockControl(control, declaration, statements), remaining)
+
+def is_glsl_block_control(op):
+  """Tell if given object is GlslBlockControl."""
+  return isinstance(op, GlslBlockControl)

@@ -11,8 +11,8 @@ class GlslBlockPreprocessor(GlslBlock):
 
   def __init__(self, source):
     """Constructor."""
-    GlslBlock.__init__(self, source)
-    lines = self._source.strip().split()
+    GlslBlock.__init__(self)
+    lines = source.strip().split()
     self.__content = " ".join(lines)
 
   def format(self, force):

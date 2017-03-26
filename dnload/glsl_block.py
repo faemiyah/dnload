@@ -28,9 +28,8 @@ from dnload.glsl_type import is_glsl_type
 class GlslBlock:
   """GLSL block - represents one scope with sub-scopes, function, file, etc."""
 
-  def __init__(self, source = None):
+  def __init__(self):
     """Constructor."""
-    self._source = source
     self._children = []
     self._names_used = []
     self.__names_declared = set()
@@ -107,7 +106,7 @@ class GlslBlock:
           array += ww.collectRecursive(name)
         if not array:
           raise RuntimeError("identifier '%s' never referenced" % (name))
-        ret += [array]
+        ret += [[vv] + array]
       ret += vv.collect()
     return ret
 
@@ -152,13 +151,13 @@ class GlslBlock:
         return True
     return False
 
-  def getDeclaredNames(self):
-    """Accessor."""
-    return self.__names_declared
-
   def getChildren(self):
     """Accessor."""
     return self._children
+
+  def getDeclaredNames(self):
+    """Accessor."""
+    return self.__names_declared
 
   def getParent(self):
     """Accessor."""
@@ -170,7 +169,15 @@ class GlslBlock:
 
   def hasDeclaredName(self, op):
     """Tell if this declares given name."""
-    return op in self.__names_declared
+    for ii in self.__names_declared:
+      if ii == op:
+        return True
+    return False
+    #return op in self.__names_declared
+
+  def hasUsedName(self, op):
+    """Tell if given name is used somewhere in this."""
+    return op in self._names_used
 
   def setParent(self, op):
     """Set parent of this block."""
@@ -196,14 +203,6 @@ def check_token(token, req):
   if isinstance(token, str) and (token == req):
     return True
   return (token.format(False) == req)
-
-def extract_statement(source):
-  """Extracts one statement for parsing."""
-  ii = source.find(";")
-  if 0 > ii:
-    return (None, source)
-  ii += 1
-  return (tokenize(source[:ii].strip()), source[ii:])
 
 def extract_scope(tokens, opener):
   """Extract scope from token list. Needs scope opener to already be extracted."""

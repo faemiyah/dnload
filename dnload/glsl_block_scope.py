@@ -88,3 +88,7 @@ def glsl_parse_scope(source, explicit = True):
       return (GlslBlockScope([assignment], explicit), remaining)
   # No scope found.
   return (None, source)
+
+def is_glsl_block_scope(op):
+  """Tell if given object is GlslBlockScope."""
+  return isinstance(op, GlslBlockScope)

@@ -59,3 +59,7 @@ def glsl_parse_uniform(source):
   if not name:
     return (None, source)
   return (GlslBlockUniform(layout, typeid, size, name), content)
+
+def is_glsl_block_uniform(op):
+  """Tell if this is an uniform block."""
+  return isinstance(op, GlslBlockUniform)

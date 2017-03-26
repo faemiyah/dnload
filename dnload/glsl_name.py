@@ -36,17 +36,31 @@ class GlslName:
       return True
     return False
 
+  def lock(self, op):
+    """Lock rename into given name."""
+    if self.__rename:
+      raise RuntimeError("attempting to lock already locked rename '%s'" % (self.__rename))
+    if not isinstance(op, str):
+      raise RuntimeError("rename must be string, '%s' given" % (str(op)))
+    self.__rename = op
+
+  def resolveName(self):
+    """Get resolved name, this is the locked name or original name if not locked."""
+    if self.__rename:
+      return self.__rename
+    return self.__name
+
   def __eq__(self, other):
     """Equals operator."""
     if is_glsl_name(other):
-      return (other.__name == self.__name)
-    return (self.__name == other)
+      return (other.resolveName() == self.resolveName())
+    return (self.resolveName() == other)
 
   def __ne__(self, other):
     """Not equals operator."""
     if is_glsl_name(other):
-      return (other.__name != self.__name)
-    return (self.__name != other)
+      return (other.resolveName() != self.resolveName())
+    return (self.resolveName() != other)
 
   def __hash__(self):
     """Hashing operator."""
@@ -54,13 +68,16 @@ class GlslName:
 
   def __str__(self):
     """String representation."""
+    if self.__rename:
+      return "GlslName('%s' => '%s')" % (self.__name, self.__rename)
     return "GlslName('%s')" % (self.__name)
 
 ########################################
 # Globals ##############################
 ########################################
 
-g_locked = ("cross",
+g_locked = ("cos",
+    "cross",
     "discard",
     "dot",
     "EmitVertex",
@@ -77,6 +94,8 @@ g_locked = ("cross",
     "mix",
     "normalize",
     "return",
+    "sin",
+    "tan",
     "uniform")
 
 g_primitives = ("lines",
