@@ -13,21 +13,25 @@ class GlslOperator:
     """Return formatted output."""
     return self.__operator
 
-  def get_str(self):
+  def getOperator(self):
     """Get content string."""
     return self.__operator
 
+  def isAssignment(self):
+    """Tell if this is an assignment operator of any kind."""
+    return (self.__operator in ("=", "+=", "-=", "*=", "/="))
+
   def incorporate(self, operator):
     """Try to incorporate another operator."""
-    if operator.get_str() == "=":
+    if operator.getOperator() == "=":
       if self.__operator in ("+", "-", "*", "/", "<", ">", "="):
-        self.__operator += operator.get_str()
+        self.__operator += operator.getOperator()
         return True
-    elif operator.get_str() == "+":
+    elif operator.getOperator() == "+":
       if self.__operator == "+":
         self.__operator = "++"
         return True
-    elif operator.get_str() == "-":
+    elif operator.getOperator() == "-":
       if self.__operator == "-":
         self.__operator = "--"
         return True

@@ -155,7 +155,7 @@ class GlslBlock:
       array = self._children[ii].expand()
       if 1 < len(array):
         self._children.pop(ii)
-        self._children.insert(ii, array)
+        self._children[ii:ii] = array
         for jj in array:
           jj.setParent(self)
         return True
@@ -437,7 +437,7 @@ def validate_token(token, validation):
       return None
   # Operator =.
   elif validation in ("="):
-    if not is_glsl_operator(token) and (token.format() != validation):
+    if (not is_glsl_operator(token)) or (not token.isAssignment()):
       return None
   # Control.
   elif "c" == validation:

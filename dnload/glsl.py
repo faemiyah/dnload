@@ -37,28 +37,32 @@ class Glsl:
       ret += [(kk, counted[kk])]
     return sorted(ret, key=lambda x: x[1], reverse=True)
 
-  def crunch(self):
+  def crunch(self, mode = "full"):
     """Crunch the source code to smaller state."""
-    # Expand all expandable elements.
-    for ii in self.__sources:
-      ii.expandRecursive()
-    # Collect identifiers.
-    collected = []
-    for ii in self.__sources:
-      collected += ii.collect()
-    # Merge multiple matching inout names.
-    merged = sorted(merge_collected_names(collected), key=len, reverse=True)
-    # After names have been collected, it's possible to collapse swizzles.
-    swizzle = self.selectSwizzle()
-    for ii in self.__sources:
-      ii.selectSwizzle(swizzle)
-    # Run rename passes until done.
-    while merged:
-      self.renamePass(merged[0][0], merged[0][1:])
-      merged.pop(0)
-    # Recombine combinable elements.
-    for ii in self.__sources:
-      ii.collapseRecursive()
+    # Expand unless crunching completely disabled.
+    if "none" != mode:
+      for ii in self.__sources:
+        ii.expandRecursive()
+    # Rename is optional.
+    if "full" == mode:
+      # Collect identifiers.
+      collected = []
+      for ii in self.__sources:
+        collected += ii.collect()
+      # Merge multiple matching inout names.
+      merged = sorted(merge_collected_names(collected), key=len, reverse=True)
+      # After names have been collected, it's possible to collapse swizzles.
+      swizzle = self.selectSwizzle()
+      for ii in self.__sources:
+        ii.selectSwizzle(swizzle)
+      # Run rename passes until done.
+      while merged:
+        self.renamePass(merged[0][0], merged[0][1:])
+        merged.pop(0)
+    # Recombine unless crunching completely disabled.
+    if "none" != mode:
+      for ii in self.__sources:
+        ii.collapseRecursive()
 
   def parse(self):
     """Parse all source files."""
