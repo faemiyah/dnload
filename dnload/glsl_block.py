@@ -31,9 +31,9 @@ class GlslBlock:
   def __init__(self):
     """Constructor."""
     self._children = []
-    self._names_used = []
     self.__accesses = []
     self.__names_declared = set()
+    self.__names_used = []
     self.__parent = None
 
   def addAccesses(self, op):
@@ -76,7 +76,7 @@ class GlslBlock:
       return
     if not is_glsl_name(op):
       return
-    self._names_used += [op]
+    self.__names_used += [op]
 
   def collapse(self, other):
     """Default collapse implementation, returns False because no collapse happened."""
@@ -132,7 +132,7 @@ class GlslBlock:
   def collectUsed(self, name):
     """Collect all uses of given name."""
     ret = []
-    for ii in self._names_used:
+    for ii in self.__names_used:
       if name == ii:
         ret += [ii]
     return ret
@@ -179,15 +179,25 @@ class GlslBlock:
 
   def hasDeclaredName(self, op):
     """Tell if this declares given name."""
+    return op in self.__names_declared
+
+  def hasLockedDeclaredName(self, op):
+    """Tell if this declares given name that has been locked."""
     for ii in self.__names_declared:
-      if ii == op:
+      if ii.isLocked() and (ii.resolveName() == op):
         return True
     return False
-    #return op in self.__names_declared
+
+  def hasLockedUsedName(self, op):
+    """Tell if this uses given name that has been locked."""
+    for ii in self.__names_used:
+      if ii.isLocked() and (ii.resolveName() == op):
+        return True
+    return False
 
   def hasUsedName(self, op):
     """Tell if given name is used somewhere in this."""
-    return op in self._names_used
+    return op in self.__names_used
 
   def selectSwizzle(self, op):
     """Recursively select swizzle method."""

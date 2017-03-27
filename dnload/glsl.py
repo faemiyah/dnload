@@ -145,12 +145,12 @@ def has_name_conflict(block, name):
   found = False
   for ii in flatten(parent):
     # Declared names take the name out of the scope permanently.
-    if ii.hasDeclaredName(name):
+    if ii.hasLockedDeclaredName(name):
       return True
     # Other blocks reserve names from their inception onward.
     if block == ii:
       found = True
-    if found and ii.hasUsedName(name):
+    if found and ii.hasLockedUsedName(name):
       return True
   return False
 
