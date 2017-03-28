@@ -4,6 +4,7 @@ from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_scope import is_glsl_block_scope
 from dnload.glsl_block_source import glsl_read_source
+from dnload.glsl_block_source import is_glsl_block_source
 from dnload.glsl_block_uniform import is_glsl_block_uniform
 
 ########################################
@@ -64,6 +65,23 @@ class Glsl:
       for ii in self.__sources:
         ii.collapseRecursive()
 
+  def hasNameConflict(self, block, name):
+    """Tell if given block would have a conflict if renamed into given name."""
+    # If block is a listing, just go over all options.
+    if is_listing(block):
+      for ii in block:
+        if self.hasNameConflict(ii, name):
+          return True
+      return False
+    # Check for conflicts within this block.
+    parent = find_parent_scope(block)
+    if is_glsl_block_source(parent):
+      for ii in self.__sources:
+        if (ii != parent) and (not ii.getType()):
+          if has_name_conflict(ii, name):
+            return True
+    return has_name_conflict(parent, name)
+
   def parse(self):
     """Parse all source files."""
     for ii in self.__sources:
@@ -78,7 +96,7 @@ class Glsl:
     counted = self.countSorted()
     targets = map(lambda x: x[0], counted)
     for ii in targets:
-      if not has_name_conflict(block, ii):
+      if not self.hasNameConflict(block, ii):
         for jj in names:
           jj.lock(ii)
         return
@@ -86,7 +104,6 @@ class Glsl:
 
   def selectSwizzle(self):
     counted = self.count()
-    ret = ("r", "g", "b", "a")
     rgba = 0
     if "r" in counted:
       rgba += counted["r"]
@@ -105,11 +122,16 @@ class Glsl:
       xyzw += counted["z"]
     if "w" in counted:
       xyzw += counted["w"]
-    print("xyzw: %i, rgba: %i" % (xyzw, rgba))
     if xyzw >= rgba:
       ret = ("x", "y", "z", "w")
+      selected_for = xyzw
+      selected_against = rgba
+    else:
+      ret = ("r", "g", "b", "a")
+      selected_for = rgba
+      selected_against = xyzw
     if is_verbose:
-      print("Selected GLSL swizzle: %s" % (str(ret)))
+      print("Selected GLSL swizzle: %s (%i vs. %i)" % (str(ret), selected_for, selected_against))
     return ret
 
   def write(self):
@@ -132,22 +154,10 @@ def flatten(block):
     ret += flatten(ii)
   return ret
 
-def is_glsl_block_global(op):
-  """Tell if block is somehting of a global concern."""
-  return (is_glsl_block_inout(op) or is_glsl_block_uniform(op))
-
 def has_name_conflict(block, name):
-  """Tell if given block would have a conflict if renamed into given name."""
-  # If block is a listing, just go over all options.
-  if is_listing(block):
-    for ii in block:
-      if has_name_conflict(ii, name):
-        return True
-    return False
-  # Check for conflicts within this block.
-  parent = find_parent_scope(block)
+  """Tell if given block contains a conflict for given name."""
   found = False
-  for ii in flatten(parent):
+  for ii in flatten(block):
     # Declared names take the name out of the scope permanently.
     if ii.hasLockedDeclaredName(name):
       return True
@@ -157,6 +167,10 @@ def has_name_conflict(block, name):
     if found and ii.hasLockedUsedName(name):
       return True
   return False
+
+def is_glsl_block_global(op):
+  """Tell if block is somehting of a global concern."""
+  return (is_glsl_block_inout(op) or is_glsl_block_uniform(op))
 
 def merge_collected_names(lst):
   """Merge different matching lists in collected names."""

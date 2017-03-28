@@ -1,3 +1,4 @@
+import re
 import os
 
 from dnload.common import is_verbose
@@ -34,6 +35,23 @@ class GlslBlockSource(GlslBlock):
     self.__variable_name = varname
     self.__output_name = output_name
     self.__content = ""
+    self.detectType()
+
+  def detectType(self):
+    """Try to detect type from filename."""
+    self.__type = None
+    stub = r'.*[._\-\s]%s[._\-\s].*'
+    if re.match(stub % ("frag"), self.__filename, re.I) or re.match(stub % ("fragment"), self.__filename, re.I):
+      self.__type = "fragment"
+    elif re.match(stub % ("geom"), self.__filename, re.I) or re.match(stub % ("geometry"), self.__filename, re.I):
+      self.__type = "geometry"
+    elif re.match(stub % ("vert"), self.__filename, re.I) or re.match(stub % ("vertex"), self.__filename, re.I):
+      self.__type = "vertex"
+    if is_verbose():
+      if self.__type:
+        print("Assuming shader file '%s' type: '%s'" % (self.__filename, self.__type))
+      else:
+        print("Could not detect shader file '%s' type, assuming generic." % (self.__filename))
 
   def format(self, force):
     """Return formatted output."""
@@ -45,6 +63,10 @@ class GlslBlockSource(GlslBlock):
     ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
     subst = { "DEFINITION_LD" : self.__definition_ld, "FILE_NAME" : os.path.basename(self.__filename), "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
     return g_template_glsl.format(subst)
+
+  def getType(self):
+    """Access type of this shader file. May be empty."""
+    return self.__type
 
   def parse(self):
     """Parse code into blocks and statements."""
@@ -81,8 +103,6 @@ class GlslBlockSource(GlslBlock):
       raise RuntimeError("could not read GLSL source '%s'" % (fname))
     self.preprocess(preprocessor, fd.read())
     fd.close()
-    if is_verbose():
-      print("Read GLSL source: '%s'" % (self.__filename))
 
   def write(self):
     """Write compressed output."""
@@ -137,3 +157,7 @@ def glsl_read_source(preprocessor, definition_ld, filename, varname, output_name
   ret = GlslBlockSource(definition_ld, filename, varname, output_name)
   ret.read(preprocessor)
   return ret
+
+def is_glsl_block_source(op):
+  """Tell if given object is a GLSL source block."""
+  return isinstance(op, GlslBlockSource)
