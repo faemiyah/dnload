@@ -1,6 +1,7 @@
 from dnload.common import is_verbose
 from dnload.glsl_name import interpret_name
 from dnload.glsl_name import is_glsl_name
+from dnload.glsl_paren import is_glsl_paren
 
 ########################################
 # GlslAccess ###########################
@@ -13,6 +14,7 @@ class GlslAccess:
     """Constructor."""
     self.__name = name
     self.__source = None
+    self.__access = None
     self.interpretSwizzle()
 
   def format(self):
@@ -41,9 +43,24 @@ class GlslAccess:
       ret += self.__swizzle_export[ii]
     return ret
 
+  def getAccess(self):
+    """Accessor."""
+    return self.__access
+
+  def getName(self):
+    """Accessor."""
+    return self.__name
+
   def getType(self):
-    """Access type from name if present."""
-    if self.__source and is_glsl_name(self.__source):
+    """Access type from name and then from source if present."""
+    name_type = self.__name.getType()
+    if name_type:
+      return name_type
+    return self.getSourceType()
+
+  def getSourceType(self):
+    """Access type from source if present."""
+    if self.__source:
       return self.__source.getType()
     return None
 
@@ -51,7 +68,7 @@ class GlslAccess:
     """Interpret potential swizzle."""
     self.__swizzle = []
     self.__swizzle_export = None
-    for ii in self.__name.getName().split():
+    for ii in list(self.__name.getName()):
       if ii in ("r", "x"):
         self.__swizzle += [0]
       elif ii in ("g", "y"):
@@ -73,12 +90,26 @@ class GlslAccess:
       raise RuntimeError("cannot select swizzle '%s'" % (str(op)))
     self.__swizzle_export = op
 
+  def setAccess(self, op):
+    """Set given element as accessing this."""
+    if self.__access:
+      raise RuntimeError("'%s' already has access '%s'" % (str(self), str(self.__access)))
+    self.__access = op
+
   def setSource(self, lst):
     """Set source name for access."""
+    bracket_count = 0
+    paren_count = 0
     for ii in reversed(range(len(lst))):
       vv = lst[ii]
-      if is_glsl_name(vv) or is_glsl_access(vv):
+      if is_glsl_paren(vv):
+        if vv.isCurlyBrace():
+          raise RuntimeError("curly brace found while looking for source of member")
+        vv.updateParen(paren_count)
+        vv.updateBracket(bracket_count)
+      if (is_glsl_name(vv) or is_glsl_access(vv)) and (0 == bracket_count) and (0 == paren_count):
         self.__source = vv
+        vv.setAccess(self)
         return
     raise RuntimeError("could not find source for access")
 

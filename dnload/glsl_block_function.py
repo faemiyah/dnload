@@ -33,6 +33,10 @@ class GlslBlockFunction(GlslBlock):
       lst = ",".join(map(lambda x: x.format(force), self.__parameters))
     return "%s %s(%s)%s" % (self.__typeid.format(force), self.__name.format(force), lst, self.__scope.format(force))
 
+  def getType(self):
+    """Accessor."""
+    return self.__typeid
+
   def __str__(self):
     """String representation."""
     return "Function('%s')" % (self.__name.getName())

@@ -2,6 +2,8 @@ from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_inout import is_glsl_block_inout
+from dnload.glsl_block_inout import is_glsl_block_inout_struct
+from dnload.glsl_block_inout import is_glsl_block_inout_typed
 from dnload.glsl_block_scope import is_glsl_block_scope
 from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
@@ -33,10 +35,11 @@ class Glsl:
   def countSorted(self):
     """Get sorted listing of counted alpha letters within the code."""
     counted = self.count()
-    ret = []
+    lst = []
     for kk in counted.keys():
-      ret += [(kk, counted[kk])]
-    return sorted(ret, key=lambda x: x[1], reverse=True)
+      lst += [(kk, counted[kk])]
+    ret = sorted(lst, key=lambda x: x[1], reverse=True)
+    return map(lambda x: x[0], ret)
 
   def crunch(self, mode = "full"):
     """Crunch the source code to smaller state."""
@@ -64,16 +67,32 @@ class Glsl:
           collected += ii.collect()
       # Merge multiple matching inout names.
       merged = sorted(merge_collected_names(collected), key=len, reverse=True)
-      # After names have been collected, it's possible to collapse swizzles.
+      if is_verbose():
+        inout_merges = []
+        for ii in merged:
+          block = ii[0]
+          if is_listing(block):
+            inout_merges += [block[0]]
+        print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
+      # Collect all member accesses for members and set them to the blocks.
+      for ii in merged:
+        block = ii[0]
+        if (not is_listing(block)) and is_glsl_block_inout_struct(block):
+          lst = collect_member_accesses(block, ii[1:])
+          block.setMemberAccesses(lst)
+      # After all names have been collected, it's possible to collapse swizzles.
       swizzle = self.selectSwizzle()
       for ii in self.__sources:
         ii.selectSwizzle(swizzle)
       # Run rename passes until done.
-      renames = 0
-      while merged:
-        self.renamePass(merged[0][0], merged[0][1:])
-        merged.pop(0)
-        renames += 1
+      for ii in merged:
+        self.renamePass(ii[0], ii[1:])
+      renames = len(merged)
+      # Run member rename passes until done.
+      #for ii in merged:
+      #  block = ii[0]
+      #  if (not is_listing(block)) and is_glsl_block_inout_struct(block):
+      #    renames += self.memberRename(block)
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -105,6 +124,18 @@ class Glsl:
             return True
     return has_name_conflict(parent, block, name)
 
+  def memberRename(self, block):
+    """Rename all members in given block."""
+    lst = block.getMemberAccesses()
+    # Perform member rename passes until done.
+    counted = self.countSorted()
+    if len(counted) < len(lst):
+      raise RuntimeError("having more members than used letters should be impossible")
+    for ii in range(len(lst)):
+      for jj in lst[ii]:
+        jj.lock(counted[ii])
+    return len(lst)
+
   def parse(self):
     """Parse all source files."""
     for ii in self.__sources:
@@ -117,8 +148,7 @@ class Glsl:
   def renamePass(self, block, names):
     """Perform rename pass from given block."""
     counted = self.countSorted()
-    targets = map(lambda x: x[0], counted)
-    for ii in targets:
+    for ii in counted:
       if not self.hasNameConflict(block, ii):
         for jj in names:
           jj.lock(ii)
@@ -170,6 +200,41 @@ class Glsl:
 # Functions ############################
 ########################################
 
+def collect_member_accesses(block, names):
+  """Collect all member name accesses from given block."""
+  # First, collect all uses from this name.
+  uses = {}
+  for ii in block.getMembers():
+    name_object = ii.getName()
+    uses[name_object.getName()] = [name_object]
+  for ii in range(len(names)):
+    vv = names[ii]
+    aa = vv.getAccess()
+    if 0 == ii:
+      if aa:
+        raise RuntimeError("first use of '%s' has access '%s'" % (str(vv), str(aa)))
+      continue
+    if not aa:
+      raise RuntimeError("use %i of '%s' has no access" % (ii, str(vv)))
+    name_object = aa.getName()
+    name_string = aa.getName().getName()
+    if not (name_string in uses):
+      raise RuntimeError("access '%s' into '%s' not present in members" % (str(aa), str(block)))
+    uses[name_string] += [name_object]
+  # Expand uses, set types and sort.
+  lst = []
+  for kk in uses.keys():
+    name_list = uses[kk]
+    if 1 >= len(name_list):
+      print("WARNING: member '%s' of '%s' not accessed" % (str(name_list[0]), str(block)))
+    typeid = name_list[0].getType()
+    if not typeid:
+      raise RuntimeError("name '%s' has no type" % (name_list[0]))
+    for ii in range(1, len(name_list)):
+      name_list[ii].setType(typeid)
+    lst += [name_list]
+  return sorted(lst, key=len, reverse=True)
+
 def flatten(block):
   ret = []
   for ii in block.getChildren():
@@ -200,11 +265,11 @@ def merge_collected_names(lst):
   ret = []
   # First merge multiple same inout blocks to match.
   for ii in lst:
-    if is_glsl_block_inout(ii[0]):
+    if is_glsl_block_inout_typed(ii[0]):
       found = False
       for jj in range(len(ret)):
         vv = ret[jj]
-        if is_glsl_block_inout(vv[0]) and ii[0].isMergableWith(vv[0]):
+        if is_glsl_block_inout_typed(vv[0]) and ii[0].isMergableWith(vv[0]):
           if ii[1] != ii[0].getName():
             raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (ii[1], ii[0].getName()))
           if vv[1] != vv[0].getName():
@@ -222,7 +287,7 @@ def merge_collected_names(lst):
       found_type = jj.getType()
       if found_type:
         if typeid and (typeid != found_type):
-          raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0]), str([typeid, found_type])))
+          raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0]), str([str(typeid), str(found_type)])))
         typeid = found_type
     for jj in ii[1:]:
       jj.setType(typeid)

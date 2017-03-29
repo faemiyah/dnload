@@ -222,7 +222,8 @@ class GlslBlock:
     """Recursively select swizzle method."""
     # Select here.
     for ii in self.__accesses:
-      if ii.getType():
+      typeid = ii.getSourceType()
+      if typeid and typeid.isVectorType():
         ii.selectSwizzle(op)
     # Recursively descend to children.
     for ii in self._children:

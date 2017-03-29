@@ -13,6 +13,7 @@ class GlslName:
     self.__name = source
     self.__typeid = None
     self.__rename = None
+    self.__access = None
     # Reserved words are considered locked in all cases.
     if self.__name in get_list_locked():
       self.__rename = self.__name
@@ -26,6 +27,10 @@ class GlslName:
         return self.__name
       return ""
     return self.__rename
+
+  def getAccess(self):
+    """Accessor."""
+    return self.__access
 
   def getName(self):
     """Gets the original, non-renamed name."""
@@ -55,8 +60,16 @@ class GlslName:
       return self.__rename
     return self.__name
 
+  def setAccess(self, op):
+    """Set given element as accessing this."""
+    if self.__access:
+      raise RuntimeError("'%s' already has access '%s'" % (str(self), str(self.__access)))
+    self.__access = op
+
   def setType(self, op):
     """Set type information of this."""
+    if self.__typeid and (self.__typeid != op):
+      raise RuntimeError("conflicting types '%s' and '%s' for '%s'" % (str(self.__typeid), str(op), self.__name))
     self.__typeid = op
 
   def __eq__(self, other):

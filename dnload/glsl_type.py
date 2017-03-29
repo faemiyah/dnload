@@ -18,6 +18,12 @@ class GlslType:
       return "%s %s" % (self.__modifier, self.__type)
     return self.__type
 
+  def isVectorType(self):
+    """Tell if this is a vector type (eglible for swizzling)."""
+    if re.match(r'^(ivec\d|vec\d)$', self.__type):
+      return True
+    return False
+
   def __eq__(self, other):
     """Equals operator."""
     if is_glsl_type(other) and (self.__type == other.__type):

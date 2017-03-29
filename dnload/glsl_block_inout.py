@@ -45,6 +45,7 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     self.__members = members
     self.__name = name
     self.__size = size
+    self.__member_accesses = []
     # Hierarchy.
     self.addNamesDeclared(name)
     self.addNamesUsed(name)
@@ -62,15 +63,17 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     """Accessor."""
     return self.__members
 
+  def getMemberAccesses(self):
+    """Accessor."""
+    return self.__member_accesses
+
   def getName(self):
     """Accessor."""
     return self.__name
 
-  def isMergableWith(self, op):
-    """Tell if this inout block can be merged with given block."""
-    if is_glsl_block_inout_struct(op) and (op.getName() == self.__name) and (op.getMembers() == self.__members):
-      return True
-    return False
+  def setMemberAccesses(self, lst):
+    """Set collected member accesses."""
+    self.__member_accesses = lst
 
   def __str__(self):
     """String representation."""
@@ -89,6 +92,7 @@ class GlslBlockInOutTyped(GlslBlockInOut):
     self.__typeid = typeid
     self.__name = name
     # Hierarchy.
+    name.setType(typeid)
     self.addNamesDeclared(name)
     self.addNamesUsed(name)
 
@@ -101,9 +105,13 @@ class GlslBlockInOutTyped(GlslBlockInOut):
     """Accessor."""
     return self.__name
 
+  def getType(self):
+    """Accessor."""
+    return self.__typeid
+
   def isMergableWith(self, op):
     """Tell if this inout block can be merged with given block."""
-    if is_glsl_block_inout_typed(op) and (op.getName() == self.__name):
+    if is_glsl_block_inout_typed(op) and (op.getName() == self.__name) and (op.getType() == self.__typeid):
       return True
     return False
 
