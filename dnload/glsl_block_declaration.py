@@ -27,7 +27,7 @@ class GlslBlockDeclaration(GlslBlock):
 
   def collapse(self, other):
     """Collapse another declaration."""
-    if is_glsl_declaration(other) and (other.getType() == self.__typeid):
+    if is_glsl_block_declaration(other) and (other.getType() == self.__typeid):
       for ii in other.getChildren():
         ii.setParent(None)
         self.addChildren(ii)
@@ -78,6 +78,6 @@ def glsl_parse_declaration(source):
     # Unknown element, not a valid declaration.
     return (None, source)
 
-def is_glsl_declaration(op):
+def is_glsl_block_declaration(op):
   """Tell if given element is a GLSL declaration block."""
   return isinstance(op, GlslBlockDeclaration)

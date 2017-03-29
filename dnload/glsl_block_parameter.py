@@ -22,6 +22,10 @@ class GlslBlockParameter(GlslBlock):
     """Return formatted output."""
     return "%s %s" % (self.__typeid.format(force), self.__name.format(force))
 
+  def __str__(self):
+    """String representation."""
+    return "Parameter('%s')" % (self.__name.format(False))
+
 ########################################
 # Functions ############################
 ########################################

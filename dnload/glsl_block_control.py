@@ -17,6 +17,7 @@ class GlslBlockControl(GlslBlock):
     self.__control = control
     self.__declaration = declaration
     self.__content = lst
+    self.__target = None
     # Hierarchy.
     if declaration:
       self.addChildren(declaration)
@@ -25,15 +26,33 @@ class GlslBlockControl(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
+    if not self.__target:
+      raise RuntimeError("control block '%s' has no target" % (str(self)))
+    target = self.__target.format(force)
     ret = self.__control.format(force)
     # Simple case.
-    if not self.__declaration and not self.__content:
-      return ret
+    if self.__control.format(False) == "else":
+      if self.__declaration or self.__content:
+        raise RuntimeError("'%s' should not have declaration or content" % (str(self.__control)))
+      if target[:1].isalnum():
+        return ret + " " + target
+      return ret + target
     # Add declaration and/or content.
     ret += "("
     if self.__declaration:
       ret += self.__declaration.format(force)
-    return ret + ("%s)" % ("".join(map(lambda x: x.format(force), self.__content))))
+    return ret + ("%s)%s" % ("".join(map(lambda x: x.format(force), self.__content)), target))
+
+  def getTarget(self):
+    """Accessor."""
+    return self.__target
+
+  def setTarget(self, op):
+    """Set target block for control, can only be done once."""
+    if self.__target:
+      raise RuntimeError("control block '%s' already has target" % (str(self)))
+    self.__target = op
+    self.addChildren(op)
 
   def __str__(self):
     """String representation."""

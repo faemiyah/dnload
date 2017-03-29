@@ -3,7 +3,9 @@ from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_assignment import glsl_parse_assignment
 from dnload.glsl_block_call import glsl_parse_call
 from dnload.glsl_block_control import glsl_parse_control
+from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
+from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_return import glsl_parse_return
 
 ########################################
@@ -74,6 +76,10 @@ def glsl_parse_content(source):
       source = remaining
       continue
     raise RuntimeError("cannot parse content: %s" % (str(map(str, source))))
+  # Looping over content done, merge control blocks with following blocks.
+  while True:
+    if not merge_control_pass(ret):
+      break
   return ret
 
 def glsl_parse_scope(source, explicit = True):
@@ -92,3 +98,18 @@ def glsl_parse_scope(source, explicit = True):
 def is_glsl_block_scope(op):
   """Tell if given object is GlslBlockScope."""
   return isinstance(op, GlslBlockScope)
+
+def merge_control_pass(lst):
+  """Merge one control block with following block."""
+  for ii in range(len(lst) - 1):
+    vv = lst[ii]
+    if (not is_glsl_block_control(vv)) or vv.getTarget():
+      continue
+    mm = lst[ii + 1]
+    # Declaration following control makes no sense.
+    if is_glsl_block_declaration(mm):
+      raise RuntimeError("'%s' followed by '%s'" % (str(vv), str(mm)))
+    vv.setTarget(mm)
+    lst.pop(ii + 1)
+    return True
+  return False

@@ -36,6 +36,10 @@ class GlslBlockStatement(GlslBlock):
     """Set terminating character."""
     self.__terminator = op
 
+  def __str__(self):
+    """String representation."""
+    return "Statement(%i)" % (len(self.__content))
+
 ########################################
 # Functions ############################
 ########################################

@@ -84,11 +84,14 @@ class GlslBlock:
 
   def collapseRecursive(self):
     """Collapse collapsable elements."""
+    ret = 0
     while True:
       if not self.collapseRun():
         break
+      ret += 1
     for ii in self._children:
-      ii.collapseRecursive()
+      ret += ii.collapseRecursive()
+    return ret
 
   def collapseRun(self):
     """Perform one collapse run. Return true if collapse was made."""
@@ -119,6 +122,22 @@ class GlslBlock:
         ret += [[vv] + array]
       ret += vv.collect()
     return ret
+
+  def collectAppend(self, op):
+    """Append into already-collected list of identifiers."""
+    # Reference name
+    name = op[1]
+    # Break if the name is declared, instruct upper level to break also.
+    if self.hasDeclaredName(name):
+      return True
+    for ii in self.__names_used:
+      if name == ii:
+        op.append(ii)
+    # Iterate children. Break iteration if a child declares the name.
+    for ii in self._children:
+      if ii.collectAppend(op):
+        return False
+    return False
 
   def collectRecursive(self, name):
     """Collect all uses of given name recursively."""
@@ -283,8 +302,6 @@ def extract_tokens(tokens, required):
             ret += [scope]
             content = remaining
             continue
-          #else:
-          #  print("parsing scope failed: '%s' vs. '%s':\n%s" % (curr, desc, str(content)))
         # Scope not found.
         return failure_array
       # Extracting singular element.

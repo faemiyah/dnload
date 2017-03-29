@@ -85,7 +85,11 @@ class GlslName:
 # Globals ##############################
 ########################################
 
-g_locked = ("cos",
+g_locked = ("abs",
+    "acos",
+    "asin",
+    "atan",
+    "cos",
     "cross",
     "discard",
     "dot",
@@ -98,14 +102,19 @@ g_locked = ("cos",
     "layout",
     "length",
     "location",
+    "log",
     "main",
+    "max",
     "max_vertices",
+    "min",
     "mix",
     "normalize",
     "return",
     "sin",
     "sqrt",
     "tan",
+    "texture",
+    "transpose",
     "uniform")
 
 g_primitives = ("lines",

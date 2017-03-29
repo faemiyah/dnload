@@ -58,6 +58,20 @@ class GlslBlockInOutStruct(GlslBlockInOut):
       ret += "[%s]" % (self.__size.format(force))
     return ret + ";"
 
+  def getMembers(self):
+    """Accessor."""
+    return self.__members
+
+  def getName(self):
+    """Accessor."""
+    return self.__name
+
+  def isMergableWith(self, op):
+    """Tell if this inout block can be merged with given block."""
+    if is_glsl_block_inout_struct(op) and (op.getName() == self.__name) and (op.getMembers() == self.__members):
+      return True
+    return False
+
   def __str__(self):
     """String representation."""
     return "InOutStruct('%s')" % (self.__name.getName())
@@ -82,6 +96,16 @@ class GlslBlockInOutTyped(GlslBlockInOut):
     """Return formatted output."""
     ret = self.formatBase(force)
     return ret + (" %s %s;" % (self.__typeid.format(force), self.__name.format(force)))
+
+  def getName(self):
+    """Accessor."""
+    return self.__name
+
+  def isMergableWith(self, op):
+    """Tell if this inout block can be merged with given block."""
+    if is_glsl_block_inout_typed(op) and (op.getName() == self.__name):
+      return True
+    return False
 
   def __str__(self):
     """String representation."""
@@ -125,3 +149,11 @@ def glsl_parse_inout(source):
 def is_glsl_block_inout(op):
   """Tell if given object is GlslBlockInout."""
   return isinstance(op, GlslBlockInOut)
+
+def is_glsl_block_inout_struct(op):
+  """Tell if given object is GlslBlockInoutStruct."""
+  return isinstance(op, GlslBlockInOutStruct)
+
+def is_glsl_block_inout_typed(op):
+  """Tell if given object is GlslBlockInoutTyped."""
+  return isinstance(op, GlslBlockInOutTyped)

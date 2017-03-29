@@ -40,16 +40,28 @@ class Glsl:
 
   def crunch(self, mode = "full"):
     """Crunch the source code to smaller state."""
+    combines = None
+    renames = None
     # Expand unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
         ii.expandRecursive()
     # Rename is optional.
     if "full" == mode:
-      # Collect identifiers.
+      # Collect identifiers. First pass - collect from generic sources and append from non-generic.
       collected = []
       for ii in self.__sources:
-        collected += ii.collect()
+        if not ii.getType():
+          collect_pass = ii.collect()
+          for jj in self.__sources:
+            if jj.getType():
+              for kk in collect_pass:
+                jj.collectAppend(kk)
+          collected += collect_pass
+      # Second pass - collect from generic sources. Do not append.
+      for ii in self.__sources:
+        if ii.getType():
+          collected += ii.collect()
       # Merge multiple matching inout names.
       merged = sorted(merge_collected_names(collected), key=len, reverse=True)
       # After names have been collected, it's possible to collapse swizzles.
@@ -57,13 +69,24 @@ class Glsl:
       for ii in self.__sources:
         ii.selectSwizzle(swizzle)
       # Run rename passes until done.
+      renames = 0
       while merged:
         self.renamePass(merged[0][0], merged[0][1:])
         merged.pop(0)
+        renames += 1
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
-        ii.collapseRecursive()
+        combines = ii.collapseRecursive()
+    # Print summary of operations.
+    if is_verbose():
+      operations = []
+      if not (renames is None):
+        operations += ["%i renames" % (renames)]
+      if not (combines is None):
+        operations += ["%i combines" % (combines)]
+      if operations:
+        print("GLSL processing done: %s" % (", ".join(operations)))
 
   def hasNameConflict(self, block, name):
     """Tell if given block would have a conflict if renamed into given name."""
@@ -77,10 +100,10 @@ class Glsl:
     parent = find_parent_scope(block)
     if is_glsl_block_source(parent):
       for ii in self.__sources:
-        if (ii != parent) and (not ii.getType()):
-          if has_name_conflict(ii, name):
+        if (ii != parent) and ((not parent.getType()) or (not ii.getType())):
+          if has_name_conflict(ii, block, name):
             return True
-    return has_name_conflict(parent, name)
+    return has_name_conflict(parent, block, name)
 
   def parse(self):
     """Parse all source files."""
@@ -154,10 +177,10 @@ def flatten(block):
     ret += flatten(ii)
   return ret
 
-def has_name_conflict(block, name):
+def has_name_conflict(parent, block, name):
   """Tell if given block contains a conflict for given name."""
   found = False
-  for ii in flatten(block):
+  for ii in flatten(parent):
     # Declared names take the name out of the scope permanently.
     if ii.hasLockedDeclaredName(name):
       return True
@@ -181,7 +204,11 @@ def merge_collected_names(lst):
       found = False
       for jj in range(len(ret)):
         vv = ret[jj]
-        if is_glsl_block_inout(vv[0]) and (ii[1] == vv[1]):
+        if is_glsl_block_inout(vv[0]) and ii[0].isMergableWith(vv[0]):
+          if ii[1] != ii[0].getName():
+            raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (ii[1], ii[0].getName()))
+          if vv[1] != vv[0].getName():
+            raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (vv[1], vv[0].getName()))
           ret[jj] = [(vv[0], ii[0])] + vv[1:] + ii[1:]
           found = True
           break
@@ -207,6 +234,12 @@ def find_parent_scope(block):
     parent = block.getParent()
     if not parent:
       return block
-    if is_glsl_block_control(parent) or is_glsl_block_scope(parent):
+    # If scope has control of parent, should return control instead.
+    if is_glsl_block_scope(parent):
+      grand = parent.getParent()
+      if is_glsl_block_control(grand):
+        return grand
+      return parent
+    if is_glsl_block_control(parent):
       return parent
     block = parent

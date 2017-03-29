@@ -64,6 +64,10 @@ class GlslBlockSource(GlslBlock):
     subst = { "DEFINITION_LD" : self.__definition_ld, "FILE_NAME" : os.path.basename(self.__filename), "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
     return g_template_glsl.format(subst)
 
+  def getFilename(self):
+    """Accessor."""
+    return self.__filename
+
   def getType(self):
     """Access type of this shader file. May be empty."""
     return self.__type
