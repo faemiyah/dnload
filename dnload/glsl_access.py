@@ -17,6 +17,10 @@ class GlslAccess:
     self.__access = None
     self.interpretSwizzle()
 
+  def disableSwizzle(self):
+    """Explicitly disable swizzle."""
+    self.__swizzle = None
+
   def format(self):
     """Return formatted output."""
     return "." + self.__name.format()
@@ -78,11 +82,11 @@ class GlslAccess:
       elif ii in ("a", "w"):
         self.__swizzle += [3]
       else: # Not a swizzle.
-        self.__swizzle = []
+        self.__swizzle = None
         return
     # Check if too long to be a swizzle.
     if 4 < len(self.__swizzle):
-      self.__swizzle = []
+      self.__swizzle = None
 
   def selectSwizzle(self, op):
     """Select swizzle mode  for exporting."""

@@ -21,6 +21,7 @@ class GlslBlockFunction(GlslBlock):
     if not is_listing(self.__parameters):
       raise RuntimeError("parameters must be a listing")
     # Hierarchy.
+    name.setType(typeid)
     self.addNamesDeclared(name)
     self.addNamesUsed(name)
     self.addChildren(lst)
@@ -57,3 +58,7 @@ def glsl_parse_function(source):
   if not scope:
     return (None, source)
   return (GlslBlockFunction(typeid, name, parameters, scope), remaining)
+
+def is_glsl_block_function(op):
+  """Tell if given object is a GLSL function block."""
+  return isinstance(op, GlslBlockFunction)

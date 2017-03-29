@@ -1,6 +1,7 @@
 from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.glsl_block_control import is_glsl_block_control
+from dnload.glsl_block_function import is_glsl_block_function
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
 from dnload.glsl_block_scope import is_glsl_block_scope
@@ -79,7 +80,7 @@ class Glsl:
         if is_listing(block):
           block = block[0]
         if is_glsl_block_inout_struct(block):
-          lst = collect_member_accesses(block, ii[1:])
+          lst = collect_member_accesses(ii[0], ii[1:])
           block.setMemberAccesses(lst)
       # After all names have been collected, it's possible to collapse swizzles.
       swizzle = self.selectSwizzle()
@@ -90,13 +91,12 @@ class Glsl:
         self.renamePass(ii[0], ii[1:])
       renames = len(merged)
       # Run member rename passes until done.
-      #for ii in merged:
-      #  block = ii[0]
-      #  if is_listing(block):
-      #    block = block[0]
-      #  if is_glsl_block_inout_struct(block):
-      #    renames += self.memberRename(block)
-      #    break
+      for ii in merged:
+        block = ii[0]
+        if is_listing(block):
+          block = block[0]
+        if is_glsl_block_inout_struct(block):
+          renames += self.memberRename(block)
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -204,30 +204,46 @@ class Glsl:
 # Functions ############################
 ########################################
 
+def collect_member_uses(op, uses):
+  """Collect member uses from inout struct blocks."""
+  # List case.
+  if is_listing(op):
+    for ii in op:
+      collect_member_uses(ii, uses)
+    return
+  # Actual inout block.
+  for ii in op.getMembers():
+    name_object = ii.getName()
+    name_string = name_object.getName()
+    if name_string in uses:
+      uses[name_string] += [name_object]
+    else:
+      uses[name_string] = [name_object]
+
 def collect_member_accesses(block, names):
   """Collect all member name accesses from given block."""
-  # First, collect all uses from this name.
+  # First, collect all uses from members.
   uses = {}
-  for ii in block.getMembers():
-    name_object = ii.getName()
-    uses[name_object.getName()] = [name_object]
+  collect_member_uses(block, uses)
+  # Then collect all uses from names.
   for ii in range(len(names)):
     vv = names[ii]
     aa = vv.getAccess()
     # Might be just declaration.
     if not aa:
       continue
+    aa.disableSwizzle()
     name_object = aa.getName()
-    name_string = aa.getName().getName()
+    name_string = name_object.getName()
     if not (name_string in uses):
-      raise RuntimeError("access '%s' into '%s' not present in members" % (str(aa), str(block)))
+      raise RuntimeError("access '%s' not present outside members" % (str(aa)))
     uses[name_string] += [name_object]
   # Expand uses, set types and sort.
   lst = []
   for kk in uses.keys():
     name_list = uses[kk]
     if 1 >= len(name_list):
-      print("WARNING: member '%s' of '%s' not accessed" % (str(name_list[0]), str(block)))
+      print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))
     typeid = name_list[0].getType()
     if not typeid:
       raise RuntimeError("name '%s' has no type" % (name_list[0]))
@@ -270,12 +286,19 @@ def merge_collected_names(lst):
       found = False
       for jj in range(len(ret)):
         vv = ret[jj]
-        if is_glsl_block_inout(vv[0]) and ii[0].isMergableWith(vv[0]):
+        block = vv[0]
+        if is_listing(block):
+          block = block[0]
+        if is_glsl_block_inout(block) and block.isMergableWith(ii[0]):
           if ii[1] != ii[0].getName():
             raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (ii[1], ii[0].getName()))
-          if vv[1] != vv[0].getName():
+          if vv[1] != block.getName():
             raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (vv[1], vv[0].getName()))
-          ret[jj] = [(vv[0], ii[0])] + vv[1:] + ii[1:]
+          if is_listing(vv[0]):
+            elem = vv[0] + [ii[0]]
+          else:
+            elem = [vv[0], ii[0]]
+          ret[jj] = [elem] + vv[1:] + ii[1:]
           found = True
           break
       if found:

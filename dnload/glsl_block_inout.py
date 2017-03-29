@@ -47,6 +47,7 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     self.__size = size
     self.__member_accesses = []
     # Hierarchy.
+    name.setType(type_name)
     self.addNamesDeclared(name)
     self.addNamesUsed(name)
 
