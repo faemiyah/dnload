@@ -19,6 +19,9 @@ class GlslBlockScope(GlslBlock):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__explicit = explicit
+    # Check for degenerate scope.
+    if (1 >= len(lst)) and is_glsl_block_declaration(lst[0]):
+      raise RuntimeError("scope with only block '%s' is degenerate" % (str(lst[0])))
     # Hierarchy.
     self.addChildren(lst)
 
@@ -45,7 +48,8 @@ def glsl_parse_content(source):
   # Loop over content.
   ret = []
   while source:
-    (block, remaining) = glsl_parse_scope(source)
+    # Can assume non-explicit scope within existing scope.
+    (block, remaining) = glsl_parse_scope(source, False)
     if block:
       ret += [block]
       source = remaining
