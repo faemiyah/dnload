@@ -32,9 +32,7 @@ class GlslType:
 
   def __ne__(self, other):
     """Not equals operator."""
-    if is_glsl_type(other) and (self.__type != other.__type):
-      return True
-    return (self.__type != other)
+    return not (self == other)
 
   def __str__(self):
     """String representation."""

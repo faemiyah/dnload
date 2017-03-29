@@ -26,6 +26,18 @@ class GlslBlockMember(GlslBlock):
     """Accessor."""
     return self.__name
 
+  def __eq__(self, other):
+    """Equals operator."""
+    return (self.format(False) == other.format(False))
+
+  def __ne__(self, other):
+    """Not equals operator."""
+    return not (self == other)
+
+  def __lt__(self, other):
+    """Less than operator."""
+    return (self.format(False) < other.format(False))
+
   def __str__(self):
     """String representation."""
     return "Member('%s')" % (self.__name)

@@ -15,6 +15,7 @@ class GlslBlockParameter(GlslBlock):
     self.__typeid = typeid
     self.__name = name
     # Hierarchy.
+    name.setType(typeid)
     self.addNamesDeclared(name)
     self.addNamesUsed(name)
 

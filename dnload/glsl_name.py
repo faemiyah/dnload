@@ -80,9 +80,7 @@ class GlslName:
 
   def __ne__(self, other):
     """Not equals operator."""
-    if is_glsl_name(other):
-      return (other.resolveName() != self.resolveName())
-    return (self.resolveName() != other)
+    return not (self == other)
 
   def __hash__(self):
     """Hashing operator."""

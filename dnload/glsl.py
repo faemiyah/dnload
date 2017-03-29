@@ -3,7 +3,6 @@ from dnload.common import is_verbose
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
-from dnload.glsl_block_inout import is_glsl_block_inout_typed
 from dnload.glsl_block_scope import is_glsl_block_scope
 from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
@@ -77,7 +76,9 @@ class Glsl:
       # Collect all member accesses for members and set them to the blocks.
       for ii in merged:
         block = ii[0]
-        if (not is_listing(block)) and is_glsl_block_inout_struct(block):
+        if is_listing(block):
+          block = block[0]
+        if is_glsl_block_inout_struct(block):
           lst = collect_member_accesses(block, ii[1:])
           block.setMemberAccesses(lst)
       # After all names have been collected, it's possible to collapse swizzles.
@@ -91,8 +92,11 @@ class Glsl:
       # Run member rename passes until done.
       #for ii in merged:
       #  block = ii[0]
-      #  if (not is_listing(block)) and is_glsl_block_inout_struct(block):
+      #  if is_listing(block):
+      #    block = block[0]
+      #  if is_glsl_block_inout_struct(block):
       #    renames += self.memberRename(block)
+      #    break
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -210,12 +214,9 @@ def collect_member_accesses(block, names):
   for ii in range(len(names)):
     vv = names[ii]
     aa = vv.getAccess()
-    if 0 == ii:
-      if aa:
-        raise RuntimeError("first use of '%s' has access '%s'" % (str(vv), str(aa)))
-      continue
+    # Might be just declaration.
     if not aa:
-      raise RuntimeError("use %i of '%s' has no access" % (ii, str(vv)))
+      continue
     name_object = aa.getName()
     name_string = aa.getName().getName()
     if not (name_string in uses):
@@ -265,11 +266,11 @@ def merge_collected_names(lst):
   ret = []
   # First merge multiple same inout blocks to match.
   for ii in lst:
-    if is_glsl_block_inout_typed(ii[0]):
+    if is_glsl_block_inout(ii[0]):
       found = False
       for jj in range(len(ret)):
         vv = ret[jj]
-        if is_glsl_block_inout_typed(vv[0]) and ii[0].isMergableWith(vv[0]):
+        if is_glsl_block_inout(vv[0]) and ii[0].isMergableWith(vv[0]):
           if ii[1] != ii[0].getName():
             raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (ii[1], ii[0].getName()))
           if vv[1] != vv[0].getName():

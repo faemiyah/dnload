@@ -71,6 +71,23 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     """Accessor."""
     return self.__name
 
+  def getTypeName(self):
+    """Accessor."""
+    return self.__type_name
+
+  def isMergableWith(self, op):
+    """Tell if this inout block can be merged with given block."""
+    if is_glsl_block_inout_struct(op) and (op.getTypeName() == self.__type_name):
+      members1 = sorted(op.getMembers())
+      members2 = sorted(self.__members)
+      if len(members1) != len(members2):
+        return False
+      for (ii, jj) in zip(members1, members2):
+        if ii.getName() != jj.getName():
+          return False
+      return True
+    return False
+
   def setMemberAccesses(self, lst):
     """Set collected member accesses."""
     self.__member_accesses = lst
