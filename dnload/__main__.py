@@ -682,7 +682,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
   readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
 
-def generate_glsl(preprocessor, definition_ld, fname, mode):
+def generate_glsl(preprocessor, definition_ld, fname, mode, renames):
   """Generate GLSL for source file."""
   fd = open(fname, "r")
   lines = fd.readlines()
@@ -698,7 +698,7 @@ def generate_glsl(preprocessor, definition_ld, fname, mode):
       glsl_output_name = glsl_filename + "." + match.group(2)
       glsl_db.read(preprocessor, definition_ld, glsl_filename, glsl_varname, glsl_output_name)
   glsl_db.parse()
-  glsl_db.crunch(mode)
+  glsl_db.crunch(mode, renames)
   glsl_db.write()
 
 def get_platform_und_symbols():
@@ -921,6 +921,7 @@ def main():
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
   parser.add_argument("--glsl-mode", default = "full", choices = ("none", "combine", "full"), help = "GLSL crunching mode.\n(default: %(default))")
+  parser.add_argument("--glsl-renames", default = -1, type = int, help = "Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("-o", "--output-file", help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
@@ -990,6 +991,7 @@ def main():
   abstraction_layer = listify(args.abstraction_layer)
   definition_ld = args.define
   compilation_mode = args.method
+  glsl_renames = args.glsl_renames
   glsl_mode = args.glsl_mode
   implementation_rand = args.rand
   nice_filedump = args.nice_filedump
@@ -1133,7 +1135,7 @@ def main():
 
   # Prepare GLSL headers before preprocessing.
   for ii in source_files:
-    generate_glsl(preprocessor, definition_ld, ii, glsl_mode)
+    generate_glsl(preprocessor, definition_ld, ii, glsl_mode, glsl_renames)
 
   symbols = set()
   for ii in source_files:

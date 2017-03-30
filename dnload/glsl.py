@@ -1,6 +1,7 @@
 from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.glsl_block_control import is_glsl_block_control
+from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_function import is_glsl_block_function
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
@@ -41,7 +42,7 @@ class Glsl:
     ret = sorted(lst, key=lambda x: x[1], reverse=True)
     return map(lambda x: x[0], ret)
 
-  def crunch(self, mode = "full"):
+  def crunch(self, mode = "full", max_renames = -1):
     """Crunch the source code to smaller state."""
     combines = None
     renames = None
@@ -87,16 +88,19 @@ class Glsl:
       for ii in self.__sources:
         ii.selectSwizzle(swizzle)
       # Run rename passes until done.
+      renames = 0
       for ii in merged:
+        if (0 <= max_renames) and (renames >= max_renames):
+          break
         self.renamePass(ii[0], ii[1:])
-      renames = len(merged)
+        renames += 1
       # Run member rename passes until done.
       for ii in merged:
         block = ii[0]
         if is_listing(block):
           block = block[0]
         if is_glsl_block_inout_struct(block):
-          renames += self.memberRename(block)
+          renames += self.memberRename(block, max_renames - renames)
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -128,17 +132,28 @@ class Glsl:
             return True
     return has_name_conflict(parent, block, name)
 
-  def memberRename(self, block):
+  def memberRename(self, block, max_renames):
     """Rename all members in given block."""
     lst = block.getMemberAccesses()
-    # Perform member rename passes until done.
     counted = self.countSorted()
     if len(counted) < len(lst):
       raise RuntimeError("having more members than used letters should be impossible")
-    for ii in range(len(lst)):
-      for jj in lst[ii]:
-        jj.lock(counted[ii])
-    return len(lst)
+    renames = len(lst)
+    if 0 <= max_renames:
+      renames = min(max_renames, renames)
+    # Iterate over name types, one at a time.
+    for (name_list, letter) in zip(lst[:renames], counted[:renames]):
+      for name in name_list:
+        name.lock(letter)
+    # Rename type name if still possible.
+    #if (0 > max_renames) or (renames < max_renames):
+    #  if is_listing(block):
+    #    for ii in block:
+    #      ii.getTypeName().lock(counted[-1])
+    #  else:
+    #    block.getTypeName().lock(counted[-1])
+    #  return renames + 1
+    return renames
 
   def parse(self):
     """Parse all source files."""
@@ -323,12 +338,13 @@ def find_parent_scope(block):
     parent = block.getParent()
     if not parent:
       return block
-    # If scope has control of parent, should return control instead.
+    # If scope has control or function as parent, should return that scope instead.
     if is_glsl_block_scope(parent):
       grand = parent.getParent()
-      if is_glsl_block_control(grand):
+      if is_glsl_block_control(grand) or is_glsl_block_function(grand):
         return grand
       return parent
-    if is_glsl_block_control(parent):
+    # Control and function stop ascend even if not grandparents.
+    if is_glsl_block_control(parent) or is_glsl_block_function(parent):
       return parent
     block = parent

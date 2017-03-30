@@ -31,6 +31,10 @@ class GlslBlockUniform(GlslBlock):
       ret += "[%s]" % (self.__size.format(force))
     return ret + " " + self.__name.format(force) + ";"
 
+  def getName(self):
+    """Accessor."""
+    return self.__name
+
   def __str__(self):
     """String representation."""
     return "Uniform('%s')" % (self.__name.getName())
