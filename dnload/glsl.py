@@ -80,9 +80,10 @@ class Glsl:
         block = ii[0]
         if is_listing(block):
           block = block[0]
-        if is_glsl_block_inout_struct(block):
-          lst = collect_member_accesses(ii[0], ii[1:])
-          block.setMemberAccesses(lst)
+        if not is_glsl_block_inout_struct(block):
+          continue
+        lst = collect_member_accesses(ii[0], ii[1:])
+        block.setMemberAccesses(lst)
       # After all names have been collected, it's possible to collapse swizzles.
       swizzle = self.selectSwizzle()
       for ii in self.__sources:
@@ -99,8 +100,13 @@ class Glsl:
         block = ii[0]
         if is_listing(block):
           block = block[0]
-        if is_glsl_block_inout_struct(block):
-          renames += self.memberRename(block, max_renames - renames)
+        if not is_glsl_block_inout_struct(block):
+          continue
+        renames += self.renameMembers(block, max_renames - renames)
+        # Also rename block type.
+        if (0 > max_renames) or (renames < max_renames):
+          self.renameBlock(ii[0])
+          renames += 1
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -132,7 +138,41 @@ class Glsl:
             return True
     return has_name_conflict(parent, block, name)
 
-  def memberRename(self, block, max_renames):
+  def inventName(self):
+    """Invent a new name when existing names have run out."""
+    raise RuntimeError("TODO: implement inventing a new name")
+
+  def parse(self):
+    """Parse all source files."""
+    for ii in self.__sources:
+      ii.parse()
+
+  def read(self, preprocessor, definition_ld, filename, varname, output_name):
+    """Read source file."""
+    self.__sources += [glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)]
+
+  def renameBlock(self, block, target_name = None):
+    """Rename block type."""
+    # Select name to rename to.
+    if not target_name:
+      counted = self.countSorted()
+      for letter in counted:
+        if not self.hasNameConflict(block, letter):
+          target_name = letter
+          break
+      # If all names conflicted, invent new one.
+      if not target_name:
+        target_name = self.inventName()
+    # Listing case.
+    if is_listing(block):
+      for ii in block:
+        self.renameBlock(ii, target_name)
+      return
+    # Just select first name.
+    counted = self.countSorted()
+    block.getTypeName().lock(target_name)
+
+  def renameMembers(self, block, max_renames):
     """Rename all members in given block."""
     lst = block.getMemberAccesses()
     counted = self.countSorted()
@@ -145,34 +185,20 @@ class Glsl:
     for (name_list, letter) in zip(lst[:renames], counted[:renames]):
       for name in name_list:
         name.lock(letter)
-    # Rename type name if still possible.
-    #if (0 > max_renames) or (renames < max_renames):
-    #  if is_listing(block):
-    #    for ii in block:
-    #      ii.getTypeName().lock(counted[-1])
-    #  else:
-    #    block.getTypeName().lock(counted[-1])
-    #  return renames + 1
     return renames
-
-  def parse(self):
-    """Parse all source files."""
-    for ii in self.__sources:
-      ii.parse()
-
-  def read(self, preprocessor, definition_ld, filename, varname, output_name):
-    """Read source file."""
-    self.__sources += [glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)]
 
   def renamePass(self, block, names):
     """Perform rename pass from given block."""
     counted = self.countSorted()
-    for ii in counted:
-      if not self.hasNameConflict(block, ii):
-        for jj in names:
-          jj.lock(ii)
+    for letter in counted:
+      if not self.hasNameConflict(block, letter):
+        for ii in names:
+          ii.lock(letter)
         return
-    raise RuntimeError("TODO: implement inventing a new name")
+    # None of the letters was free, invent new one.
+    target_name = self.inventName()
+    for ii in names:
+      ii.lock(target_name)
 
   def selectSwizzle(self):
     counted = self.count()
