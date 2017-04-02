@@ -1,6 +1,7 @@
 import re
 
 from dnload.assembler_section import AssemblerSection
+from dnload.assembler_section_alignment import is_assembler_section_alignment
 from dnload.assembler_section_bss import AssemblerSectionBss
 from dnload.common import is_verbose
 from dnload.common import listify
@@ -15,6 +16,7 @@ class AssemblerFile:
   def __init__(self, fname):
     """Constructor, opens and reads a file."""
     self.__sections = []
+    self.__filename = fname
     self.add_source(fname)
 
   def add_sections(self, op):
@@ -27,8 +29,8 @@ class AssemblerFile:
     lines = fd.readlines()
     fd.close()
     current_section = AssemblerSection("text")
-    sectionre = re.compile(r'^\s+\.section\s+\"?\.([a-zA-Z0-9_]+)[\.\s]')
-    directivere = re.compile(r'^\s+\.(bss|data|rodata|text)')
+    sectionre = re.compile(r'^\s*\.section\s+\"?\.([a-zA-Z0-9_]+)[\.\s]')
+    directivere = re.compile(r'^\s*\.(bss|data|rodata|text)')
     for ii in lines:
       # Try both expressions first.
       match = sectionre.match(ii)
@@ -94,16 +96,41 @@ class AssemblerFile:
         ret += ii.generate_file_output()
     return ret
 
-  def incorporate(self, other, label_name, jump_point_name):
+  def getSectionAlignment(self):
+    """Accessor."""
+    for ii in self.__sections:
+      if is_assembler_section_alignment(ii):
+        return ii
+    return None
+
+  def hasSectionAlignment(self):
+    """Tell if an alignment section exists."""
+    return not (self.getSectionAlignment() is None)
+
+  def hasEntryPoint(self):
+    """Tell if entry point exists somewhere within this file."""
+    for ii in self.__sections:
+      if ii.want_entry_point():
+        return True
+    return False
+
+  def incorporate(self, other, label_name = None, jump_point_name = None):
     """Incorporate another assembler file into this, rename entry points."""
     labels = []
+    # Gather all labels.
     for ii in other.__sections:
-      ii.replace_entry_point(jump_point_name)
+      if jump_point_name:
+        ii.replace_entry_point(jump_point_name)
       labels += ii.gather_labels()
-    labels.remove(jump_point_name)
-    labels.sort(key=len, reverse=True)
-    for ii in other.__sections:
-      ii.replace_labels(labels, label_name)
+    if jump_point_name:
+      labels.remove(jump_point_name)
+    elif other.hasEntryPoint():
+      raise RuntimeError("incorporating '%s': jump point not defined but entry point exists"  % (str(other)))
+    # Suffix all labels with given label to prevent generated code name clashes.
+    if label_name:
+      labels.sort(key=len, reverse=True)
+      for ii in other.__sections:
+        ii.replace_labels(labels, label_name)
     self.add_sections(other.__sections)
 
   def sort_sections(self, assembler, data_in_front = True):
@@ -184,3 +211,7 @@ class AssemblerFile:
       op.write(prefix)
       op.write(output)
     return True
+
+  def __str__(self):
+    """String representation."""
+    return "AssemblerFile('%s')" % (self.__filename)

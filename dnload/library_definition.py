@@ -39,7 +39,10 @@ class LibraryDefinition:
 ########################################
 
 g_library_definition_c = LibraryDefinition("c", (
+  ("int", "fclose", "FILE*"),
+  ("FILE*", "fopen", "const char*", "const char*"),
   ("void", "free", "void*"),
+  ("size_t", "fwrite", "const void*", "size_t", "size_t", "FILE*"),
   ("void*", "malloc", "size_t"),
   ("void*", "memset", "void*", "int", "size_t"),
   ("int", "printf", "const char* __restrict", "..."),
@@ -52,6 +55,7 @@ g_library_definition_c = LibraryDefinition("c", (
   ("void", ("srand", PlatformVar("function_srand")), "unsigned int"),
   ("void", "srandom", "unsigned int"),
   ))
+
 g_library_definition_bcm_host = LibraryDefinition("bcm_host", (
   ("void", "bcm_host_deinit"),
   ("void", "bcm_host_init"),
@@ -61,6 +65,7 @@ g_library_definition_bcm_host = LibraryDefinition("bcm_host", (
   ("int", "vc_dispmanx_update_submit_sync", "DISPMANX_UPDATE_HANDLE_T"),
   ("int32_t", "graphics_get_display_size", "const uint16_t", "uint32_t*", "uint32_t*"),
   ))
+
 g_library_definition_egl = LibraryDefinition("EGL", (
   ("EGLBoolean", "eglChooseConfig", "EGLDisplay", "EGLint const*", "EGLConfig*", "EGLint", "EGLint*"),
   ("EGLContext", "eglCreateContext", "EGLDisplay", "EGLConfig", "EGLContext", "EGLint const*"),
@@ -72,6 +77,7 @@ g_library_definition_egl = LibraryDefinition("EGL", (
   ("EGLBoolean", "eglSwapBuffers", "EGLDisplay", "EGLSurface"),
   ("EGLBoolean", "eglTerminate", "EGLDisplay"),
   ))
+
 g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glActiveTexture", "GLenum"),
   ("void", "glAttachShader", "GLuint", "GLuint"),
@@ -178,9 +184,11 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glVertexAttribPointer", "GLuint", "GLint", "GLenum", "GLboolean", "GLsizei", "const GLvoid*"),
   ("void", "glViewport", "GLint", "GLint", "GLsizei", "GLsizei"),
   ))
+
 g_library_definition_glu = LibraryDefinition("GLU", (
   ("GLint", "gluBuild3DMipmaps", "GLenum", "GLint", "GLsizei", "GLsizei", "GLsizei", "GLenum", "GLenum", "const void*"),
   ))
+
 g_library_definition_freetype = LibraryDefinition("freetype", (
   ("FT_UInt", "FT_Get_Char_Index", "FT_Face", "FT_ULong"),
   ("FT_Error", "FT_Get_Kerning", "FT_Face", "FT_UInt", "FT_UInt", "FT_UInt", "FT_Vector*"),
@@ -190,6 +198,7 @@ g_library_definition_freetype = LibraryDefinition("freetype", (
   ("FT_Error", "FT_Render_Glyph", "FT_GlyphSlot", "FT_Render_Mode"),
   ("FT_Error", "FT_Set_Pixel_Sizes", "FT_Face", "FT_UInt", "FT_UInt"),
   ))
+
 g_library_definition_m = LibraryDefinition("m", (
   ("double", "acos", "double"),
   ("float", "acosf", "float"),
@@ -213,6 +222,7 @@ g_library_definition_m = LibraryDefinition("m", (
   ("float", "tanf", "float"),
   ("float", "tanhf", "float"),
   ))
+
 g_library_definition_sdl = LibraryDefinition("SDL", (
   ("SDL_cond*", "SDL_CreateCond"),
   ("SDL_mutex*", "SDL_CreateMutex"),
@@ -235,6 +245,7 @@ g_library_definition_sdl = LibraryDefinition("SDL", (
   ("int", "SDL_ShowCursor", "int"),
   ("void", "SDL_WaitThread", "SDL_Thread*", "int*"),
   ))
+
 g_library_definition_sdl2 = LibraryDefinition("SDL2", (
   ("SDL_Renderer*", "SDL_CreateRenderer", "SDL_Window*", "int", "Uint32"),
   ("SDL_Thread*", "SDL_CreateThread", "int (*)(void*)", "const char*", "void*"),
@@ -248,6 +259,12 @@ g_library_definition_sdl2 = LibraryDefinition("SDL2", (
   ("int", "SDL_UnlockMutex", "SDL_mutex*"),
   ))
 
+g_library_definition_sndfile = LibraryDefinition("sndfile", (
+  ("int", "sf_close", "SNDFILE*"),
+  ("SNDFILE*", "sf_open", "const char*", "int", "SF_INFO*"),
+  ("sf_count_t", "sf_writef_float", "SNDFILE*", "const float*", "sf_count_t"),
+  ))
+
 g_library_definitions = (
     g_library_definition_c,
     g_library_definition_bcm_host,
@@ -258,4 +275,5 @@ g_library_definitions = (
     g_library_definition_m,
     g_library_definition_sdl,
     g_library_definition_sdl2,
+    g_library_definition_sndfile,
     )

@@ -25,3 +25,11 @@ class AssemblerSectionAlignment(AssemblerSection):
     if 0 < self.__alignment:
       self.add_content(assembler.format_align(self.__alignment))
     self.add_content(assembler.format_label(self.__post_label))
+
+########################################
+# Functions ############################
+########################################
+
+def is_assembler_section_alignment(op):
+  """Tell if given object is AssemblerSectionAlignment."""
+  return isinstance(op, AssemblerSectionAlignment)

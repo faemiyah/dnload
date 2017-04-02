@@ -260,7 +260,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #include <math.h>
 #include <stdlib.h>
 #endif
-[[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_RAND]][[INCLUDE_SDL]]
+[[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
 #if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
 #define DNLOAD_MAIN SDL_main
 #else
@@ -413,6 +413,10 @@ g_template_include_sdl = Template("""
 #include \"SDL.h\"
 """)
 
+g_template_include_sndfile = Template("""
+#include \"sndfile.h\"
+""")
+
 g_template_und_symbols = Template("""
 #if defined(__FreeBSD__)
 /** Symbol required by libc. */
@@ -559,8 +563,8 @@ def find_symbols(lst):
     ret += [find_symbol(ii)]
   return ret
 
-def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, und_symbols, elfling, libraries,
-    output_file):
+def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
+    additional_sources = []):
   """Generate a binary using all possible tricks. Return whether or not reprocess is necessary."""
   if source_file:
     compiler.compile_asm(source_file, output_file + ".S", True)
@@ -579,6 +583,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   segment_strtab = AssemblerSegment(g_assembler_strtab)
   segment_symtab = AssemblerSegment(g_assembler_symtab)
   # There may be symbols necessary for addition.
+  und_symbols = get_platform_und_symbols()
   if is_listing(und_symbols):
     segment_symtab.add_symbol_empty()
     for ii in und_symbols:
@@ -597,24 +602,16 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
     segment_strtab.add_strtab(library_name)
   # Assembler file generation is more complex when elfling is enabled.
   if elfling:
-    elfling.write_c_source(output_file + ".elfling.cpp", definition_ld)
-    compiler.compile_asm(output_file + ".elfling.cpp", output_file + ".elfling.S")
-    asm = AssemblerFile(output_file + ".elfling.S")
-    additional_asm = AssemblerFile(output_file + ".S")
-    # Entry point is used as compression start information.
-    elfling_align = int(PlatformVar("memory_page"))
-    if elfling.has_data():
-      alignment_section = AssemblerSectionAlignment(elfling_align, ELFLING_PADDING, ELFLING_OUTPUT, "end")
-      set_program_start("_start")
-    else:
-      alignment_section = AssemblerSectionAlignment(elfling_align, ELFLING_PADDING, ELFLING_OUTPUT)
-      set_program_start(ELFLING_OUTPUT)
-    asm.add_sections(alignment_section)
-    asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
+    asm = generate_elfling(output_file, compiler, elfling, definition_ld)
   else:
     asm = AssemblerFile(output_file + ".S")
-    alignment_section = None
-  # sort sections after generation.
+  # Additional sources may have been specified, add them.
+  if additional_sources:
+    for ii in range(len(additional_sources)):
+      fname = additional_sources[ii]
+      additional_asm = AssemblerFile(fname)
+      asm.incorporate(additional_asm)
+  # Sort sections after generation.
   asm.sort_sections(assembler)
   # May be necessary to have two PT_LOAD headers as opposed to one.
   bss_section = asm.generate_fake_bss(assembler, und_symbols, elfling)
@@ -662,8 +659,8 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   assembler.assemble(fname + ".S", fname + ".o")
   link_files = [fname + ".o"]
   # Create content of earlier sections and write source when done.
-  if alignment_section:
-    alignment_section.create_content(assembler)
+  if asm.hasSectionAlignment():
+    asm.getSectionAlignment().create_content(assembler)
   bss_section.create_content(assembler, "end")
   # Assemble content without headers to check for missing symbols.
   fname = output_file + ".content"
@@ -681,6 +678,24 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, u
   linker.link_binary(link_files, output_file + ".bin")
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
   readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
+
+def generate_elfling(output_file, compiler, elfling, definition_ld):
+  """Generate elfling stub."""
+  elfling.write_c_source(output_file + ".elfling.cpp", definition_ld)
+  compiler.compile_asm(output_file + ".elfling.cpp", output_file + ".elfling.S")
+  asm = AssemblerFile(output_file + ".elfling.S")
+  additional_asm = AssemblerFile(output_file + ".S")
+  # Entry point is used as compression start information.
+  elfling_align = int(PlatformVar("memory_page"))
+  if elfling.has_data():
+    alignment_section = AssemblerSectionAlignment(elfling_align, ELFLING_PADDING, ELFLING_OUTPUT, "end")
+    set_program_start("_start")
+  else:
+    alignment_section = AssemblerSectionAlignment(elfling_align, ELFLING_PADDING, ELFLING_OUTPUT)
+    set_program_start(ELFLING_OUTPUT)
+  asm.add_sections(alignment_section)
+  asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
+  return asm
 
 def generate_glsl(preprocessor, definition_ld, fname, mode, renames):
   """Generate GLSL for source file."""
@@ -1047,19 +1062,25 @@ def main():
   # Erase contents of the header after it has been found.
   touch(target)
 
+  sourcere = re.compile(r'.*\.(c|cpp)$', re.I)
   if 0 >= len(source_files) and target_search_path:
     print("WARNING: no source files specified, searching %s" % (str(target_search_path)))
-    sourcere = re.compile(r'.*(c|cpp)$')
     source_files = []
     for ii in target_search_path:
       for jj in os.listdir(ii):
         if sourcere.match(jj):
+          print("match " + jj)
           source_files += [os.path.normpath(ii + "/" + jj)]
   if 0 < len(source_files):
     if is_verbose():
       print("Compiling source files: %s" % (str(source_files)))
   else:
     raise RuntimeError("nothing to compile")
+
+  # Split source files into C/C++ source and additional assembler source.
+  source_files_main = set(filter(lambda x: sourcere.match(x), source_files))
+  source_files_additional = list(set(source_files) - source_files_main)
+  source_files = list(source_files_main)
 
   if compiler:
     if not check_executable(compiler):
@@ -1174,6 +1195,8 @@ def main():
     subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({ "DEFINITION_LD" : definition_ld })
   if symbols_has_library(symbols, ("SDL", "SDL2")):
     subst["INCLUDE_SDL"] = g_template_include_sdl.format()
+  if symbols_has_library(symbols, "sndfile"):
+    subst["INCLUDE_SNDFILE"] = g_template_include_sndfile.format()
 
   # Workarounds for specific symbol implementations - must be done before symbol definitions.
   if symbols_has_symbol(symbols, "rand"):
@@ -1264,14 +1287,13 @@ def main():
     linker.set_library_directories(library_directories)
     linker.set_rpath_directories(rpath)
     if "maximum" == compilation_mode:
-      und_symbols = get_platform_und_symbols()
-      generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, und_symbols, elfling,
-          libraries, output_file)
+      generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
+          source_files_additional)
       # Now have complete binary, may need to reprocess.
       if elfling:
         elfling.compress(output_file + ".stripped", output_file + ".extracted")
-        generate_binary_minimal(None, compiler, assembler, linker, objcopy, und_symbols, elfling, libraries,
-            output_file)
+        generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
+            source_files_additional)
     elif "hash" == compilation_mode:
       compiler.compile_asm(source_file, output_file + ".S")
       asm = AssemblerFile(output_file + ".S")
