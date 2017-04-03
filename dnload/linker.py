@@ -2,6 +2,7 @@ import os
 import re
 
 from dnload.common import file_is_ascii_text
+from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.common import listify
 from dnload.common import locate
@@ -22,8 +23,18 @@ class Linker:
     self.__library_directories = []
     self.__libraries = []
     self.__linker_flags = []
+    self.__linker_flags_extra = []
     self.__linker_script = []
     self.__rpath_directories = []
+
+  def addExtraFlags(self, op):
+    """Add extra flags to use when linking."""
+    if is_listing(op):
+      for ii in op:
+        self.addExtraFlags(ii)
+      return
+    if not (op in self.__linker_flags_extra):
+      self.__linker_flags_extra += [op]
 
   def command_basename_startswith(self, op):
     """Check if command basename starts with given string."""
@@ -109,7 +120,7 @@ class Linker:
 
   def generate_linker_script(self, dst, modify_start = False):
     """Get linker script from linker, improve it, write improved linker script to given file."""
-    (so, se) = run_command([self.__command, "--verbose"])
+    (so, se) = run_command([self.__command, "--verbose"] + self.__linker_flags_extra)
     if 0 < len(se) and is_verbose():
       print(se)
     match = re.match(r'.*linker script\S+\s*\n=+\s+(.*)\s+=+\s*\n.*', so, re.DOTALL)
@@ -132,7 +143,7 @@ class Linker:
 
   def link(self, src, dst, extra_args = []):
     """Link a file."""
-    cmd = [self.__command, src, "-o", dst] + self.__linker_flags + self.get_library_directory_list() + self.get_library_list() + extra_args + self.__linker_script
+    cmd = [self.__command, src, "-o", dst] + self.__linker_flags + self.get_library_directory_list() + self.get_library_list() + extra_args + self.__linker_script + self.__linker_flags_extra
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)
@@ -140,7 +151,7 @@ class Linker:
 
   def link_binary(self, src, dst):
     """Link a binary file with no bells and whistles."""
-    cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))] + listify(src) + ["-o", dst] + self.__linker_script
+    cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))] + listify(src) + ["-o", dst] + self.__linker_script + self.__linker_flags_extra
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)

@@ -21,10 +21,12 @@ from dnload.library_definition import g_library_definitions
 from dnload.linker import Linker
 from dnload.platform_var import g_osarch
 from dnload.platform_var import g_osname
+from dnload.platform_var import osarch_is_amd64
 from dnload.platform_var import osarch_is_32_bit
 from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import PlatformVar
 from dnload.platform_var import platform_map_iterate
+from dnload.platform_var import replace_osarch
 from dnload.platform_var import replace_platform_variable
 from dnload.preprocessor import Preprocessor
 from dnload.symbol import generate_loader_dlfcn
@@ -894,7 +896,6 @@ def main():
   assembler = None
   cross_compile = False
   compiler = None
-  preprocessor = None
   compression = str(PlatformVar("compression"))
   default_assembler_list = ["/usr/local/bin/as", "as"]
   default_compiler_list = ["g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
@@ -904,6 +905,9 @@ def main():
   default_strip_list = ["/usr/local/bin/strip", "strip"]
   definitions = []
   elfling = None
+  extra_assembler_flags = []
+  extra_compiler_flags = []
+  extra_linker_flags = []
   include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
   libraries = []
   library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
@@ -912,6 +916,7 @@ def main():
   opengl_reason = None
   opengl_version = None
   output_file = None
+  preprocessor = None
   rpath = []
   sdl_version = 2
   source_files = []
@@ -932,6 +937,7 @@ def main():
   parser.add_argument("-l", "--library", action = "append", help = "Add a library to be linked against.")
   parser.add_argument("-L", "--library-directory", action = "append", help = "Add a library directory to be searched for libraries when linking.")
   parser.add_argument("-m", "--method", default = "maximum", choices = ("vanilla", "dlfcn", "hash", "maximum"), help = "Method to use for decreasing output file size:\n\tvanilla:\n\t\tProduce binary normally, use no tricks except unpack header.\n\tdlfcn:\n\t\tUse dlopen/dlsym to decrease size without dependencies to any specific object format.\n\thash:\n\t\tUse knowledge of object file format to perform 'import by hash' loading, but do not break any specifications.\n\tmaximum:\n\t\tUse all available techniques to decrease output file size. Resulting file may violate object file specification.\n(default: %(default)s)")
+  parser.add_argument("--m32", action = "store_true", help = "Try to target 32-bit version of the architecture if on a 64-bit system.")
   parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
@@ -1002,6 +1008,16 @@ def main():
   if args.version:
     print("%s %s" % (VERSION_REVISION, VERSION_DATE))
     return 0
+
+  # Tring 32-bit compile only works between the same platform.
+  if args.m32:
+    if osarch_is_amd64():
+      replace_osarch("ia32")
+      extra_assembler_flags = ["--32"]
+      extra_compiler_flags = ["-m32"]
+      extra_linker_flags = ["-melf_i386"]
+    else:
+      raise RuntimeError("cannot attempt 32-bit compile for osarch '%s'" % (g_osarch))
 
   abstraction_layer = listify(args.abstraction_layer)
   definition_ld = args.define
@@ -1098,6 +1114,8 @@ def main():
   if compiler.get_command() in ('gcc48', 'g++-4.8'):
     library_directories += ["/usr/lib/gcc/arm-linux-gnueabihf/4.8"]
   compiler.set_include_dirs(include_directories)
+  if extra_compiler_flags:
+    compiler.add_extra_compiler_flags(extra_compiler_flags)
 
   if preprocessor:
     if not check_executable(preprocessor):
@@ -1119,6 +1137,7 @@ def main():
       elfling = Elfling(elfling)
 
   if output_file:
+    # Find assembler.
     if assembler:
       if not check_executable(assembler):
         raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
@@ -1127,17 +1146,24 @@ def main():
     if not assembler:
       raise RuntimeError("suitable assembler not found")
     assembler = Assembler(assembler)
+    if extra_assembler_flags:
+      assembler.addExtraFlags(extra_assembler_flags)
+    # Find linker.
     if linker:
       if not check_executable(linker):
         raise RuntimeError("could not use supplied linker '%s'" % (linker))
     else:
       linker = search_executable(default_linker_list, "linker")
     linker = Linker(linker)
+    if extra_linker_flags:
+      linker.addExtraFlags(extra_linker_flags)
+    # Find objcopy.
     if objcopy:
       if not check_executable(objcopy):
         raise RuntimeError("could not use supplied objcopy executable '%s'" % (objcopy))
     else:
       objcopy = search_executable(default_objcopy_list, "objcopy")
+    # Find strip.
     if strip:
       if not check_executable(strip):
         raise RuntimeError("could not use supplied strip executable '%s'" % (strip))

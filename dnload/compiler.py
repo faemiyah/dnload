@@ -28,8 +28,10 @@ class Compiler(Linker):
     if is_listing(op):
       for ii in op:
         self.add_extra_compiler_flags(ii)
-    elif not op in self._include_directories and not op in self._definitions:
-      self._compiler_flags_extra += [op]
+      return
+    if not (op in self._compiler_flags_extra):
+      if (not (op in self._include_directories)) and (not (op in self._definitions)):
+        self._compiler_flags_extra += [op]
 
   def compile_asm(self, src, dst, whole_program = False):
     """Compile a file into assembler source."""

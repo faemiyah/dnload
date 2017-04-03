@@ -138,6 +138,11 @@ def platform_map(op):
     op = found
   return op
 
+def replace_osarch(op):
+  """Replace osarch with given string."""
+  global g_osarch
+  g_osarch = op
+
 def replace_platform_variable(name, op):
   """Destroy platform variable, replace with default."""
   if not name in g_platform_variables:

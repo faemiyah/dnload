@@ -20,6 +20,7 @@ class Assembler:
     self.__word = ".long"
     self.__quad = ".quad"
     self.__string = ".ascii"
+    self.__assembler_flags_extra = []
     op = os.path.basename(op)
     if op.startswith("nasm"):
       self.__comment = ";"
@@ -28,9 +29,18 @@ class Assembler:
       self.__word = "dd"
       self.__string = "db"
 
+  def addExtraFlags(self, op):
+    """Add extra flags to use when assembling."""
+    if is_listing(op):
+      for ii in op:
+        self.addExtraFlags(ii)
+      return
+    if not (op in self.__assembler_flags_extra):
+      self.__assembler_flags_extra += [op]
+
   def assemble(self, src, dst):
     """Assemble a file."""
-    cmd = [self.__executable, src, "-o", dst]
+    cmd = [self.__executable, src, "-o", dst] + self.__assembler_flags_extra
     (so, se) = run_command(cmd)
     if 0 < len(se) and is_verbose():
       print(se)
