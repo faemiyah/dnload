@@ -924,6 +924,7 @@ def main():
   target_search_path = []
 
   parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (sys.argv[0]), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
+  parser.add_argument("--32", dest = "m32", action = "store_true", help = "Try to target 32-bit version of the architecture if on a 64-bit system.")
   parser.add_argument("-a", "--abstraction-layer", choices = ("sdl1", "sdl2"), help = "Specify abstraction layer to use instead of autodetecting.")
   parser.add_argument("-A", "--assembler", help = "Try to use given assembler executable as opposed to autodetect.")
   parser.add_argument("-B", "--objcopy", help = "Try to use given objcopy executable as opposed to autodetect.")
@@ -937,7 +938,6 @@ def main():
   parser.add_argument("-l", "--library", action = "append", help = "Add a library to be linked against.")
   parser.add_argument("-L", "--library-directory", action = "append", help = "Add a library directory to be searched for libraries when linking.")
   parser.add_argument("-m", "--method", default = "maximum", choices = ("vanilla", "dlfcn", "hash", "maximum"), help = "Method to use for decreasing output file size:\n\tvanilla:\n\t\tProduce binary normally, use no tricks except unpack header.\n\tdlfcn:\n\t\tUse dlopen/dlsym to decrease size without dependencies to any specific object format.\n\thash:\n\t\tUse knowledge of object file format to perform 'import by hash' loading, but do not break any specifications.\n\tmaximum:\n\t\tUse all available techniques to decrease output file size. Resulting file may violate object file specification.\n(default: %(default)s)")
-  parser.add_argument("--m32", action = "store_true", help = "Try to target 32-bit version of the architecture if on a 64-bit system.")
   parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
