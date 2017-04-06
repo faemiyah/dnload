@@ -119,8 +119,7 @@ class GlslBlockSource(GlslBlock):
       print("Wrote GLSL header: '%s' => '%s'" % (self.__variable_name, self.__output_name))
 
   def __str__(self):
-    return "'%s' => '%s': %s" % (self.__variable_name, self.__output_name,
-        str(map(str, self._children)))
+    return "Source('%s' => '%s')" % (self.__output_name, self.__variable_name)
 
 ########################################
 # Functions ############################

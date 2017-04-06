@@ -30,13 +30,16 @@ class GlslBlockStatement(GlslBlock):
 
   def replaceUsedNameExact(self, name, tokens):
     """Replace exact instances of given used name with a list of tokens."""
+    ret = 0
     while True:
       if not self.replaceUsedNameExactPass(name, tokens):
         break
+      ret += 1
     self.clearAccesses()
     self.clearNamesUsed()
     self.addAccesses(self.__content)
     self.addNamesUsed(self.__content)
+    return ret
 
   def replaceUsedNameExactPass(self, name, tokens):
     """Replace one instance of given used name with a list of tokens."""

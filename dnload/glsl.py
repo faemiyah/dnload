@@ -48,6 +48,7 @@ class Glsl:
   def crunch(self, mode = "full", max_renames = -1):
     """Crunch the source code to smaller state."""
     combines = None
+    inlines = None
     renames = None
     # Expand unless crunching completely disabled.
     if "none" != mode:
@@ -55,11 +56,14 @@ class Glsl:
         ii.expandRecursive()
     # Rename is optional.
     if "full" == mode:
+      inlines = 0
       # Perform inlining passes. Last pass that does not break anything will return merged variable names.
       while True:
-        merged = self.inlinePass()
-        if merged:
+        inline_pass_rv = self.inlinePass()
+        if is_listing(inline_pass_rv):
+          merged = inline_pass_rv
           break
+        inlines += inline_pass_rv
       # Print number of inout merges.
       if is_verbose():
         inout_merges = []
@@ -98,9 +102,11 @@ class Glsl:
     # Print summary of operations.
     if is_verbose():
       operations = []
-      if not (renames is None):
+      if inlines:
+        operations += ["%i inlines" % (inlines)]
+      if renames:
         operations += ["%i renames" % (renames)]
-      if not (combines is None):
+      if combines:
         operations += ["%i combines" % (combines)]
       if operations:
         print("GLSL processing done: %s" % (", ".join(operations)))
@@ -141,13 +147,15 @@ class Glsl:
 
   def inline(self, block, names):
     """Perform inlining of block into where it is used."""
+    ret = 0
     parent = find_parent_scope(block)
     if is_glsl_block_source(parent):
       for ii in self.__sources:
         if (ii != parent) and ((not parent.getType()) or (not ii.getType())):
-          inline_instances(ii, block, names)
-    inline_instances(parent, block, names)
+          ret += inline_instances(ii, block, names)
+    ret += inline_instances(parent, block, names)
     block.removeFromParent()
+    return ret
 
   def inlinePass(self):
     """Run inline pass. Return list of merged names if no inlining could be done."""
@@ -187,8 +195,7 @@ class Glsl:
         continue
       # If no inline conflict, perform inline and return nothing to signify another pass can be done.
       if not self.hasInlineConflict(block, names):
-        self.inline(block, names)
-        return None
+        return self.inline(block, names)
     # Return merged list.
     return merged
 
@@ -395,13 +402,15 @@ def has_name_conflict(parent, block, name):
 
 def inline_instances(parent, block, names):
   """Inline all instances of block in given parent scope."""
+  ret = 0
   tokens = block.getStatement().getTokens()
   for ii in flatten(parent):
     if (ii == block) or (ii.getParent() == block):
       continue
     for jj in names:
       if ii.hasUsedNameExact(jj):
-        ii.replaceUsedNameExact(jj, tokens)
+        ret += ii.replaceUsedNameExact(jj, tokens)
+  return ret
 
 def is_glsl_block_global(op):
   """Tell if block is somehting of a global concern."""
