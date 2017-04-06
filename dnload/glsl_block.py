@@ -55,6 +55,8 @@ class GlslBlock:
         raise RuntimeError("GlslBlock::addChild() hierarchy inconsistency")
       self._children += [ii]
       ii.setParent(self)
+      if ii.getParent() != self:
+        raise RuntimeError("")
 
   def addNamesDeclared(self, op):
     """Add given names as names declared by this block."""
@@ -77,6 +79,14 @@ class GlslBlock:
     if not is_glsl_name(op):
       return
     self.__names_used += [op]
+
+  def clearAccesses(self):
+    """Clear accesses."""
+    self.__accesses = []
+
+  def clearNamesUsed(self):
+    """Clear used names."""
+    self.__names_used = []
 
   def collapse(self, other):
     """Default collapse implementation, returns False because no collapse happened."""
@@ -217,6 +227,26 @@ class GlslBlock:
   def hasUsedName(self, op):
     """Tell if given name is used somewhere in this."""
     return op in self.__names_used
+
+  def hasUsedNameExact(self, op):
+    """Tell if given name object exactly is used somewhere in this."""
+    for ii in self.__names_used:
+      if op is ii:
+        return True
+    return False
+
+  def removeChild(self, op):
+    """Remove a child block."""
+    for ii in range(len(self._children)):
+      if self._children[ii] == op:
+        self._children.pop(ii)
+        return
+    raise RuntimeError("could not find child to remove")
+
+  def removeFromParent(self):
+    """Remove this from its parent."""
+    self.__parent.removeChild(self)
+    self.__parent = None
 
   def selectSwizzle(self, op):
     """Recursively select swizzle method."""

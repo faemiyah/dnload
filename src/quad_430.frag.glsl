@@ -29,8 +29,8 @@ void main()
   float squared = dot(collision, collision);
   if(squared <= radius)
   {
-    vec3 e = (product - sqrt(radius * radius - squared * squared)) * direction + uniform_array[0];
-    output_color = vec4(e * dot(e, vec3(1.0)), 1.0);
+    vec3 color = (product - sqrt(radius * radius - squared * squared)) * direction + uniform_array[0];
+    output_color = vec4(color * dot(color, vec3(1.0)), 1.0);
   }
   else
   {

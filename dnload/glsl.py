@@ -1,3 +1,5 @@
+import re
+
 from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.glsl_block_control import is_glsl_block_control
@@ -9,6 +11,7 @@ from dnload.glsl_block_scope import is_glsl_block_scope
 from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
 from dnload.glsl_block_uniform import is_glsl_block_uniform
+from dnload.glsl_name import is_glsl_name
 
 ########################################
 # Glsl #################################
@@ -52,22 +55,12 @@ class Glsl:
         ii.expandRecursive()
     # Rename is optional.
     if "full" == mode:
-      # Collect identifiers. First pass - collect from generic sources and append from non-generic.
-      collected = []
-      for ii in self.__sources:
-        if not ii.getType():
-          collect_pass = ii.collect()
-          for jj in self.__sources:
-            if jj.getType():
-              for kk in collect_pass:
-                jj.collectAppend(kk)
-          collected += collect_pass
-      # Second pass - collect from generic sources. Do not append.
-      for ii in self.__sources:
-        if ii.getType():
-          collected += ii.collect()
-      # Merge multiple matching inout names.
-      merged = sorted(merge_collected_names(collected), key=len, reverse=True)
+      # Perform inlining passes. Last pass that does not break anything will return merged variable names.
+      while True:
+        merged = self.inlinePass()
+        if merged:
+          break
+      # Print number of inout merges.
       if is_verbose():
         inout_merges = []
         for ii in merged:
@@ -75,15 +68,6 @@ class Glsl:
           if is_listing(block):
             inout_merges += [block[0]]
         print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
-      # Collect all member accesses for members and set them to the blocks.
-      for ii in merged:
-        block = ii[0]
-        if is_listing(block):
-          block = block[0]
-        if not is_glsl_block_inout_struct(block):
-          continue
-        lst = collect_member_accesses(ii[0], ii[1:])
-        block.setMemberAccesses(lst)
       # After all names have been collected, it's possible to collapse swizzles.
       swizzle = self.selectSwizzle()
       for ii in self.__sources:
@@ -121,6 +105,23 @@ class Glsl:
       if operations:
         print("GLSL processing done: %s" % (", ".join(operations)))
 
+  def hasInlineConflict(self, block, names):
+    """Tell if given block has an inlining conflict."""
+    # If block is a listing, just go over all options.
+    if is_listing(block):
+      for ii in block:
+        if self.hasInlineConflict(ii, name):
+          return True
+      return False
+    # Check for inline conflicts within this block.
+    parent = find_parent_scope(block)
+    if is_glsl_block_source(parent):
+      for ii in self.__sources:
+        if (ii != parent) and ((not parent.getType()) or (not ii.getType())):
+          if has_inline_conflict(ii, block, names):
+            return True
+    return has_inline_conflict(parent, block, names)
+
   def hasNameConflict(self, block, name):
     """Tell if given block would have a conflict if renamed into given name."""
     # If block is a listing, just go over all options.
@@ -137,6 +138,59 @@ class Glsl:
           if has_name_conflict(ii, block, name):
             return True
     return has_name_conflict(parent, block, name)
+
+  def inline(self, block, names):
+    """Perform inlining of block into where it is used."""
+    parent = find_parent_scope(block)
+    if is_glsl_block_source(parent):
+      for ii in self.__sources:
+        if (ii != parent) and ((not parent.getType()) or (not ii.getType())):
+          inline_instances(ii, block, names)
+    inline_instances(parent, block, names)
+    block.removeFromParent()
+
+  def inlinePass(self):
+    """Run inline pass. Return list of merged names if no inlining could be done."""
+    # Collect identifiers. First pass - collect from generic sources and append from non-generic.
+    collected = []
+    for ii in self.__sources:
+      if not ii.getType():
+        collect_pass = ii.collect()
+        for jj in self.__sources:
+          if jj.getType():
+            for kk in collect_pass:
+              jj.collectAppend(kk)
+        collected += collect_pass
+    # Second pass - collect from generic sources. Do not append.
+    for ii in self.__sources:
+      if ii.getType():
+        collected += ii.collect()
+    # Merge multiple matching inout names.
+    merged = sorted(merge_collected_names(collected), key=len, reverse=True)
+    # Collect all member accesses for members and set them to the blocks.
+    for ii in merged:
+      block = ii[0]
+      if is_listing(block):
+        block = block[0]
+      if not is_glsl_block_inout_struct(block):
+        continue
+      lst = collect_member_accesses(ii[0], ii[1:])
+      block.setMemberAccesses(lst)
+    # Perform inlining if possible.
+    for ii in range(len(merged)):
+      vv = merged[ii]
+      block = vv[0]
+      if is_listing(block) or (not is_glsl_block_declaration(block)):
+        continue
+      names = vv[1:]
+      if not is_inline_name(names[0]):
+        continue
+      # If no inline conflict, perform inline and return nothing to signify another pass can be done.
+      if not self.hasInlineConflict(block, names):
+        self.inline(block, names)
+        return None
+    # Return merged list.
+    return merged
 
   def inventName(self):
     """Invent a new name when existing names have run out."""
@@ -300,6 +354,31 @@ def flatten(block):
     ret += flatten(ii)
   return ret
 
+def has_inline_conflict(parent, block, names, comparison = None):
+  """Tell if given block has inline conflict."""
+  # Iterate over statement names if name not present.
+  if not comparison:
+    for ii in block.getStatement().getTokens():
+      if is_glsl_name(ii) and has_inline_conflict(parent, block, names, ii):
+        return True
+    return False
+  # Search for alterations of name.
+  found = False
+  uses = len(names)
+  for ii in flatten(parent):
+    if block == ii:
+      found = True
+    # If name is found used by this particular block, decrement uses. Can stop iteration at 0 uses.
+    for ii in names:
+      if ii.hasUsedNameExact(ii):
+        uses -= 1
+    if 0 >= uses:
+      return False
+    # Assignment into a name used by the statement makes inlining impossible.
+    if found and is_glsl_block_assignment(ii) and ii.getName() == name:
+      return True
+  return False
+
 def has_name_conflict(parent, block, name):
   """Tell if given block contains a conflict for given name."""
   found = False
@@ -314,9 +393,25 @@ def has_name_conflict(parent, block, name):
       return True
   return False
 
+def inline_instances(parent, block, names):
+  """Inline all instances of block in given parent scope."""
+  tokens = block.getStatement().getTokens()
+  for ii in flatten(parent):
+    if (ii == block) or (ii.getParent() == block):
+      continue
+    for jj in names:
+      if ii.hasUsedNameExact(jj):
+        ii.replaceUsedNameExact(jj, tokens)
+
 def is_glsl_block_global(op):
   """Tell if block is somehting of a global concern."""
   return (is_glsl_block_inout(op) or is_glsl_block_uniform(op))
+
+def is_inline_name(op):
+  """Tell if given name is viable for inlining."""
+  if re.match(r'^i_.*$', op.getName(), re.I):
+    return True
+  return False
 
 def merge_collected_names(lst):
   """Merge different matching lists in collected names."""

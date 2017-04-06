@@ -28,9 +28,32 @@ class GlslBlockStatement(GlslBlock):
       lst = "".join(map(lambda x: x.format(force), self.__content))
     return lst + self.__terminator
 
+  def replaceUsedNameExact(self, name, tokens):
+    """Replace exact instances of given used name with a list of tokens."""
+    while True:
+      if not self.replaceUsedNameExactPass(name, tokens):
+        break
+    self.clearAccesses()
+    self.clearNamesUsed()
+    self.addAccesses(self.__content)
+    self.addNamesUsed(self.__content)
+
+  def replaceUsedNameExactPass(self, name, tokens):
+    """Replace one instance of given used name with a list of tokens."""
+    for ii in range(len(self.__content)):
+      vv = self.__content[ii]
+      if name is vv:
+        self.__content[ii : ii + 1] = tokens
+        return True
+    return False
+
   def getTerminator(self):
     """Accessor."""
     return self.__terminator
+
+  def getTokens(self):
+    """Accessor."""
+    return self.__content
 
   def setTerminator(self, op):
     """Set terminating character."""

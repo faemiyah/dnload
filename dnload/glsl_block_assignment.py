@@ -43,7 +43,7 @@ class GlslBlockAssignment(GlslBlock):
 
   def __str__(self):
     """String representation."""
-    return "Assignment(%s)" % (self.__name.format(False))
+    return "Assignment('%s')" % (self.__name.getName())
 
 ########################################
 # Functions ############################

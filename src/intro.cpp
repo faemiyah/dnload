@@ -102,7 +102,7 @@ typedef uint8_t sample_t;
 static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8 / sizeof(sample_t)];
 
 /// Current audio position.
-static uint8_t *g_audio_position = reinterpret_cast<uint8_t*>(&g_audio_buffer[INTRO_START]);
+static int g_audio_position = INTRO_START;
 
 #if defined(USE_LD)
 
@@ -199,14 +199,10 @@ static void audio_callback(void *userdata, Uint8 *stream, int len)
 {
   (void)userdata;
 
-#if defined(__GNUC__) && !defined(__clang__) && 0
-  __builtin_memcpy(g_audio_position, stream, len);
-#else
   for(int ii = 0; (ii < len); ++ii)
   {
-    stream[ii] = g_audio_position[ii];
+    stream[ii] = g_audio_buffer[g_audio_position + ii];
   }
-#endif
   g_audio_position += len;
 }
 
@@ -485,7 +481,7 @@ static float g_uniform_array[12] =
 ///
 /// \param ticks Tick count.
 /// \param aspec Screen aspect.
-static void draw(unsigned ticks)
+static void draw(int ticks)
 {
   //dnload_glDisable(GL_DEPTH_TEST);
 
@@ -831,7 +827,7 @@ void _start()
     bool quit = false;
 #endif
     SDL_Event event;
-    unsigned curr_ticks;
+    int curr_ticks;
 
 #if defined(USE_LD)
     while(SDL_PollEvent(&event))
@@ -1054,25 +1050,25 @@ void _start()
     {
       current_time += static_cast<float>(AUDIO_BYTERATE) / 60.0f * static_cast<float>(time_delta);
 
-      curr_ticks = static_cast<unsigned>(current_time);
+      curr_ticks = static_cast<int>(current_time);
     }
     else
     {
       float seconds_elapsed = static_cast<float>(SDL_GetTicks() - start_ticks) / 1000.0f;
 
-      curr_ticks = static_cast<unsigned>(seconds_elapsed * static_cast<float>(AUDIO_BYTERATE)) + INTRO_START;
+      curr_ticks = static_cast<int>(seconds_elapsed * static_cast<float>(AUDIO_BYTERATE)) + INTRO_START;
     }
 
-    if((curr_ticks >= INTRO_LENGTH) || quit)
+    if((curr_ticks >= static_cast<int>(INTRO_LENGTH)) || quit)
     {
       break;
     }
 #else
-    curr_ticks = g_audio_position - reinterpret_cast<uint8_t*>(g_audio_buffer);
+    curr_ticks = g_audio_position;
 
     dnload_SDL_PollEvent(&event);
     
-    if((curr_ticks >= INTRO_LENGTH) || (event.type == SDL_KEYDOWN))
+    if((curr_ticks >= static_cast<int>(INTRO_LENGTH)) || (event.type == SDL_KEYDOWN))
     {
       break;
     }

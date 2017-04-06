@@ -40,11 +40,21 @@ class GlslBlockDeclaration(GlslBlock):
 
   def expand(self):
     """Expand into multiple declarations."""
+    # Do not expand single declarations.
+    if 1 >= len(self._children):
+      return [self]
+    # For multiple declarations, make array of children.
     ret = []
     for ii in self._children:
       ii.setParent(None)
       ret += [GlslBlockDeclaration(self.__typeid, [ii])]
     return ret
+
+  def getStatement(self):
+    """Access statement, only meaningful for single-assignment declaration."""
+    if 1 < len(self._children):
+      raise RuntimeError("trying to access statement from a non-single assignment '%s'" % (str(self)))
+    return self._children[0].getStatement()
 
   def getType(self):
     """Accessor."""
