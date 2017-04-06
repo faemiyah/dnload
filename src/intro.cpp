@@ -74,7 +74,7 @@ typedef uint8_t sample_t;
 #define AUDIO_SAMPLERATE 8000
 
 /// Audio byterate.
-#define AUDIO_BYTERATE (AUDIO_CHANNELS * AUDIO_SAMPLERATE * sizeof(sample_t))
+#define AUDIO_BYTERATE (AUDIO_CHANNELS * AUDIO_SAMPLERATE * AUDIO_SAMPLE_SIZE)
 
 /// Intro length (in bytes of audio).
 #define INTRO_LENGTH (16 * AUDIO_BYTERATE)
@@ -772,8 +772,7 @@ void _start()
     // video
     for(;;)
     {
-      unsigned ticks = static_cast<unsigned>(static_cast<float>(frame_idx) / 60.0f *
-          static_cast<float>(AUDIO_BYTERATE));
+      int ticks = static_cast<int>(static_cast<float>(frame_idx) / 60.0f * static_cast<float>(AUDIO_BYTERATE));
 
       if(ticks > INTRO_LENGTH)
       {
@@ -1068,7 +1067,7 @@ void _start()
 
     dnload_SDL_PollEvent(&event);
     
-    if((curr_ticks >= static_cast<int>(INTRO_LENGTH)) || (event.type == SDL_KEYDOWN))
+    if((curr_ticks >= INTRO_LENGTH) || (event.type == SDL_KEYDOWN))
     {
       break;
     }
@@ -1079,7 +1078,9 @@ void _start()
   }
 
   teardown();
+#if !defined(USE_LD)
   asm_exit();
+#endif
 }
 
 //######################################
