@@ -1,5 +1,7 @@
 import platform
 
+from dnload.common import is_verbose
+
 ########################################
 # PlatformVar ##########################
 ########################################
@@ -138,10 +140,12 @@ def platform_map(op):
     op = found
   return op
 
-def replace_osarch(op):
+def replace_osarch(repl_osarch, reason):
   """Replace osarch with given string."""
   global g_osarch
-  g_osarch = op
+  if is_verbose():
+    print("%stargeting '%s' instead of '%s'" % (reason, repl_osarch, g_osarch))
+  g_osarch = repl_osarch
 
 def replace_platform_variable(name, op):
   """Destroy platform variable, replace with default."""

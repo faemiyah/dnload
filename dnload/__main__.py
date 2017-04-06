@@ -657,7 +657,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     print("Size of headers: %i bytes" % (header_sizes))
   fd.close()
   if is_verbose():
-    print("Wrote assembler source '%s'." % (fname + ".S"))
+    print("Wrote assembler source: '%s'" % (fname + ".S"))
   assembler.assemble(fname + ".S", fname + ".o")
   link_files = [fname + ".o"]
   # Create content of earlier sections and write source when done.
@@ -898,7 +898,7 @@ def main():
   compiler = None
   compression = str(PlatformVar("compression"))
   default_assembler_list = ["/usr/local/bin/as", "as"]
-  default_compiler_list = ["g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
+  default_compiler_list = ["g++6", "g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
   default_linker_list = ["/usr/local/bin/ld", "ld"]
   default_preprocessor_list = ["cpp", "clang-cpp"]
   default_objcopy_list = ["/usr/local/bin/objcopy", "objcopy"]
@@ -938,6 +938,7 @@ def main():
   parser.add_argument("-l", "--library", action = "append", help = "Add a library to be linked against.")
   parser.add_argument("-L", "--library-directory", action = "append", help = "Add a library directory to be searched for libraries when linking.")
   parser.add_argument("-m", "--method", default = "maximum", choices = ("vanilla", "dlfcn", "hash", "maximum"), help = "Method to use for decreasing output file size:\n\tvanilla:\n\t\tProduce binary normally, use no tricks except unpack header.\n\tdlfcn:\n\t\tUse dlopen/dlsym to decrease size without dependencies to any specific object format.\n\thash:\n\t\tUse knowledge of object file format to perform 'import by hash' loading, but do not break any specifications.\n\tmaximum:\n\t\tUse all available techniques to decrease output file size. Resulting file may violate object file specification.\n(default: %(default)s)")
+  parser.add_argument("--march", type = str, help = "When compiling code, use given architecture as opposed to autodetect.")
   parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
@@ -1012,12 +1013,16 @@ def main():
   # Tring 32-bit compile only works between the same platform.
   if args.m32:
     if osarch_is_amd64():
-      replace_osarch("ia32")
+      replace_osarch("ia32", "Cross-compile: ")
       extra_assembler_flags = ["--32"]
       extra_compiler_flags = ["-m32"]
       extra_linker_flags = ["-melf_i386"]
     else:
       raise RuntimeError("cannot attempt 32-bit compile for osarch '%s'" % (g_osarch))
+  if args.march:
+    if is_verbose:
+      print("Using explicit march: '%s'" % (args.march))
+    replace_platform_variable("march", args.march)
 
   abstraction_layer = listify(args.abstraction_layer)
   definition_ld = args.define
@@ -1044,10 +1049,7 @@ def main():
       definitions += ["DNLOAD_VIDEOCORE"]
       gles_reason = "'%s' (VideoCore)" % (PATH_VIDEOCORE)
       if 'armv7l' == g_osarch:
-        repl_march = "armv6l"
-        if is_verbose():
-          print("Workaround (Raspberry Pi): targeting '%s' instead of '%s'" % (repl_march, g_osarch))
-        g_osarch = repl_march
+        replace_osarch("armv6l", "Workaround (Raspberry Pi): ")
   if gles_reason:
     definitions += ["DNLOAD_GLESV2"]
     replace_platform_variable("gl_library", "GLESv2")
@@ -1072,7 +1074,7 @@ def main():
       target = os.path.normpath(target_file)
       target_path, target_file = os.path.split(target)
       if is_verbose():
-        print("Header file '%s' found in path '%s/'." % (target_file, target_path))
+        print("Found header file: '%s/%s'" % (target_path, target_file))
     else:
       raise RuntimeError("no information where to put header file '%s' - not found in path(s) %s" % (target, str(target_search_path)))
   # Erase contents of the header after it has been found.
@@ -1269,7 +1271,7 @@ def main():
   fd.close()
 
   if is_verbose():
-    print("Wrote header file '%s'." % (target))
+    print("Wrote header file: '%s'" % (target))
 
   # Determine abstraction layer if it's not been set.
   if not abstraction_layer:

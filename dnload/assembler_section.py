@@ -154,7 +154,7 @@ class AssemblerSection:
       while True:
         if len(self.__content) <= jj or re.match(r'\s*\S+\:\s*', self.__content[jj]):
           if is_verbose():
-            print("Erasing function footer after interrupt '%s': %i lines." % (lst[1], jj - ii))
+            print("Erasing function footer after interrupt '%s': %i lines" % (lst[1], jj - ii))
           self.erase(ii, jj)
           break
         jj += 1

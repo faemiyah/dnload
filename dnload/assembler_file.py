@@ -202,10 +202,10 @@ class AssemblerFile:
       return False
     if isinstance(op, str):
       fd = open(op, "w")
-      ret = fd.write(output)
+      fd.write(output)
       fd.close()
-      if ret and is_verbose():
-        print("Wrote assembler source file '%s'." % (op))
+      if is_verbose():
+        print("Wrote assembler source: '%s'" % (op))
     else:
       prefix = assembler.format_block_comment("sections '%s'" % (str(section_names)))
       op.write(prefix)
