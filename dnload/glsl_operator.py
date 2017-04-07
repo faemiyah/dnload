@@ -65,6 +65,16 @@ class GlslOperator:
       raise RuntimeError("comparison against non-operator: '%s' vs. '%s'" % (str(self), str(other)))
     return self.getPrecedence() < other.getPrecedence()
 
+  def __eq__(self, other):
+    """Equals operator."""
+    if is_glsl_operator(other):
+      return self.__operator == other.getOperator()
+    return self.getOperator() == other
+
+  def __ne__(self, other):
+    """Not equals operator."""
+    return not (self == other)
+
   def __str__(self):
     """String representation."""
     return "GlslOperator('%s')" % (self.__operator)

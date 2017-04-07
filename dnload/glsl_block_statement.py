@@ -73,8 +73,15 @@ class GlslBlockStatement(GlslBlock):
     ret = 0
     while True:
       content = simplify_pass(self.__content)
-      if content == self.__content:
+      if not content and self.__content:
+        raise RuntimeError("content '%s' simplified to '%s'" % (str(map(str(self.__content))), str(content)))
+      if compare_content_equal(content, self.__content):
         break
+      self.__content = content
+      self.clearAccesses()
+      self.clearNamesUsed()
+      self.addAccesses(self__content)
+      self.addNamesUsed(self.__content)
       ret += 1
     return ret
 
@@ -85,6 +92,16 @@ class GlslBlockStatement(GlslBlock):
 ########################################
 # Functions ############################
 ########################################
+
+def compare_content_equal(lhs, rhs):
+  """Compare two content arrays."""
+  if len(lhs) != len(rhs):
+    print("lengths differ: %s vs. %s" % (str(map(str, lhs)), str(map(str, rhs))))
+    return False
+  for ii in range(len(lhs)):
+    if lhs[ii] != rhs[ii]:
+      return False
+  return True
 
 def glsl_parse_statement(source, explicit = True):
   """Parse statement block."""
@@ -133,6 +150,8 @@ def simplify_pass(lst):
   """Run simplification pass on tokens."""
   # Build tree and run simplify pass from there.
   tree = token_tree_build(lst)
+  if not tree:
+    raise RuntimeError("could not build tree from '%s'" % (str(map(str, lst))))
   if token_tree_simplify(tree):
     return tree.flatten()
   # Nothign to simplify, just return original tree.
