@@ -1,6 +1,9 @@
 from dnload.common import is_listing
+from dnload.glsl_access import is_glsl_access
+from dnload.glsl_name import is_glsl_name
 from dnload.glsl_operator import is_glsl_operator
 from dnload.glsl_paren import is_glsl_paren
+from dnload.glsl_type import is_glsl_type
 
 ########################################
 # GlslToken ############################
@@ -15,12 +18,12 @@ class GlslToken:
     self.__left = []
     self.__middle = []
     self.__right = []
-    # Prevent degeneration.
+    # Prevent degeneration, collapse tokens with only single middle element.
     if is_glsl_token(token):
-      single_child = token.getSingleChild()
-      if is_glsl_token(single_child):
-        single_child.setParent(None)
-      self.addMiddle(single_child)
+      single = token.getSingleChild()
+      if is_glsl_token(single):
+        single.setParent(None)
+      self.addMiddle(single)
     else:
       self.addMiddle(token)
 
@@ -80,21 +83,20 @@ class GlslToken:
 
   def getSingleChild(self):
     """Degeneration preventation. If token only has a single child, return that instead."""
-    total = len(self.__left) + len(self.__right)
-    if is_listing(self.__middle):
-      total += len(self.__middle)
+    lr = len(self.__left) + len(self.__right)
+    # If left and right exist, default option is to return node itself.
+    if 0 < lr:
+      if not self.__middle:
+        raise RuntimeError("cannot have left or right without middle")
+      return self
+    # If left and right did not exist, return middle.
     elif self.__middle:
-      total += 1
-    # Return single child if there only was exactly one.
-    if 1 == total:
-      if 1 <= len(self.__left):
-        raise RuntimeError("single child inconsistency: left")
-      if 1 <= len(self.__right):
-        raise RuntimeError("single child inconsistency: right")
       if is_listing(self.__middle):
-        return self.__middle[0]
+        if 1 >= len(self.__middle):
+          return [self.__middle[0]]
       return self.__middle
-    return self
+    # Should never happen.
+    raise RuntimeError("token has no content")
 
   def setParent(self, op):
     """Set parent."""
@@ -102,6 +104,12 @@ class GlslToken:
       raise RuntimeError("hierarchy inconsistency in '%s', parent '%s' over existing '%s'" %
           (str(self), str(op), str(self.__parent)))
     self.__parent = op
+
+  def simplify(self):
+    """Perform any simple simplification and stop."""
+    return False
+    # Try acquiring single element.
+    #if self.__left == 
 
   def __str__(self):
     """String representation."""
@@ -113,53 +121,103 @@ class GlslToken:
 # Functions ############################
 ########################################
 
+def get_single_token(op):
+  """Return single token element from given list, if possible."""
+  if is_glsl_token(op):
+    return op.getSingleChild()
+  return None
+
 def is_glsl_token(op):
   """Tell if given object is a GLSL token."""
   return isinstance(op, GlslToken)
 
+def token_list_create(lst):
+  """Build a token list from a given listing, ensuring every element is a token."""
+  ret = []
+  for ii in lst:
+    if not is_glsl_token(lst):
+      ret += [GlslToken(ii)]
+    else:
+      ret += [ii]
+  return ret
+
 def token_tree_build(lst):
   """Builds and balances a token tree from given list."""
+  # Ensure all list elements are tokens.
+  lst = token_list_create(lst)
+  # Start iteration over tokenized list.
   bracket_count = 0
   paren_count = 0
   first_bracket_index = -1
   first_paren_index = -1
   highest_operator = None
   highest_operator_index = -1
-  print(str(map(str, lst)))
   for ii in range(len(lst)):
-    vv = lst[ii]
+    vv = lst[ii].getSingleChild()
     if is_glsl_paren(vv):
+      # Bracket case.
       if vv.isBracket():
-        bracket_count = vv.updateBracket(bracket_count)
+        new_bracket_count = vv.updateBracket(bracket_count)
+        if new_bracket_count == bracket_count:
+          raise RuntimeError("wut?")
+        bracket_count = new_bracket_count
         # Return split on bracket.
         if 0 >= bracket_count:
           if 0 > first_bracket_index:
             raise RuntimeError("bracket inconsistency")
-          left = GlslToken(lst[first_bracket_index])
           middle = GlslToken(token_tree_build(lst[first_bracket_index + 1 : ii]))
           right = GlslToken(lst[ii])
+          # Read types, names or accesses left.
+          left = [GlslToken(lst[first_bracket_index])]
+          iter_left = first_bracket_index - 1
+          while True:
+            if iter_left > 0:
+              prospect = lst[iter_left]
+              if is_glsl_access(prospect) or is_glsl_name(prospect) or is_glsl_type(prospect):
+                left = [prospect] + left
+                iter_left -= 1
+              else:
+                break
+          # Create split.
+          left = GlslToken(lst[first_bracket_index])
           ret = GlslToken(middle)
           ret.addLeft(left)
           ret.addRight(right)
           return token_tree_build(lst[:first_bracket_index] + [ret] + lst[ii + 1:])
-        elif 1 == bracket_count:
+        elif (1 == bracket_count) and (0 > first_bracket_index):
           first_bracket_index = ii
+      # Paren case.
       elif vv.isParen():
-        paren_count = vv.updateParen(paren_count)
+        new_paren_count = vv.updateParen(paren_count)
+        if new_paren_count == paren_count:
+          raise RuntimeError("wut?")
+        paren_count = new_paren_count
         # Return split on paren.
         if 0 >= paren_count:
           if 0 > first_paren_index:
             raise RuntimeError("paren inconsistency")
-          left = GlslToken(lst[first_paren_index])
           middle = GlslToken(token_tree_build(lst[first_paren_index + 1 : ii]))
           right = GlslToken(lst[ii])
+          # Read types, names or accesses left.
+          left = [GlslToken(lst[first_paren_index])]
+          iter_left = first_paren_index - 1
+          while True:
+            if iter_left > 0:
+              prospect = lst[iter_left]
+              if is_glsl_access(prospect) or is_glsl_name(prospect) or is_glsl_type(prospect):
+                left = [prospect] + left
+                iter_left -= 1
+              else:
+                break
+          # Create split.
+          left = GlslToken(left)
           ret = GlslToken(middle)
           ret.addLeft(left)
           ret.addRight(right)
           return token_tree_build(lst[:first_paren_index] + [ret] + lst[ii + 1:])
-        elif 1 == paren_count:
-          print("first paren found!")
+        elif (1 == paren_count) and (0 > first_paren_index):
           first_paren_index = ii
+      # Curly braces impossible.
       else:
         raise RuntimeError("unknown paren object '%s'" % (str(vv)))
     if is_glsl_operator(vv):
@@ -179,4 +237,6 @@ def token_tree_build(lst):
 
 def token_tree_simplify(op):
   """Perform first found simplify operation for given tree."""
+  if op.simplify():
+    return True
   return False

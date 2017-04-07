@@ -17,6 +17,28 @@ class GlslOperator:
     """Get content string."""
     return self.__operator
 
+  def getPrecedence(self):
+    """Get operator precedence. Higher is better."""
+    if self.__operator in ("?",):
+      return 1
+    elif self.__operator in ("||",):
+      return 2
+    elif self.__operator in ("^^",):
+      return 3
+    elif self.__operator in ("&&",):
+      return 4
+    elif self.__operator in ("==", "!="):
+      return 5
+    elif self.__operator in ("<", "<=", ">", ">="):
+      return 6
+    elif self.__operator in ("+", "-"):
+      return 7
+    elif self.__operator in ("*", "/"):
+      return 8
+    elif self.__operator in ("++", "--"):
+      return 9
+    raise RuntimeError("operator '%s' has no precedence" % (str(self)))
+
   def isAssignment(self):
     """Tell if this is an assignment operator of any kind."""
     return (self.__operator in ("=", "+=", "-=", "*=", "/="))
@@ -36,6 +58,12 @@ class GlslOperator:
         self.__operator = "--"
         return True
     return False
+
+  def __lt__(self, other):
+    """Less than operator."""
+    if not is_glsl_operator(other):
+      raise RuntimeError("comparison against non-operator: '%s' vs. '%s'" % (str(self), str(other)))
+    return self.getPrecedence() < other.getPrecedence()
 
   def __str__(self):
     """String representation."""

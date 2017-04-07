@@ -131,13 +131,7 @@ def glsl_parse_statements(source):
 
 def simplify_pass(lst):
   """Run simplification pass on tokens."""
-  # Reached end-of-line.
-  if 1 >= len(lst):
-    return lst
-  # Parens at outer edge are removed.
-  if (3 >= len(lst)) and (lst[0] == "(") and (lst[-1] == ")"):
-    return simplify_pass(lst[1:-1])
-  # More complex case, build tree and run simplify pass from there.
+  # Build tree and run simplify pass from there.
   tree = token_tree_build(lst)
   if token_tree_simplify(tree):
     return tree.flatten()
