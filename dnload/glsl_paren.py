@@ -23,6 +23,10 @@ class GlslParen:
       return ")"
     raise RuntimeError("not an opening paren: '%s'" % (self.__paren))
 
+  def getParen(self):
+    """Accessor."""
+    return self.__paren
+
   def isBracket(self):
     """Tell if this is a bracket."""
     return self.__paren in ("[", "]")
@@ -68,6 +72,16 @@ class GlslParen:
     elif ")" == self.__paren:
       return count - 1
     return count
+
+  def __eq__(self, other):
+    """Equals operator."""
+    if is_glsl_paren(other) and (self.__paren == other.getParen()):
+      return True
+    return (self.__paren == other)
+
+  def __ne__(self, other):
+    """Not equals operator."""
+    return not (self == other)
 
   def __str__(self):
     """String representation."""

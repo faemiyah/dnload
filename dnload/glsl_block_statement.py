@@ -1,7 +1,12 @@
+import copy
+
 from dnload.common import is_listing
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
+from dnload.glsl_paren import GlslParen
 from dnload.glsl_paren import is_glsl_paren
+from dnload.glsl_token import token_tree_build
+from dnload.glsl_token import token_tree_simplify
 
 ########################################
 # GlslBlockStatement ###################
@@ -28,6 +33,14 @@ class GlslBlockStatement(GlslBlock):
       lst = "".join(map(lambda x: x.format(force), self.__content))
     return lst + self.__terminator
 
+  def getTerminator(self):
+    """Accessor."""
+    return self.__terminator
+
+  def getTokens(self):
+    """Accessor."""
+    return self.__content
+
   def replaceUsedNameExact(self, name, tokens):
     """Replace exact instances of given used name with a list of tokens."""
     ret = 0
@@ -46,21 +59,24 @@ class GlslBlockStatement(GlslBlock):
     for ii in range(len(self.__content)):
       vv = self.__content[ii]
       if name is vv:
-        self.__content[ii : ii + 1] = tokens
+        # Perform deep copy of tokens to prevent same object existing in multiple places.
+        self.__content[ii : ii + 1] = [GlslParen("(")] + copy.deepcopy(tokens) + [GlslParen(")")]
         return True
     return False
-
-  def getTerminator(self):
-    """Accessor."""
-    return self.__terminator
-
-  def getTokens(self):
-    """Accessor."""
-    return self.__content
 
   def setTerminator(self, op):
     """Set terminating character."""
     self.__terminator = op
+
+  def simplify(self):
+    """Run simplification pass on the statement."""
+    ret = 0
+    while True:
+      content = simplify_pass(self.__content)
+      if content == self.__content:
+        break
+      ret += 1
+    return ret
 
   def __str__(self):
     """String representation."""
@@ -111,4 +127,19 @@ def glsl_parse_statements(source):
   for ii in lst[:-1]:
     if ";" != ii.getTerminator():
       raise RuntimeError("statement list missing terminator(s) in-between")
+  return lst
+
+def simplify_pass(lst):
+  """Run simplification pass on tokens."""
+  # Reached end-of-line.
+  if 1 >= len(lst):
+    return lst
+  # Parens at outer edge are removed.
+  if (3 >= len(lst)) and (lst[0] == "(") and (lst[-1] == ")"):
+    return simplify_pass(lst[1:-1])
+  # More complex case, build tree and run simplify pass from there.
+  tree = token_tree_build(lst)
+  if token_tree_simplify(tree):
+    return tree.flatten()
+  # Nothign to simplify, just return original tree.
   return lst

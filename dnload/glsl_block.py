@@ -260,12 +260,23 @@ class GlslBlock:
     for ii in self._children:
       ii.selectSwizzle(op)
 
+  def simplify(self):
+    """Default implementation of simplify just recurses into children."""
+    return self.simplifyChildren()
+
+  def simplifyChildren(self):
+    """Recursively run simplify."""
+    ret = 0
+    for ii in self._children:
+      ret += ii.simplify()
+    return ret
+
   def setParent(self, op):
     """Set parent of this block."""
     if op and (not op.hasChild(self)):
       raise RuntimeError("GlslBlock::setParent() hierarchy inconsistency")
     self.__parent = op
-    
+
 ########################################
 # Functions ############################
 ########################################

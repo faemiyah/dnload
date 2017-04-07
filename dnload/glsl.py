@@ -50,6 +50,7 @@ class Glsl:
     combines = None
     inlines = None
     renames = None
+    simplifys = None
     # Expand unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -57,13 +58,19 @@ class Glsl:
     # Rename is optional.
     if "full" == mode:
       inlines = 0
-      # Perform inlining passes. Last pass that does not break anything will return merged variable names.
+      # Perform inlining passes.
       while True:
         inline_pass_rv = self.inlinePass()
+        # Last pass will return a listing of merged variable names.
         if is_listing(inline_pass_rv):
           merged = inline_pass_rv
           break
+        # Otherwise what was returned was the number of inlinings done.
         inlines += inline_pass_rv
+      # Perform simplification passes.
+      simplifys = 0
+      for ii in self.__sources:
+        simplifys += ii.simplify()
       # Print number of inout merges.
       if is_verbose():
         inout_merges = []
@@ -104,6 +111,8 @@ class Glsl:
       operations = []
       if inlines:
         operations += ["%i inlines" % (inlines)]
+      if simplifys:
+        operations += ["%i simplifys" % (simplifys)]
       if renames:
         operations += ["%i renames" % (renames)]
       if combines:
