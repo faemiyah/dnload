@@ -18,25 +18,43 @@ class GlslOperator:
     return self.__operator
 
   def getPrecedence(self):
-    """Get operator precedence. Higher is better."""
-    if self.__operator in ("?",):
-      return 1
-    elif self.__operator in ("||",):
-      return 2
-    elif self.__operator in ("^^",):
-      return 3
-    elif self.__operator in ("&&",):
-      return 4
-    elif self.__operator in ("==", "!="):
-      return 5
-    elif self.__operator in ("<", "<=", ">", ">="):
-      return 6
-    elif self.__operator in ("+", "-"):
-      return 7
-    elif self.__operator in ("*", "/"):
-      return 8
-    elif self.__operator in ("++", "--"):
-      return 9
+    """Get operator precedence. Lower happens first."""
+    ret = 0
+    if self.__operator in ("++", "--", "!"):
+      return ret
+    ret += 1
+    if self.__operator in ("*", "/"):
+      return ret
+    ret += 1
+    if self.__operator in ("*", "/"):
+      return ret
+    ret += 1
+    if self.__operator in ("+", "-"):
+      return ret
+    ret += 1
+    if self.__operator in ("<", "<=", ">", ">="):
+      return ret
+    ret += 1
+    if self.__operator in ("==", "!="):
+      return ret
+    ret += 1
+    if self.__operator in ("&&",):
+      return ret
+    ret += 1
+    if self.__operator in ("^^",):
+      return ret
+    ret += 1
+    if self.__operator in ("||",):
+      return ret
+    ret += 1
+    if self.__operator in ("?", ":"):
+      return ret
+    ret += 1
+    if self.__operator in ("=", "+=", "-=", "*=", "/="):
+      return ret
+    ret += 1
+    if self.__operator in (",",):
+      return ret
     raise RuntimeError("operator '%s' has no precedence" % (str(self)))
 
   def isAssignment(self):
@@ -46,7 +64,7 @@ class GlslOperator:
   def incorporate(self, operator):
     """Try to incorporate another operator."""
     if operator.getOperator() == "=":
-      if self.__operator in ("+", "-", "*", "/", "<", ">", "="):
+      if self.__operator in ("+", "-", "*", "/", "<", ">", "=", "!"):
         self.__operator += operator.getOperator()
         return True
     elif operator.getOperator() == "+":
@@ -56,6 +74,18 @@ class GlslOperator:
     elif operator.getOperator() == "-":
       if self.__operator == "-":
         self.__operator = "--"
+        return True
+    elif operator.getOperator() == "&":
+      if self.__operator == "&":
+        self.__operator = "&&"
+        return True
+    elif operator.getOperator() == "^":
+      if self.__operator == "^":
+        self.__operator = "^^"
+        return True
+    elif operator.getOperator() == "|":
+      if self.__operator == "|":
+        self.__operator = "||"
         return True
     return False
 
@@ -85,7 +115,7 @@ class GlslOperator:
 
 def interpret_operator(source):
   """Try to interpret an operator."""
-  if source in ("+", "-", "*", "/", "<", ">", "="):
+  if source in ("+", "-", "*", "/", "<", ">", "=", "!", "&", "^", "|", "?", ":" ","):
     return GlslOperator(source)
   return None
 
