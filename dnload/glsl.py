@@ -45,7 +45,7 @@ class Glsl:
     ret = sorted(lst, key=lambda x: x[1], reverse=True)
     return map(lambda x: x[0], ret)
 
-  def crunch(self, mode = "full", max_renames = -1):
+  def crunch(self, mode = "full", max_renames = -1, max_simplifys = -1):
     """Crunch the source code to smaller state."""
     combines = None
     inlines = None
@@ -70,7 +70,9 @@ class Glsl:
       # Perform simplification passes.
       simplifys = 0
       for ii in self.__sources:
-        simplifys += ii.simplify()
+        if (0 <= max_simplifys) and (simplifys >= max_simplifys):
+          break
+        simplifys += ii.simplify(max_simplifys)
       # Print number of inout merges.
       if is_verbose():
         inout_merges = []

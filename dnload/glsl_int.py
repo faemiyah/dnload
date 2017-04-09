@@ -9,7 +9,15 @@ class GlslInt:
 
   def __init__(self, source):
     """Constructor."""
-    self.__string = source
+    if source[0] in ("-", "+"):
+      self.__sign = source[0]
+      self.__string = source[1:]
+      # Plus sign does not need preservation.
+      if self.__sign == "+":
+        self.__sign = ""
+    else:
+      self.__sign = ""
+      self.__string = source
     self.__number = int(source)
 
   def format(self, force):
@@ -20,9 +28,45 @@ class GlslInt:
     """Integer representation."""
     return self.__number
 
+  def getPrecision(self):
+    """Get precision - number of numbers to express."""
+    return len(self.__string.strip("+-0"))
+
   def getStr(self):
     """Access actual string."""
-    return self.__string
+    return self.__sign + self.__string
+
+  def truncatePrecision(self, op):
+    """Truncate numeric precision to some value of expressed numbers."""
+    # If the number is 0, it has no precision.
+    if self.__number == 0:
+      return 0
+    # Preserve zeroes in front. They are not counted.
+    zeroes_front = ""
+    rest = self.__string
+    for ii in range(len(rest)):
+      if self.__string[ii] != "0":
+        if ii > 0:
+          zeroes_front = rest[:ii]
+          rest = rest[ii:]
+        break
+    # Preserve zeroes in back. Also not counted.
+    zeroes_back = ""
+    for ii in reversed(range(len(rest))):
+      if rest[ii] != "0":
+        if ii < (len(rest) - 1):
+          zeroes_back = rest[ii + 1:]
+          rest = rest[:ii + 1]
+        break
+    # If length of rest is smaller than truncation, just return it.
+    if len(rest) <= op:
+      return len(rest)
+    # Round the result.
+    divisor = pow(10, len(rest) - op)
+    rest = str(int(round(float(rest) / float(divisor))) * divisor)
+    self.__string = zeroes_front + rest + zeroes_back
+    self.__number = int(self.__sign + self.__string)
+    return op
 
   def __str__(self):
     """String representation."""
@@ -34,7 +78,7 @@ class GlslInt:
 
 def interpret_int(source):
   """Try to interpret integer."""
-  if re.match(r'^\d+$', source):
+  if re.match(r'^\-?\d+$', source):
     return GlslInt(source)
   return None
 

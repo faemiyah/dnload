@@ -9,6 +9,17 @@ class GlslOperator:
     """Constructor."""
     self.__operator = operator
 
+  def applyOperator(self, lhs, rhs):
+    if self.__operator == "*":
+      return lhs * rhs
+    elif self.__operator == "/":
+      return lhs / rhs
+    elif self.__operator == "+":
+      return lhs + rhs
+    elif self.__operator == "-":
+      return lhs - rhs
+    raise RuntimeError("don't know how to apply operator '%s'" % (self.__operator))
+
   def format(self, force):
     """Return formatted output."""
     return self.__operator

@@ -260,15 +260,17 @@ class GlslBlock:
     for ii in self._children:
       ii.selectSwizzle(op)
 
-  def simplify(self):
+  def simplify(self, max_simplifys):
     """Default implementation of simplify just recurses into children."""
-    return self.simplifyChildren()
+    return self.simplifyChildren(max_simplifys)
 
-  def simplifyChildren(self):
+  def simplifyChildren(self, max_simplifys):
     """Recursively run simplify."""
     ret = 0
     for ii in self._children:
-      ret += ii.simplify()
+      cnt = ii.simplify(max_simplifys)
+      max_simplifys -= cnt
+      ret += cnt
     return ret
 
   def setParent(self, op):

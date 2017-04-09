@@ -68,10 +68,12 @@ class GlslBlockStatement(GlslBlock):
     """Set terminating character."""
     self.__terminator = op
 
-  def simplify(self):
+  def simplify(self, max_simplifys):
     """Run simplification pass on the statement."""
     ret = 0
     while True:
+      if (0 <= max_simplifys) and (ret >= max_simplifys):
+        break
       content = simplify_pass(self.__content)
       if not content and self.__content:
         raise RuntimeError("content '%s' simplified to '%s'" % (str(map(str, self.__content)), str(content)))

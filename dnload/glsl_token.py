@@ -1,5 +1,9 @@
 from dnload.common import is_listing
 from dnload.glsl_access import is_glsl_access
+from dnload.glsl_float import interpret_float
+from dnload.glsl_float import is_glsl_float
+from dnload.glsl_int import interpret_int
+from dnload.glsl_int import is_glsl_int
 from dnload.glsl_name import is_glsl_name
 from dnload.glsl_operator import is_glsl_operator
 from dnload.glsl_paren import is_glsl_paren
@@ -18,18 +22,9 @@ class GlslToken:
     self.__left = []
     self.__middle = []
     self.__right = []
-    # Prevent degeneration, collapse tokens with only single middle element.
-    if is_glsl_token(token):
-      single = token.getSingleChild()
-      if is_glsl_token(single):
-        single.setParent(None)
-      elif is_listing(single):
-        for ii in single:
-          if not is_glsl_token(ii):
-            raise RuntimeError("non-token '%s' acquired from getSingleChild on '%s'" % (str(single), str(self)))
-          ii.setParent(None)
-      self.addMiddle(single)
-    elif token:
+    # Prevent degeneration, collapse chains of single tokens.
+    if token:
+      token = token_descend(token)
       self.addMiddle(token)
 
   def addLeft(self, op):
@@ -73,6 +68,34 @@ class GlslToken:
     self.__right += [op]
     op.setParent(self)
 
+  def applyOperator(self, oper, left, right):
+    """Apply operator, collapsing into one number if posssible."""
+    if (not is_glsl_number(left)) or (not is_glsl_number(right)):
+      return False
+    # Resolve to float if either is a float.
+    if is_glsl_float(left) or is_glsl_float(right):
+      left_number = left.getFloat()
+      right_number = right.getFloat()
+    else:
+      left_number = left.getInt()
+      right_number = right.getInt()
+    if (left_number is None) or (right_number is None):
+      raise RuntimeError("error getting number values")
+    # Perform operation.
+    result_number = oper.applyOperator(left_number, right_number)
+    # Remove sides from parent.
+    self.__left[0].removeFromParent()
+    self.__right[0].removeFromParent()
+    if is_glsl_float(left) or is_glsl_float(right):
+      number_string = str(float(result_number))
+      (integer_part, decimal_part) = number_string.split(".")
+      result_number = interpret_float(integer_part, decimal_part)
+    else:
+      result_number = interpret_int(str(result_number))
+    result_number.truncatePrecision(max(left.getPrecision(), right.getPrecision()))
+    self.__middle = [result_number]
+    return True
+
   def flatten(self):
     """Flatten this token into a list."""
     ret = []
@@ -83,8 +106,10 @@ class GlslToken:
     for ii in self.__middle:
       if is_glsl_token(ii):
         ret += ii.flatten()
-      else:
+      elif ii:
         ret += [ii]
+      else:
+        raise RuntimeError("empty element found during flatten")
     # Right.
     for ii in self.__right:
       ret += ii.flatten()
@@ -153,12 +178,48 @@ class GlslToken:
       left = self.__left[0].getSingleChild()
       right = self.__right[0].getSingleChild()
       if ("(" == left) and (")" == right):
-        if (1 >= len(self.__middle)) and (1 >= len(self.__middle[0].flatten())):
-          self.__left[0].removeFromParent()
-          self.__right[0].removeFromParent()
-          self.__left = []
-          self.__right = []
+        if len(self.__middle) == 1:
+          middle = self.__middle[0]
+          if (not is_glsl_token(middle)) or (len(middle.flatten()) == 1):
+            self.__left[0].removeFromParent()
+            self.__right[0].removeFromParent()
+            self.__left = []
+            self.__right = []
+            return True
+    # Perform operations, highest precedence first due to tree shape.
+    if (len(self.__middle) == 1):
+      oper = self.__middle[0]
+      if is_glsl_operator(oper) and (len(self.__left) == 1) and (len(self.__right) == 1):
+        left = self.__left[0].getSingleChild()
+        right = self.__right[0].getSingleChild()
+        # Try to collapse obvious multiply or divide by ones.
+        if oper.getOperator() == "*":
+          if is_glsl_number(left) and (left.getFloat() == 1.0):
+            middle = self.__right[0]
+            self.__left[0].removeFromParent()
+            middle.removeFromParent()
+            self.__middle = []
+            self.addMiddle(middle)
+            return True
+          if is_glsl_number(right) and (right.getFloat() == 1.0):
+            middle = self.__left[0]
+            self.__right[0].removeFromParent()
+            middle.removeFromParent()
+            self.__middle = []
+            self.addMiddle(middle)
+            return True
+        elif oper.getOperator() == "/":
+          right = self.__right[0].getSingleChild()
+          if is_glsl_number(right) and (right.getFloat() == 1.0):
+            middle = self.__left[0]
+            self.__right[0].removeFromParent()
+            middle.removeFromParent()
+            self.__middle = []
+            return True
+        # Fall back to normal method
+        if self.applyOperator(oper, left, right):
           return True
+    # Recurse down.
     for ii in self.__left:
       if ii.simplify():
         return True
@@ -187,9 +248,35 @@ def get_single_token(op):
     return op.getSingleChild()
   return None
 
+def is_glsl_number(op):
+  """Tell if given object is a number."""
+  if is_glsl_float(op) or is_glsl_int(op):
+    return True
+  return False
+
 def is_glsl_token(op):
   """Tell if given object is a GLSL token."""
   return isinstance(op, GlslToken)
+
+def token_descend(token):
+  """Descend token or token list."""
+  # Single element case.
+  if is_glsl_token(token):
+    token.setParent(None)
+    single = token.getSingleChild()
+    if single == token:
+      return token
+    return token_descend(single)
+  # Listing case.
+  if is_listing(token):
+    for ii in token:
+      ii.setParent(None)
+      if not is_glsl_token(ii):
+        raise RuntimeError("non-token '%s' found in descend" % (str(ii)))
+    if len(token) == 1:
+      return token_descend(token[0])
+  # Could not descend.
+  return token
 
 def token_list_create(lst):
   """Build a token list from a given listing, ensuring every element is a token."""
