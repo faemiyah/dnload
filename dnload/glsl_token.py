@@ -189,7 +189,8 @@ class GlslToken:
     # Perform operations, highest precedence first due to tree shape.
     if (len(self.__middle) == 1):
       oper = self.__middle[0]
-      if is_glsl_operator(oper) and (len(self.__left) == 1) and (len(self.__right) == 1):
+      # FIXME: Not working correctly. Debug and re-enable.
+      if is_glsl_operator(oper) and (len(self.__left) == 1) and (len(self.__right) == 1) and False:
         left = self.__left[0].getSingleChild()
         right = self.__right[0].getSingleChild()
         # Try to collapse obvious multiply or divide by ones.
