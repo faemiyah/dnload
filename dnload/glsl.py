@@ -72,7 +72,7 @@ class Glsl:
       for ii in self.__sources:
         if (0 <= max_simplifys) and (simplifys >= max_simplifys):
           break
-        simplifys += ii.simplify(max_simplifys)
+        simplifys += simplify_pass(ii, max_simplifys - simplifys)
       # Print number of inout merges.
       if is_verbose():
         inout_merges = []
@@ -489,3 +489,12 @@ def find_parent_scope(block):
     if is_glsl_block_control(parent) or is_glsl_block_function(parent):
       return parent
     block = parent
+
+def simplify_pass(block, max_simplifys):
+  """Run simplify pass starting from given root block."""
+  ret = 0
+  for ii in flatten(block):
+    if (max_simplifys >= 0) and (ret >= max_simplifys):
+      break
+    ret += ii.simplify(max_simplifys - ret)
+  return ret

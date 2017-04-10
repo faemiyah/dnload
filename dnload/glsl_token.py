@@ -6,6 +6,7 @@ from dnload.glsl_int import interpret_int
 from dnload.glsl_int import is_glsl_int
 from dnload.glsl_name import is_glsl_name
 from dnload.glsl_operator import is_glsl_operator
+from dnload.glsl_operator import interpret_operator
 from dnload.glsl_paren import is_glsl_paren
 from dnload.glsl_type import is_glsl_type
 
@@ -72,6 +73,9 @@ class GlslToken:
     """Apply operator, collapsing into one number if posssible."""
     if (not is_glsl_number(left)) or (not is_glsl_number(right)):
       return False
+    # If operator is division and we are a right child of a division, multiply instead.
+    if (oper == "/") and self.isSingleChildRight():
+      oper = interpret_operator("*")
     # Resolve to float if either is a float.
     if is_glsl_float(left) or is_glsl_float(right):
       left_number = left.getFloat()
@@ -140,6 +144,18 @@ class GlslToken:
     # Should never happen.
     raise RuntimeError("token has no content")
 
+  def getSingleChildRight(self):
+    """Get right child if it's a single token."""
+    if (len(self.__right) == 1) and is_glsl_token(self.__right[0]):
+      return self.__right[0]
+    return None
+
+  def isSingleChildRight(self):
+    """Tell if this is the single, right child of its parent."""
+    if self.__parent and (self.__parent.getSingleChildRight() == self):
+      return True
+    return False
+
   def removeChild(self, op):
     """Remove a child from this."""
     for ii in range(len(self.__left)):
@@ -189,8 +205,7 @@ class GlslToken:
     # Perform operations, highest precedence first due to tree shape.
     if (len(self.__middle) == 1):
       oper = self.__middle[0]
-      # FIXME: Not working correctly. Debug and re-enable.
-      if is_glsl_operator(oper) and (len(self.__left) == 1) and (len(self.__right) == 1) and False:
+      if is_glsl_operator(oper) and (len(self.__left) == 1) and (len(self.__right) == 1):
         left = self.__left[0].getSingleChild()
         right = self.__right[0].getSingleChild()
         # Try to collapse obvious multiply or divide by ones.

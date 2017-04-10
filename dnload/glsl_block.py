@@ -262,16 +262,7 @@ class GlslBlock:
 
   def simplify(self, max_simplifys):
     """Default implementation of simplify just recurses into children."""
-    return self.simplifyChildren(max_simplifys)
-
-  def simplifyChildren(self, max_simplifys):
-    """Recursively run simplify."""
-    ret = 0
-    for ii in self._children:
-      cnt = ii.simplify(max_simplifys)
-      max_simplifys -= cnt
-      ret += cnt
-    return ret
+    return 0
 
   def setParent(self, op):
     """Set parent of this block."""
