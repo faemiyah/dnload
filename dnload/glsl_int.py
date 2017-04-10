@@ -24,6 +24,10 @@ class GlslInt:
     """Return formatted output."""
     return str(self.__number)
 
+  def getFloat(self):
+    """Floating point representation."""
+    return float(self.__number)
+
   def getInt(self):
     """Integer representation."""
     return self.__number
