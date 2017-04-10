@@ -650,7 +650,9 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
   if asm.hasSectionAlignment():
     asm.getSectionAlignment().create_content(assembler)
   bss_section.create_content(assembler, "end")
-# TODO: Re-enable this block later.
+# TODO: Re-enable this block later after reworking it.
+# TODO: How this needs to work - must incorporate and sort extra symbols like normal extra sources.
+# TODO: Must detect .global names and preserve those, then rename others to prevent name clash.
 #  # Assemble content without headers to check for missing symbols.
 #  fname = output_file + ".content"
 #  if asm.write(fname + ".S", assembler):
