@@ -646,8 +646,23 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     segments_tail += [segment_symtab]
   segments_tail += [segment_interp, segment_strtab]
   segments = merge_segments(segments_head) + load_segments + merge_segments(segments_tail)
-  # Build headers.
-  fname = output_file + ".headers"
+  # Create content of earlier sections and write source when done.
+  if asm.hasSectionAlignment():
+    asm.getSectionAlignment().create_content(assembler)
+  bss_section.create_content(assembler, "end")
+# TODO: Re-enable this block later.
+#  # Assemble content without headers to check for missing symbols.
+#  fname = output_file + ".content"
+#  if asm.write(fname + ".S", assembler):
+#    assembler.assemble(fname + ".S", fname + ".o")
+#    und_symbols = readelf_list_und_symbols(fname + ".o")
+#    additional_file = g_symbol_sources.compile_asm(compiler, assembler, und_symbols, output_file + ".extra")
+#    # If additional code was needed, add it to link.
+#    if additional_file:
+#      link_files += [additional_file]
+#    link_files += [fname + ".o"]
+  # Write headers out first.
+  fname = output_file + ".final"
   fd = open(fname + ".S", "w")
   header_sizes = 0
   for ii in segments:
@@ -655,31 +670,23 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     header_sizes += ii.size()
   if is_verbose():
     print("Size of headers: %i bytes" % (header_sizes))
+  # Write content after headers.
+  asm.write(fd, assembler)
   fd.close()
   if is_verbose():
     print("Wrote assembler source: '%s'" % (fname + ".S"))
+  # Assemble headers
   assembler.assemble(fname + ".S", fname + ".o")
   link_files = [fname + ".o"]
-  # Create content of earlier sections and write source when done.
-  if asm.hasSectionAlignment():
-    asm.getSectionAlignment().create_content(assembler)
-  bss_section.create_content(assembler, "end")
-  # Assemble content without headers to check for missing symbols.
-  fname = output_file + ".content"
-  if asm.write(fname + ".S", assembler):
-    assembler.assemble(fname + ".S", fname + ".o")
-    und_symbols = readelf_list_und_symbols(fname + ".o")
-    additional_file = g_symbol_sources.compile_asm(compiler, assembler, und_symbols, output_file + ".extra")
-    # If additional code was needed, add it to link.
-    if additional_file:
-      link_files += [additional_file]
-    link_files += [fname + ".o"]
   # Link all generated files.
   linker.generate_linker_script(output_file + ".ld", True)
   linker.set_linker_script(output_file + ".ld")
   linker.link_binary(link_files, output_file + ".bin")
   run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
-  readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
+  if bss_section.get_alignment():
+    readelf_zero(output_file + ".unprocessed", output_file + ".stripped")
+  else:
+    readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
 
 def generate_elfling(output_file, compiler, elfling, definition_ld):
   """Generate elfling stub."""
@@ -787,23 +794,47 @@ def readelf_list_und_symbols(op):
     return match
   return None
 
-def readelf_truncate(src, dst):
-  """Truncate file to size reported by readelf first PT_LOAD file size."""
+def readelf_probe(src, dst, size):
+  """Probe ELF size, copy source to destination on equal size and return None, or return truncation size."""
   info = readelf_get_info(src)
-  size = os.path.getsize(src)
   truncate_size = info["size"]
   if size == truncate_size:
     if is_verbose():
-      print("Executable size equals PT_LOAD size (%u bytes), no truncation necessary." % (size))
+      print("Executable size equals PT_LOAD size (%u bytes), no operation necessary." % (size))
     shutil.copy(src, dst)
-  else:
-    if is_verbose():
-      print("Truncating file size to PT_LOAD size: %u bytes" % (truncate_size))
-    rfd = open(src, "rb")
-    wfd = open(dst, "wb")
-    wfd.write(rfd.read(truncate_size))
-    rfd.close()
-    wfd.close()
+    return None
+  return truncate_size
+
+def readelf_truncate(src, dst):
+  """Truncate file to size reported by readelf first PT_LOAD file size."""
+  size = os.path.getsize(src)
+  truncate_size = readelf_probe(src, dst, size)
+  if truncate_size is None:
+    return
+  if is_verbose():
+    print("Truncating file size to PT_LOAD size: %u bytes" % (truncate_size))
+  rfd = open(src, "rb")
+  wfd = open(dst, "wb")
+  wfd.write(rfd.read(truncate_size))
+  rfd.close()
+  wfd.close()
+
+def readelf_zero(src, dst):
+  """Zero bytes in ELF file startiong from first PT_LOAD size."""
+  size = os.path.getsize(src)
+  truncate_size = readelf_probe(src, dst, size)
+  if truncate_size is None:
+    return
+  if is_verbose():
+    print("Filling file with 0 after PT_LOAD size: %u bytes" % (truncate_size))
+  rfd = open(src, "rb")
+  wfd = open(dst, "wb")
+  wfd.write(rfd.read(truncate_size))
+  rfd.close()
+  while truncate_size < size - 1:
+    wfd.write("\0")
+    truncate_size += 1
+  wfd.close()
 
 def replace_conflicting_library(symbols, src_name, dst_name):
   """Replace conflicting library reference in a symbol set if necessary."""
