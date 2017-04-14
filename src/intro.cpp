@@ -25,11 +25,13 @@ namespace po = boost::program_options;
 // Define ##############################
 //######################################
 
+#if !defined(DISPLAY_MODE)
 /// Screen mode.
 ///
 /// Negative values windowed.
 /// Positive values fullscreen.
 #define DISPLAY_MODE -720
+#endif
 
 /// \cond
 #if (0 > (DISPLAY_MODE))
@@ -119,7 +121,7 @@ static float g_up_z = STARTING_UP_Z;
 /// \endcond
 
 /// Developer mode global toggle.
-static uint8_t g_flag_developer = 0;
+static bool g_flag_developer = false;
 
 static const char *usage = ""
 "Usage: intro <options>\n"

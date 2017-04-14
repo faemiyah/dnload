@@ -514,13 +514,13 @@ def compress_file(compression, pretty, src, dst):
     str_tail = "tail -n+2"
     str_cleanup = ";rm ~;exit"
   if "lzma" == compression:
-    command = ["xz", "--format=lzma", "--lzma1=preset=9,lc=1,lp=0,pb=0", "--stdout"]
+    command = ["xz", "--format=lzma", "--lzma1=preset=9,lc=1,lp=0,nice=273,pb=0", "--stdout"]
     header = "HOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   elif "raw" == compression:
     command = ["xz", "-9", "--extreme", "--format=raw", "--stdout"]
     header = "HOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   elif "xz" == compression:
-    command = ["xz", "--format=xz", "--lzma2=preset=9,lc=1,pb=0", "--stdout"]
+    command = ["xz", "--format=xz", "--lzma2=preset=9,lc=1,nice=273,pb=0", "--stdout"]
     header = "HOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   else:
     raise RuntimeError("unknown compression format '%s'" % compression)
@@ -926,9 +926,7 @@ def main():
   """Main function."""
   global g_osarch
   global g_osname
-  assembler = None
   cross_compile = False
-  compiler = None
   compression = str(PlatformVar("compression"))
   default_assembler_list = ["/usr/local/bin/as", "as"]
   default_compiler_list = ["g++6", "g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
@@ -942,34 +940,27 @@ def main():
   extra_compiler_flags = []
   extra_linker_flags = []
   include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
-  libraries = []
   library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
-  linker = None
-  objcopy = None
   opengl_reason = None
   opengl_version = None
   output_file = None
-  preprocessor = None
-  rpath = []
   sdl_version = 2
-  source_files = []
-  strip = None
-  target_search_path = []
 
   parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (sys.argv[0]), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
   parser.add_argument("--32", dest = "m32", action = "store_true", help = "Try to target 32-bit version of the architecture if on a 64-bit system.")
   parser.add_argument("-a", "--abstraction-layer", choices = ("sdl1", "sdl2"), help = "Specify abstraction layer to use instead of autodetecting.")
-  parser.add_argument("-A", "--assembler", help = "Try to use given assembler executable as opposed to autodetect.")
-  parser.add_argument("-B", "--objcopy", help = "Try to use given objcopy executable as opposed to autodetect.")
+  parser.add_argument("-A", "--assembler", default = None, help = "Try to use given assembler executable as opposed to autodetect.")
+  parser.add_argument("-B", "--objcopy", default = None, help = "Try to use given objcopy executable as opposed to autodetect.")
   parser.add_argument("-c", "--create-binary", action = "store_true", help = "Create output file, determine output file name from input file name.")
-  parser.add_argument("-C", "--compiler", help = "Try to use given compiler executable as opposed to autodetect.")
-  parser.add_argument("-d", "--define", default = "USE_LD", help = "Definition to use for checking whether to use 'safe' mechanism instead of dynamic loading.\n(default: %(default)s)")
+  parser.add_argument("-C", "--compiler", default = None, help = "Try to use given compiler executable as opposed to autodetect.")
+  parser.add_argument("-d", "--definition-ld", default = "USE_LD", help = "Definition to use for checking whether to use 'safe' mechanism instead of dynamic loading.\n(default: %(default)s)")
+  parser.add_argument("-D", "--define", default = [], action = "append", help = "Additional preprocessor definition.")
   parser.add_argument("-e", "--elfling", action = "store_true", help = "Use elfling packer if available.")
   parser.add_argument("-h", "--help", action = "store_true", help = "Print this help string and exit.")
-  parser.add_argument("-I", "--include-directory", action = "append", help = "Add an include directory to be searched for header files.")
-  parser.add_argument("-k", "--linker", help = "Try to use given linker executable as opposed to autodetect.")
-  parser.add_argument("-l", "--library", action = "append", help = "Add a library to be linked against.")
-  parser.add_argument("-L", "--library-directory", action = "append", help = "Add a library directory to be searched for libraries when linking.")
+  parser.add_argument("-I", "--include-directory", default = [], action = "append", help = "Add an include directory to be searched for header files.")
+  parser.add_argument("-k", "--linker", default = None, help = "Try to use given linker executable as opposed to autodetect.")
+  parser.add_argument("-l", "--library", default = [], action = "append", help = "Add a library to be linked against.")
+  parser.add_argument("-L", "--library-directory", default = [], action = "append", help = "Add a library directory to be searched for libraries when linking.")
   parser.add_argument("-m", "--method", default = "maximum", choices = ("vanilla", "dlfcn", "hash", "maximum"), help = "Method to use for decreasing output file size:\n\tvanilla:\n\t\tProduce binary normally, use no tricks except unpack header.\n\tdlfcn:\n\t\tUse dlopen/dlsym to decrease size without dependencies to any specific object format.\n\thash:\n\t\tUse knowledge of object file format to perform 'import by hash' loading, but do not break any specifications.\n\tmaximum:\n\t\tUse all available techniques to decrease output file size. Resulting file may violate object file specification.\n(default: %(default)s)")
   parser.add_argument("--march", type = str, help = "When compiling code, use given architecture as opposed to autodetect.")
   parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
@@ -981,42 +972,28 @@ def main():
   parser.add_argument("-o", "--output-file", help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
-  parser.add_argument("--preprocessor", help = "Try to use given preprocessor executable as opposed to autodetect.")
+  parser.add_argument("--preprocessor", default = None, help = "Try to use given preprocessor executable as opposed to autodetect.")
   parser.add_argument("--rand", default = "bsd", choices = ("bsd", "gnu"), help = "rand() implementation to use.\n(default: %(default))")
-  parser.add_argument("--rpath", action = "append", help = "Extra rpath locations for linking.")
+  parser.add_argument("--rpath", default = [], action = "append", help = "Extra rpath locations for linking.")
   parser.add_argument("--safe-symtab", action = "store_true", help = "Handle DT_SYMTAB in a safe manner.")
-  parser.add_argument("-s", "--search-path", action = "append", help = "Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
-  parser.add_argument("-S", "--strip-binary", help = "Try to use given strip executable as opposed to autodetect.")
+  parser.add_argument("-s", "--search-path", default = [], action = "append", help = "Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
+  parser.add_argument("-S", "--strip-binary", default = None, help = "Try to use given strip executable as opposed to autodetect.")
   parser.add_argument("-t", "--target", default = "dnload.h", help = "Target header file to look for.\n(default: %(default)s)")
   parser.add_argument("-u", "--unpack-header", choices = ("lzma", "xz"), default = compression, help = "Unpack header to use.\n(default: %(default)s)")
   parser.add_argument("-v", "--verbose", action = "store_true", help = "Print more about what is being done.")
   parser.add_argument("-V", "--version", action = "store_true", help = "Print version and exit.")
-  parser.add_argument("source", nargs = "*", help = "Source file(s) to preprocess and/or compile.")
+  parser.add_argument("source", default = [], nargs = "*", help = "Source file(s) to preprocess and/or compile.")
  
   args = parser.parse_args()
-  if args.assembler:
-    assembler = args.assembler
   if args.create_binary:
     output_file = True
-  if args.compiler:
-    compiler = args.compiler
   if args.elfling:
     elfling = True
   if args.help:
     print(parser.format_help().strip())
     return 0
-  if args.include_directory:
-    include_directories += args.include_directory
-  if args.linker:
-    linker = args.linker
-  if args.library:
-    libraries += args.library
-  if args.library_directory:
-    library_directories += args.library_directory
   if args.nice_exit:
     definitions += ["DNLOAD_NO_DEBUGGER_TRAP"]
-  if args.objcopy:
-    objcopy = args.objcopy
   if args.operating_system:
     new_osname = platform_map(args.operating_system.lower())
     if new_osname != g_osname:
@@ -1024,18 +1001,8 @@ def main():
       g_osname = new_osname
   if args.output_file:
     output_file = args.output_file
-  if args.preprocessor:
-    preprocessor = args.preprocessor
-  if args.rpath:
-    rpath = args.rpath
   if args.safe_symtab:
     definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
-  if args.search_path:
-    target_search_path += args.search_path
-  if args.source:
-    source_files += args.source
-  if args.strip_binary:
-    strip = args.strip_binary
   if args.unpack_header:
     compression = args.unpack_header
   if args.verbose:
@@ -1059,16 +1026,29 @@ def main():
     replace_platform_variable("march", args.march)
 
   abstraction_layer = listify(args.abstraction_layer)
-  definition_ld = args.define
+  assembler = args.assembler
+  compiler = args.compiler
+  definition_ld = args.definition_ld
+  definitions += args.define
   compilation_mode = args.method
   glsl_renames = args.glsl_renames
   glsl_simplifys = args.glsl_simplifys
   glsl_mode = args.glsl_mode
   implementation_rand = args.rand
+  include_directories += args.include_directory
+  libraries = args.library
+  library_directories += args.library_directory
+  linker = args.linker
   nice_filedump = args.nice_filedump
   no_glesv2 = args.no_glesv2
+  objcopy = args.objcopy
+  preprocessor = args.preprocessor
+  rpath = args.rpath
+  source_files = args.source
+  strip = args.strip_binary
   symbol_prefix = args.call_prefix
   target = args.target
+  target_search_path = args.search_path
 
   if not compilation_mode in ("vanilla", "dlfcn", "hash", "maximum"):
     raise RuntimeError("unknown method '%s'" % (compilation_mode))
