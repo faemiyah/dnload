@@ -13,7 +13,10 @@ void DataBits::addBit(bool op)
     m_data.push_back(0);
   }
 
-  m_data.back() |= op ? static_cast<uint8_t>(1 << (m_output_bit - 1)) : 0;
+  if(op)
+  {
+    m_data.back() |= static_cast<uint8_t>(1 << (m_output_bit - 1));
+  }
   --m_output_bit;
 }
 

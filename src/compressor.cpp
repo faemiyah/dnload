@@ -279,7 +279,7 @@ bool Compressor::rebase(bool rescale)
   max_value /= min_gcd;
   min_value /= min_gcd;
 
-  uint8_t best_mul = 1;
+  unsigned best_mul = 1;
 
   // Scale to fit squarely around default weight.
   if(rescale)
@@ -305,7 +305,7 @@ bool Compressor::rebase(bool rescale)
         if(error_sqr < best_error)
         {
           best_error = error_sqr;
-          best_mul = static_cast<uint8_t>(ii);
+          best_mul = ii;
         }
       }
     }

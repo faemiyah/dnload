@@ -4,6 +4,7 @@
 #include "probability.hpp"
 #include "model.hpp"
 
+#include <memory>
 #include <vector>
 
 /// Define to trivialize compression.
