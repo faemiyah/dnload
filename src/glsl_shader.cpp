@@ -204,7 +204,7 @@ bool GlslShader::compile(bool pipeline)
 
   if(pipeline)
   {
-    m_pipeline_id = glCreateShaderProgramv(m_type, glsl_parts.size(), &(glsl_parts[0]));
+    m_pipeline_id = glCreateShaderProgramv(m_type, static_cast<GLsizei>(glsl_parts.size()), &(glsl_parts[0]));
 
     if(!GlslProgram::get_program_link_status(m_pipeline_id))
     {
@@ -215,7 +215,7 @@ bool GlslShader::compile(bool pipeline)
   else
   {
     m_id = glCreateShader(m_type);
-    glShaderSource(m_id, glsl_parts.size(), &(glsl_parts[0]), NULL);
+    glShaderSource(m_id, static_cast<GLsizei>(glsl_parts.size()), &(glsl_parts[0]), NULL);
     glCompileShader(m_id);
   
     if(!get_shader_compile_status(m_id))
