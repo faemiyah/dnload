@@ -122,6 +122,9 @@ class AssemblerFile:
       if jump_point_name:
         ii.replace_entry_point(jump_point_name)
       labels += ii.gather_labels()
+    # Gather global names that cannot be renamed.
+    #for ii in other.__sections:
+    # TODO: do the fucking rename for non-global labels only
     if jump_point_name:
       labels.remove(jump_point_name)
     elif other.hasEntryPoint():
