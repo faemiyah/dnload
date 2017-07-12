@@ -718,8 +718,10 @@ def generate_glsl(preprocessor, definition_ld, fname, mode, renames, simplifys):
   for ii in lines:
     match = glslre.match(ii)
     if match:
-      glsl_path, glsl_filename = os.path.split(match.group(1))
-      glsl_filename = locate(glsl_path, glsl_filename)
+      glsl_path, glsl_base_filename = os.path.split(match.group(1))
+      glsl_filename = locate(glsl_path, glsl_base_filename)
+      if not glsl_filename:
+        raise RuntimeError("could not locate GLSL source '%s'" % (glsl_base_filename))
       glsl_varname = match.group(4)
       glsl_output_name = glsl_filename + "." + match.group(2)
       glsl_db.read(preprocessor, definition_ld, glsl_filename, glsl_varname, glsl_output_name)
