@@ -27,6 +27,7 @@ from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import PlatformVar
 from dnload.platform_var import platform_map_iterate
 from dnload.platform_var import replace_osarch
+from dnload.platform_var import replace_osname
 from dnload.platform_var import replace_platform_variable
 from dnload.preprocessor import Preprocessor
 from dnload.symbol import generate_loader_dlfcn
@@ -928,7 +929,6 @@ def main():
   """Main function."""
   global g_osarch
   global g_osname
-  cross_compile = False
   compression = str(PlatformVar("compression"))
   default_assembler_list = ["/usr/local/bin/as", "as"]
   default_compiler_list = ["g++6", "g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
@@ -945,7 +945,6 @@ def main():
   library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
   opengl_reason = None
   opengl_version = None
-  output_file = None
   sdl_version = 2
 
   parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (sys.argv[0]), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
@@ -971,7 +970,8 @@ def main():
   parser.add_argument("--glsl-mode", default = "full", choices = ("none", "combine", "full"), help = "GLSL crunching mode.\n(default: %(default))")
   parser.add_argument("--glsl-renames", default = -1, type = int, help = "Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--glsl-simplifys", default = -1, type = int, help = "Maximum number of simplify operations to do for GLSL.\n(default: unlimited)")
-  parser.add_argument("-o", "--output-file", help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
+  parser.add_argument("--linux", action = "store_true", help = "Try to target Linux if not in Linux. Equal to '-O linux'.")
+  parser.add_argument("-o", "--output-file", default = None, help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
   parser.add_argument("--preprocessor", default = None, help = "Try to use given preprocessor executable as opposed to autodetect.")
@@ -987,33 +987,55 @@ def main():
   parser.add_argument("source", default = [], nargs = "*", help = "Source file(s) to preprocess and/or compile.")
  
   args = parser.parse_args()
-  if args.create_binary:
+  abstraction_layer = listify(args.abstraction_layer)
+  assembler = args.assembler
+  compiler = args.compiler
+  definition_ld = args.definition_ld
+  definitions += args.define
+  compilation_mode = args.method
+  compression = args.unpack_header
+  glsl_renames = args.glsl_renames
+  glsl_simplifys = args.glsl_simplifys
+  glsl_mode = args.glsl_mode
+  implementation_rand = args.rand
+  include_directories += args.include_directory
+  libraries = args.library
+  library_directories += args.library_directory
+  linker = args.linker
+  nice_filedump = args.nice_filedump
+  no_glesv2 = args.no_glesv2
+  objcopy = args.objcopy
+  output_file = args.output_file
+  preprocessor = args.preprocessor
+  rpath = args.rpath
+  source_files = args.source
+  strip = args.strip_binary
+  symbol_prefix = args.call_prefix
+  target = args.target
+  target_search_path = args.search_path
+
+  # Enable flags.
+  if args.create_binary and (not output_file):
     output_file = True
   if args.elfling:
     elfling = True
+  if args.verbose:
+    set_verbose(True)
+
+  # Definitions.
+  if args.nice_exit:
+    definitions += ["DNLOAD_NO_DEBUGGER_TRAP"]
+  if args.safe_symtab:
+    definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
+
   if args.help:
     print(parser.format_help().strip())
     return 0
-  if args.nice_exit:
-    definitions += ["DNLOAD_NO_DEBUGGER_TRAP"]
-  if args.operating_system:
-    new_osname = platform_map(args.operating_system.lower())
-    if new_osname != g_osname:
-      cross_compile = True
-      g_osname = new_osname
-  if args.output_file:
-    output_file = args.output_file
-  if args.safe_symtab:
-    definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
-  if args.unpack_header:
-    compression = args.unpack_header
-  if args.verbose:
-    set_verbose(True)
   if args.version:
     print("%s %s" % (VERSION_REVISION, VERSION_DATE))
     return 0
 
-  # Tring 32-bit compile only works between the same platform.
+  # Cross-compile 32-bit arguments.
   if args.m32:
     if osarch_is_amd64():
       replace_osarch("ia32", "Cross-compile: ")
@@ -1026,31 +1048,12 @@ def main():
     if is_verbose:
       print("Using explicit march: '%s'" % (args.march))
     replace_platform_variable("march", args.march)
-
-  abstraction_layer = listify(args.abstraction_layer)
-  assembler = args.assembler
-  compiler = args.compiler
-  definition_ld = args.definition_ld
-  definitions += args.define
-  compilation_mode = args.method
-  glsl_renames = args.glsl_renames
-  glsl_simplifys = args.glsl_simplifys
-  glsl_mode = args.glsl_mode
-  implementation_rand = args.rand
-  include_directories += args.include_directory
-  libraries = args.library
-  library_directories += args.library_directory
-  linker = args.linker
-  nice_filedump = args.nice_filedump
-  no_glesv2 = args.no_glesv2
-  objcopy = args.objcopy
-  preprocessor = args.preprocessor
-  rpath = args.rpath
-  source_files = args.source
-  strip = args.strip_binary
-  symbol_prefix = args.call_prefix
-  target = args.target
-  target_search_path = args.search_path
+  # Cross-compile OS arguments.
+  if args.linux:
+    replace_osname("linux", "Cross-compile:")
+  if args.operating_system:
+    new_osname = platform_map(args.operating_system.lower())
+    replace_osname(new_osname, "Cross-compile:")
 
   if not compilation_mode in ("vanilla", "dlfcn", "hash", "maximum"):
     raise RuntimeError("unknown method '%s'" % (compilation_mode))
