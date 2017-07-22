@@ -775,14 +775,15 @@ def raise_unknown_address_size():
 def readelf_get_info(op):
   """Read information from an ELF file using readelf. Return as dictionary."""
   ret = {}
-  (so, se) = run_command(["readelf", "--file-header", "--program-headers", op])
+  (so, se) = run_command(["readelf", "-l", op])
   match = re.search(r'LOAD\s+\S+\s+(\S+)\s+\S+\s+(\S+)\s+\S+\s+RWE', so, re.MULTILINE)
   if match:
     ret["base"] = int(match.group(1), 16)
     ret["size"] = int(match.group(2), 16)
   else:
     raise RuntimeError("could not read first PT_LOAD from executable '%s'" % (op))
-  match = re.search(r'Entry\spoint\saddress:\s+(\S+)', so, re.MULTILINE)
+  # Entry point is locale-dependant so attempt to read it from the second line.
+  match = re.match(r'\s*\n.*EXEC.*\n*.*\s+(0x\S+)\n', so, re.MULTILINE)
   if match:
     ret["entry"] = int(match.group(1), 16) - ret["base"]
   else:

@@ -123,7 +123,8 @@ class Linker:
     (so, se) = run_command([self.__command, "--verbose"] + self.__linker_flags_extra)
     if 0 < len(se) and is_verbose():
       print(se)
-    match = re.match(r'.*linker script\S+\s*\n=+\s+(.*)\s+=+\s*\n.*', so, re.DOTALL)
+    # Linker script is the block of code between lines of multiple '=':s.
+    match = re.match(r'.*\n=+\s*\n(.*)\n=+\s*\n.*', so, re.DOTALL)
     if not match:
       raise RuntimeError("could not extract script from linker output")
     ld_script = match.group(1)
