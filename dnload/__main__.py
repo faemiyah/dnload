@@ -1038,13 +1038,13 @@ def main():
 
   # Cross-compile 32-bit arguments.
   if args.m32:
-    if osarch_is_amd64():
+    if osarch_is_32_bit():
+      print("WARNING: ignoring 32-bit compile, osarch '%s' already 32-bit" % (g_osarch))
+    elif osarch_is_amd64():
       replace_osarch("ia32", "Cross-compile: ")
       extra_assembler_flags = ["--32"]
       extra_compiler_flags = ["-m32"]
       extra_linker_flags = ["-melf_i386"]
-    if osarch_is_32_bit():
-      print("WARNING: ignoring 32-bit compile, osarch '%s' already 32-bit" % (g_osarch))
     else:
       raise RuntimeError("cannot attempt 32-bit compile for osarch '%s'" % (g_osarch))
   if args.march:
