@@ -718,7 +718,7 @@ You can copypaste the earlier into, say, ``header.S`` and run::
 This should produce::
 
     ld: warning: cannot find entry symbol _start; defaulting to 0000000008048000
-Segmentation fault
+    Segmentation fault
 
 Disappointing. But add something, anything, into your custom rtld sources, recompile rtld, and try again. At the time of writing this document, mine says::
 
@@ -803,7 +803,7 @@ Compilers seem to generate alignment directives rather arbitrarily. This is nece
 
 All alignment takes space on disk. To prevent this, all alignment directives greater than the register width (32 or 64-bit) in the generated assembler source are converted to explicit ``.balign`` directives for 4 or 8 bytes.
 
-**Note:** It turns out that on alignment can sometimes be completely removed by effectively aligning one byte. This is not possible on any architectures where instruction pointer is assumed to be aligned to instruction size, but works at least on `amd64` and on ``ia32``.
+**Note:** It turns out that on alignment can sometimes be completely removed by effectively aligning one byte. This is not possible on any architectures where instruction pointer is assumed to be aligned to instruction size, but works at least on ``amd64`` and on ``ia32``.
 
 Merging headers
 ~~~~~~~~~~~~~~~
