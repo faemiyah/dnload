@@ -23,6 +23,7 @@ class GlslInOut:
 
 g_inout = ("attribute",
     "in",
+    "inout",
     "out",
     "varying")
 

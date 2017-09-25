@@ -938,7 +938,6 @@ def main():
   default_objcopy_list = ["/usr/local/bin/objcopy", "objcopy"]
   default_strip_list = ["/usr/local/bin/strip", "strip"]
   definitions = []
-  elfling = None
   extra_assembler_flags = []
   extra_compiler_flags = []
   extra_linker_flags = []
@@ -960,6 +959,7 @@ def main():
   parser.add_argument("-e", "--elfling", action = "store_true", help = "Use elfling packer if available.")
   parser.add_argument("-h", "--help", action = "store_true", help = "Print this help string and exit.")
   parser.add_argument("-I", "--include-directory", default = [], action = "append", help = "Add an include directory to be searched for header files.")
+  parser.add_argument("--interp", default = None, type = str, help = "Use given interpreter as opposed to platform default.")
   parser.add_argument("-k", "--linker", default = None, help = "Try to use given linker executable as opposed to autodetect.")
   parser.add_argument("-l", "--library", default = [], action = "append", help = "Add a library to be linked against.")
   parser.add_argument("-L", "--library-directory", default = [], action = "append", help = "Add a library directory to be searched for libraries when linking.")
@@ -988,6 +988,15 @@ def main():
   parser.add_argument("source", default = [], nargs = "*", help = "Source file(s) to preprocess and/or compile.")
  
   args = parser.parse_args()
+
+  # Early exit.
+  if args.help:
+    print(parser.format_help().strip())
+    return 0
+  if args.version:
+    print("%s %s" % (VERSION_REVISION, VERSION_DATE))
+    return 0
+
   abstraction_layer = listify(args.abstraction_layer)
   assembler = args.assembler
   compiler = args.compiler
@@ -995,6 +1004,7 @@ def main():
   definitions += args.define
   compilation_mode = args.method
   compression = args.unpack_header
+  elfling = args.elfling
   glsl_renames = args.glsl_renames
   glsl_simplifys = args.glsl_simplifys
   glsl_mode = args.glsl_mode
@@ -1015,13 +1025,13 @@ def main():
   target = args.target
   target_search_path = args.search_path
 
-  # Enable flags.
-  if args.create_binary and (not output_file):
-    output_file = True
-  if args.elfling:
-    elfling = True
+  # Verbosity.
   if args.verbose:
     set_verbose(True)
+
+  # Enable automatic output binary name if necessary.
+  if args.create_binary and (not output_file):
+    output_file = True
 
   # Definitions.
   if args.nice_exit:
@@ -1029,12 +1039,12 @@ def main():
   if args.safe_symtab:
     definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
 
-  if args.help:
-    print(parser.format_help().strip())
-    return 0
-  if args.version:
-    print("%s %s" % (VERSION_REVISION, VERSION_DATE))
-    return 0
+  # Custom interpreter.
+  if args.interp:
+    interp = args.interp
+    if not re.match(r'^\".*\"$', interp):
+      interp = "\"%s\"" % (args.interp)
+    replace_platform_variable("interp", interp)
 
   # Cross-compile 32-bit arguments.
   if args.m32:

@@ -51,8 +51,10 @@ class GlslBlock:
       self.addChildren([lst])
       return
     for ii in lst:
-      if (not is_glsl_block(ii)) or ii.getParent():
-        raise RuntimeError("GlslBlock::addChild() hierarchy inconsistency")
+      if not is_glsl_block(ii):
+        raise RuntimeError("element '%s' to be added is not of type GlslBlock" % (str(ii)))
+      if ii.getParent():
+        raise RuntimeError("block '%s' to be added already has parent '%s'" % (str(ii), str(ii.getParent())))
       self._children += [ii]
       ii.setParent(self)
       if ii.getParent() != self:
