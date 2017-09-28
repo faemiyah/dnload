@@ -22,7 +22,10 @@ class GlslBlockParameter(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    return "%s %s" % (self.__typeid.format(force), self.__name.format(force))
+    ret = ""
+    if self.__inout:
+      ret += "%s " % (self.__inout.format(force))
+    return ret + "%s %s" % (self.__typeid.format(force), self.__name.format(force))
 
   def __str__(self):
     """String representation."""
