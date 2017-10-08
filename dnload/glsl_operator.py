@@ -37,7 +37,7 @@ class GlslOperator:
     if self.__operator in ("*", "/"):
       return ret
     ret += 1
-    if self.__operator in ("*", "/"):
+    if self.__operator in ("*", "/", "%"):
       return ret
     ret += 1
     if self.__operator in ("+", "-"):
@@ -126,7 +126,7 @@ class GlslOperator:
 
 def interpret_operator(source):
   """Try to interpret an operator."""
-  if source in ("+", "-", "*", "/", "<", ">", "=", "!", "&", "^", "|", "?", ":" ","):
+  if source in ("+", "-", "*", "/", "%", "<", ">", "=", "!", "&", "^", "|", "?", ":" ","):
     return GlslOperator(source)
   return None
 

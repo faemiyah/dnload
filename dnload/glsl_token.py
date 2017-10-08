@@ -399,8 +399,6 @@ class GlslToken:
         # Try to remove trivial cases.
         if self.collapseIdentity():
           return True
-        # Debug start.
-        # Debug end.
         (left_parent, left_token) = self.findEqualTokenLeft(self)
         (right_parent, right_token) = self.findEqualTokenRight(self)
         if left_parent and left_token and right_parent and right_token:
@@ -556,7 +554,7 @@ def token_tree_build(lst):
     if lowest_operator_index >= 1:
       left = lst[lowest_operator_index - 1]
       ret.addLeft(left)
-    elif not (lowest_operator in ("-", "++", "--")):
+    elif not (lowest_operator in ("-", "++", "--", "!")):
       raise RuntimeError("left component nonexistent for operator '%s'" % (str(lowest_operator)))
     # Check for right existing.
     if lowest_operator_index <= len(lst) - 2:

@@ -471,7 +471,7 @@ def tokenize_split(source):
     for ii in array:
       ret += tokenize_split(ii)
     return ret
-  array = re.split(r'([\(\)\[\]\{\}\+\-\*\/\|&!\.,;:\=])', source, 1)
+  array = re.split(r'([\(\)\[\]\{\}\+\-\*\/%\|&!\.,;:\=])', source, 1)
   if 3 > len(array):
     return [source]
   return filter(lambda x: x, array[:2]) + tokenize_split(array[2])
