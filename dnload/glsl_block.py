@@ -204,6 +204,10 @@ class GlslBlock:
     """Accessor."""
     return self.__parent
 
+  def getUsedNames(self):
+    """Accessor."""
+    return self.__names_used
+
   def hasChild(self, op):
     """Tell if list of children contains given child."""
     return (op in self._children)
@@ -467,7 +471,7 @@ def tokenize_split(source):
     for ii in array:
       ret += tokenize_split(ii)
     return ret
-  array = re.split(r'([\(\)\[\]\{\}\+\-\*\/\.,;:\=])', source, 1)
+  array = re.split(r'([\(\)\[\]\{\}\+\-\*\/\|&!\.,;:\=])', source, 1)
   if 3 > len(array):
     return [source]
   return filter(lambda x: x, array[:2]) + tokenize_split(array[2])

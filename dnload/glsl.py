@@ -180,7 +180,7 @@ class Glsl:
             for kk in collect_pass:
               jj.collectAppend(kk)
         collected += collect_pass
-    # Second pass - collect from generic sources. Do not append.
+    # Second pass - collect from non-generic sources. Do not append.
     for ii in self.__sources:
       if ii.getType():
         collected += ii.collect()
