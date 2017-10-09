@@ -952,11 +952,11 @@ def main():
   parser.add_argument("-a", "--abstraction-layer", choices = ("sdl1", "sdl2"), help = "Specify abstraction layer to use instead of autodetecting.")
   parser.add_argument("-A", "--assembler", default = None, help = "Try to use given assembler executable as opposed to autodetect.")
   parser.add_argument("-B", "--objcopy", default = None, help = "Try to use given objcopy executable as opposed to autodetect.")
-  parser.add_argument("-c", "--create-binary", action = "store_true", help = "Create output file, determine output file name from input file name.")
   parser.add_argument("-C", "--compiler", default = None, help = "Try to use given compiler executable as opposed to autodetect.")
   parser.add_argument("-d", "--definition-ld", default = "USE_LD", help = "Definition to use for checking whether to use 'safe' mechanism instead of dynamic loading.\n(default: %(default)s)")
   parser.add_argument("-D", "--define", default = [], action = "append", help = "Additional preprocessor definition.")
   parser.add_argument("-e", "--elfling", action = "store_true", help = "Use elfling packer if available.")
+  parser.add_argument("-E", "--preprocess-only", action = "store_true", help = "Preprocess only, do not generate compiled output.")
   parser.add_argument("-h", "--help", action = "store_true", help = "Print this help string and exit.")
   parser.add_argument("-I", "--include-directory", default = [], action = "append", help = "Add an include directory to be searched for header files.")
   parser.add_argument("--interp", default = None, type = str, help = "Use given interpreter as opposed to platform default.")
@@ -1019,7 +1019,6 @@ def main():
   output_file = args.output_file
   preprocessor = args.preprocessor
   rpath = args.rpath
-  source_files = args.source
   strip = args.strip_binary
   symbol_prefix = args.call_prefix
   target = args.target
@@ -1028,10 +1027,6 @@ def main():
   # Verbosity.
   if args.verbose:
     set_verbose(True)
-
-  # Enable automatic output binary name if necessary.
-  if args.create_binary and (not output_file):
-    output_file = True
 
   # Definitions.
   if args.nice_exit:
@@ -1045,6 +1040,30 @@ def main():
     if not re.match(r'^\".*\"$', interp):
       interp = "\"%s\"" % (args.interp)
     replace_platform_variable("interp", interp)
+
+  # Source files to process.
+  if not args.source:
+    raise RuntimeError("no source files to process")
+  source_files = []
+  source_files_additional = []
+  source_files_glsl = []
+  for ii in args.source:
+    if re.match(r'.*\.(c|cpp)$', ii, re.I):
+      source_files += [ii]
+    elif re.match(r'.*\.(asm|s)$', ii, re.I):
+      source_files_additional += [ii]
+    elif re.match(r'.*\.(glsl|vert|geom|frag)$', ii, re.I):
+      source_files_glsl += [ii]
+    else:
+      raise RuntimeError("unknown source file: '%s'" % (ii))
+
+  # Process GLSL source if given.
+  if source_files_glsl:
+    if source_files or source_files_additional:
+      raise RuntimeError("can not combine GLSL source %s with other source files %s" %
+          (str(source_files_glsl), str(source_files + source_files_additional)))
+    # TODO: process GLSL.
+    sys.exit(0)
 
   # Cross-compile 32-bit arguments.
   if args.m32:
@@ -1113,26 +1132,125 @@ def main():
   # Erase contents of the header after it has been found.
   touch(target)
 
-  sourcere = re.compile(r'.*\.(c|cpp)$', re.I)
-  if 0 >= len(source_files) and target_search_path:
-    print("WARNING: no source files specified, searching %s" % (str(target_search_path)))
-    source_files = []
-    for ii in target_search_path:
-      for jj in os.listdir(ii):
-        if sourcere.match(jj):
-          print("match " + jj)
-          source_files += [os.path.normpath(ii + "/" + jj)]
-  if 0 < len(source_files):
-    if is_verbose():
-      print("Compiling source files: %s" % (str(source_files)))
+  # Find preprocessor.
+  if preprocessor:
+    if not check_executable(preprocessor):
+      raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
   else:
-    raise RuntimeError("nothing to compile")
+    preprocessor_list = default_preprocessor_list
+    if os.name == "nt":
+      preprocessor_list = ["cl.exe"] + preprocessor_list
+    preprocessor = search_executable(preprocessor_list, "preprocessor")
+  if not preprocessor:
+    raise RuntimeError("suitable preprocessor not found")
+  preprocessor = Preprocessor(preprocessor)
+  preprocessor.set_definitions(definitions)
+  preprocessor.set_include_dirs(include_directories)
 
-  # Split source files into C/C++ source and additional assembler source.
-  source_files_main = set(filter(lambda x: sourcere.match(x), source_files))
-  source_files_additional = list(set(source_files) - source_files_main)
-  source_files = list(source_files_main)
+  # Clear target header before parsing to avoid problems.
+  fd = open(target, "w")
+  fd.write("\n")
+  fd.close()
+  if is_verbose():
+    print("Analyzing source files: %s" % (str(source_files)))
+  # Prepare GLSL headers before preprocessing.
+  for ii in source_files:
+    generate_glsl(preprocessor, definition_ld, ii, glsl_mode, glsl_renames, glsl_simplifys)
+  # Search symbols from source files.
+  symbols = set()
+  for ii in source_files:
+    source = preprocessor.preprocess(ii)
+    source_symbols = extract_symbol_names(source, symbol_prefix)
+    symbols = symbols.union(source_symbols)
+  symbols = find_symbols(symbols)
+  if "dlfcn" == compilation_mode:
+    symbols = sorted(symbols)
+  elif "maximum" == compilation_mode:
+    sortable_symbols = []
+    for ii in symbols:
+      sortable_symbols += [(ii.get_hash(), ii)]
+    symbols = []
+    for ii in sorted(sortable_symbols):
+      symbols += [ii[1]]
+  # Some libraries cannot co-exist, but have some symbols with identical names.
+  symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
+  # Filter real symbols (as separate from implicit).
+  real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
+  if is_verbose():
+    symbol_strings = map(lambda x: str(x), symbols)
+    print("Symbols found: %s" % (str(symbol_strings)))
+    verbatim_symbols = list(set(symbols) - set(real_symbols))
+    if verbatim_symbols and output_file:
+      verbatim_symbol_strings = []
+      for ii in verbatim_symbols:
+        verbatim_symbol_strings += [str(ii)]
+      print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
+  # Header includes.
+  subst = {}
+  if symbols_has_library(symbols, "freetype"):
+    subst["INCLUDE_FREETYPE"] = g_template_include_freetype.format()
+  if symbols_has_library(symbols, ("GL", "GLESv2")):
+    subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({ "DEFINITION_LD" : definition_ld })
+  if symbols_has_library(symbols, ("SDL", "SDL2")):
+    subst["INCLUDE_SDL"] = g_template_include_sdl.format()
+  if symbols_has_library(symbols, "sndfile"):
+    subst["INCLUDE_SNDFILE"] = g_template_include_sndfile.format()
+  # Workarounds for specific symbol implementations - must be done before symbol definitions.
+  if symbols_has_symbol(symbols, "rand"):
+    regex_rand = re.compile(r'%s[-_\s]+rand\.h(h|pp|xx)?' % (implementation_rand))
+    header_rand = locate(target_search_path, regex_rand)
+    if not header_rand:
+      raise RuntimeError("could not find rand implementation for '%s'" % (implementation_rand))
+    header_rand_path, header_rand = os.path.split(header_rand)
+    if is_verbose:
+      print("Using rand() implementation: '%s'" % (header_rand))
+    replace_platform_variable("function_rand", "%s_rand" % (implementation_rand))
+    replace_platform_variable("function_srand", "%s_srand" % (implementation_rand))
+    subst["INCLUDE_RAND"] = g_template_include_rand.format({ "DEFINITION_LD" : definition_ld,
+      "HEADER_RAND" : header_rand })
+  # Symbol definitions.
+  symbol_definitions_direct = generate_symbol_definitions_direct(symbols, symbol_prefix)
+  subst["SYMBOL_DEFINITIONS_DIRECT"] = symbol_definitions_direct
+  if "vanilla" == compilation_mode:
+    subst["SYMBOL_DEFINITIONS_TABLE"] = symbol_definitions_direct
+  else:
+    symbol_definitions_table = generate_symbol_definitions_table(symbols, symbol_prefix)
+    symbol_table = generate_symbol_table(compilation_mode, real_symbols)
+    subst["SYMBOL_DEFINITIONS_TABLE"] = symbol_definitions_table
+    subst["SYMBOL_TABLE"] = symbol_table
+  # Loader and UND symbols.
+  if "vanilla" == compilation_mode:
+    subst["LOADER"] = generate_loader_vanilla()
+  elif "dlfcn" == compilation_mode:
+    subst["LOADER"] = generate_loader_dlfcn(real_symbols, linker)
+  else:
+    subst["LOADER"] = generate_loader_hash(real_symbols)
+  if "maximum" != compilation_mode:
+    subst["UND_SYMBOLS"] = g_template_und_symbols.format()
+  # Add remaining simple substitutions and generate file contents.
+  subst["DEFINITION_LD"] = definition_ld
+  subst["FILENAME"] = os.path.basename(sys.argv[0])
+  file_contents = g_template_header.format(subst)
+  # Write target file.
+  fd = open(target, "w")
+  fd.write(file_contents)
+  fd.close()
+  if is_verbose():
+    print("Wrote header file: '%s'" % (target))
+  # Early exit if preprocess only.
+  if args.preprocess_only:
+    sys.exit(0)
+  # Not only preprocessing, ensure the sources are ok.
+  if 1 < len(source_files):
+    raise RuntimeError("only one source file supported when generating output file")
 
+  # TODO: deprecated
+  if elfling:
+    elfling = search_executable(["elfling-packer", "./elfling-packer"], "elfling-packer")
+    if elfling:
+      elfling = Elfling(elfling)
+
+  # Find compiler.
   if compiler:
     if not check_executable(compiler):
       raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
@@ -1152,159 +1270,40 @@ def main():
   if extra_compiler_flags:
     compiler.add_extra_compiler_flags(extra_compiler_flags)
 
-  if preprocessor:
-    if not check_executable(preprocessor):
-      raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
+  # Find assembler.
+  if assembler:
+    if not check_executable(assembler):
+      raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
   else:
-    preprocessor_list = default_preprocessor_list
-    if os.name == "nt":
-      preprocessor_list = ["cl.exe"] + preprocessor_list
-    preprocessor = search_executable(preprocessor_list, "preprocessor")
-  if not preprocessor:
-    raise RuntimeError("suitable preprocessor not found")
-  preprocessor = Preprocessor(preprocessor)
-  preprocessor.set_definitions(definitions)
-  preprocessor.set_include_dirs(include_directories)
-
-  if elfling:
-    elfling = search_executable(["elfling-packer", "./elfling-packer"], "elfling-packer")
-    if elfling:
-      elfling = Elfling(elfling)
-
-  if output_file:
-    # Find assembler.
-    if assembler:
-      if not check_executable(assembler):
-        raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
-    else:
-      assembler = search_executable(default_assembler_list, "assembler")
-    if not assembler:
-      raise RuntimeError("suitable assembler not found")
-    assembler = Assembler(assembler)
-    if extra_assembler_flags:
-      assembler.addExtraFlags(extra_assembler_flags)
-    # Find linker.
-    if linker:
-      if not check_executable(linker):
-        raise RuntimeError("could not use supplied linker '%s'" % (linker))
-    else:
-      linker = search_executable(default_linker_list, "linker")
-    linker = Linker(linker)
-    if extra_linker_flags:
-      linker.addExtraFlags(extra_linker_flags)
-    # Find objcopy.
-    if objcopy:
-      if not check_executable(objcopy):
-        raise RuntimeError("could not use supplied objcopy executable '%s'" % (objcopy))
-    else:
-      objcopy = search_executable(default_objcopy_list, "objcopy")
-    # Find strip.
-    if strip:
-      if not check_executable(strip):
-        raise RuntimeError("could not use supplied strip executable '%s'" % (strip))
-    else:
-      strip = search_executable(default_strip_list, "strip")
-    if not strip:
-      raise RuntimeError("suitable strip executable not found")
-
-  # Clear target header before parsing to avoid problems.
-  fd = open(target, "w")
-  fd.write("\n")
-  fd.close()
-
-  if is_verbose():
-    print("Analyzing source files: %s" % (str(source_files)))
-
-  # Prepare GLSL headers before preprocessing.
-  for ii in source_files:
-    generate_glsl(preprocessor, definition_ld, ii, glsl_mode, glsl_renames, glsl_simplifys)
-
-  symbols = set()
-  for ii in source_files:
-    source = preprocessor.preprocess(ii)
-    source_symbols = extract_symbol_names(source, symbol_prefix)
-    symbols = symbols.union(source_symbols)
-  symbols = find_symbols(symbols)
-  if "dlfcn" == compilation_mode:
-    symbols = sorted(symbols)
-  elif "maximum" == compilation_mode:
-    sortable_symbols = []
-    for ii in symbols:
-      sortable_symbols += [(ii.get_hash(), ii)]
-    symbols = []
-    for ii in sorted(sortable_symbols):
-      symbols += [ii[1]]
-  # Some libraries cannot co-exist, but have some symbols with identical names.
-  symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
-
-  real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
-  if is_verbose():
-    symbol_strings = map(lambda x: str(x), symbols)
-    print("Symbols found: %s" % (str(symbol_strings)))
-    verbatim_symbols = list(set(symbols) - set(real_symbols))
-    if verbatim_symbols and output_file:
-      verbatim_symbol_strings = []
-      for ii in verbatim_symbols:
-        verbatim_symbol_strings += [str(ii)]
-      print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
-
-  # Header includes.
-  subst = {}
-  if symbols_has_library(symbols, "freetype"):
-    subst["INCLUDE_FREETYPE"] = g_template_include_freetype.format()
-  if symbols_has_library(symbols, ("GL", "GLESv2")):
-    subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({ "DEFINITION_LD" : definition_ld })
-  if symbols_has_library(symbols, ("SDL", "SDL2")):
-    subst["INCLUDE_SDL"] = g_template_include_sdl.format()
-  if symbols_has_library(symbols, "sndfile"):
-    subst["INCLUDE_SNDFILE"] = g_template_include_sndfile.format()
-
-  # Workarounds for specific symbol implementations - must be done before symbol definitions.
-  if symbols_has_symbol(symbols, "rand"):
-    regex_rand = re.compile(r'%s[-_\s]+rand\.h(h|pp|xx)?' % (implementation_rand))
-    header_rand = locate(target_search_path, regex_rand)
-    if not header_rand:
-      raise RuntimeError("could not find rand implementation for '%s'" % (implementation_rand))
-    header_rand_path, header_rand = os.path.split(header_rand)
-    if is_verbose:
-      print("Using rand() implementation: '%s'" % (header_rand))
-    replace_platform_variable("function_rand", "%s_rand" % (implementation_rand))
-    replace_platform_variable("function_srand", "%s_srand" % (implementation_rand))
-    subst["INCLUDE_RAND"] = g_template_include_rand.format({ "DEFINITION_LD" : definition_ld,
-      "HEADER_RAND" : header_rand })
-
-  # Symbol definitions.
-  symbol_definitions_direct = generate_symbol_definitions_direct(symbols, symbol_prefix)
-  subst["SYMBOL_DEFINITIONS_DIRECT"] = symbol_definitions_direct
-  if "vanilla" == compilation_mode:
-    subst["SYMBOL_DEFINITIONS_TABLE"] = symbol_definitions_direct
+    assembler = search_executable(default_assembler_list, "assembler")
+  if not assembler:
+    raise RuntimeError("suitable assembler not found")
+  assembler = Assembler(assembler)
+  if extra_assembler_flags:
+    assembler.addExtraFlags(extra_assembler_flags)
+  # Find linker.
+  if linker:
+    if not check_executable(linker):
+      raise RuntimeError("could not use supplied linker '%s'" % (linker))
   else:
-    symbol_definitions_table = generate_symbol_definitions_table(symbols, symbol_prefix)
-    symbol_table = generate_symbol_table(compilation_mode, real_symbols)
-    subst["SYMBOL_DEFINITIONS_TABLE"] = symbol_definitions_table
-    subst["SYMBOL_TABLE"] = symbol_table
-
-  # Loader and UND symbols.
-  if "vanilla" == compilation_mode:
-    subst["LOADER"] = generate_loader_vanilla()
-  elif "dlfcn" == compilation_mode:
-    subst["LOADER"] = generate_loader_dlfcn(real_symbols, linker)
+    linker = search_executable(default_linker_list, "linker")
+  linker = Linker(linker)
+  if extra_linker_flags:
+    linker.addExtraFlags(extra_linker_flags)
+  # Find objcopy.
+  if objcopy:
+    if not check_executable(objcopy):
+      raise RuntimeError("could not use supplied objcopy executable '%s'" % (objcopy))
   else:
-    subst["LOADER"] = generate_loader_hash(real_symbols)
-  if "maximum" != compilation_mode:
-    subst["UND_SYMBOLS"] = g_template_und_symbols.format()
-
-  # Add remaining simple substitutions and generate file contents.
-  subst["DEFINITION_LD"] = definition_ld
-  subst["FILENAME"] = os.path.basename(sys.argv[0])
-  file_contents = g_template_header.format(subst)
-
-  fd = open(target, "w")
-  fd.write(file_contents)
-  fd.close()
-
-  if is_verbose():
-    print("Wrote header file: '%s'" % (target))
+    objcopy = search_executable(default_objcopy_list, "objcopy")
+  # Find strip.
+  if strip:
+    if not check_executable(strip):
+      raise RuntimeError("could not use supplied strip executable '%s'" % (strip))
+  else:
+    strip = search_executable(default_strip_list, "strip")
+  if not strip:
+    raise RuntimeError("suitable strip executable not found")
 
   # Determine abstraction layer if it's not been set.
   if not abstraction_layer:
@@ -1321,58 +1320,57 @@ def main():
     (sdl_stdout, sdl_stderr) = run_command(["sdl-config", "--cflags"])
     compiler.add_extra_compiler_flags(sdl_stdout.split())
 
+  # Determine output file.
   if output_file:
-    if 1 < len(source_files):
-      raise RuntimeError("only one source file supported when generating output file")
-    source_file = source_files[0]
-    if not isinstance(output_file, str):
-      output_path, output_basename = os.path.split(source_file)
-      output_basename, source_extension = os.path.splitext(output_basename)
-      output_file = os.path.normpath(os.path.join(output_path, output_basename))
-      if is_verbose():
-        print("Using output file '%s' after source file '%s'." % (output_file, source_file))
-    else:
-      output_file = os.path.normpath(output_file)
-      output_path, output_basename = os.path.split(output_file)
-      if output_basename == output_file:
-        output_path = target_path
-      output_file = os.path.normpath(os.path.join(output_path, output_basename))
-    libraries = collect_libraries(libraries, real_symbols, compilation_mode)
-    compiler.generate_compiler_flags()
-    compiler.generate_linker_flags()
-    compiler.set_libraries(libraries)
-    compiler.set_library_directories(library_directories)
-    compiler.set_rpath_directories(rpath)
-    linker.generate_linker_flags()
-    linker.set_libraries(libraries)
-    linker.set_library_directories(library_directories)
-    linker.set_rpath_directories(rpath)
-    if "maximum" == compilation_mode:
-      generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
+    output_file = os.path.normpath(output_file)
+    output_path, output_basename = os.path.split(output_file)
+    if output_basename == output_file:
+      output_path = target_path
+    output_file = os.path.normpath(os.path.join(output_path, output_basename))
+  else:
+    output_path, output_basename = os.path.split(source_file)
+    output_basename, source_extension = os.path.splitext(output_basename)
+    output_file = os.path.normpath(os.path.join(output_path, output_basename))
+    if is_verbose():
+      print("Using output file '%s' after source file '%s'." % (output_file, source_file))
+
+  source_file = source_files[0]
+  libraries = collect_libraries(libraries, real_symbols, compilation_mode)
+  compiler.generate_compiler_flags()
+  compiler.generate_linker_flags()
+  compiler.set_libraries(libraries)
+  compiler.set_library_directories(library_directories)
+  compiler.set_rpath_directories(rpath)
+  linker.generate_linker_flags()
+  linker.set_libraries(libraries)
+  linker.set_library_directories(library_directories)
+  linker.set_rpath_directories(rpath)
+  if "maximum" == compilation_mode:
+    generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
+        source_files_additional)
+    # Now have complete binary, may need to reprocess.
+    if elfling:
+      elfling.compress(output_file + ".stripped", output_file + ".extracted")
+      generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
           source_files_additional)
-      # Now have complete binary, may need to reprocess.
-      if elfling:
-        elfling.compress(output_file + ".stripped", output_file + ".extracted")
-        generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-            source_files_additional)
-    elif "hash" == compilation_mode:
-      compiler.compile_asm(source_file, output_file + ".S")
-      asm = AssemblerFile(output_file + ".S")
-      #asm.sort_sections()
-      #asm.remove_rodata()
-      asm.write(output_file + ".final.S", assembler)
-      assembler.assemble(output_file + ".final.S", output_file + ".o")
-      linker.generate_linker_script(output_file + ".ld")
-      linker.set_linker_script(output_file + ".ld")
-      linker.link(output_file + ".o", output_file + ".unprocessed")
-    elif "dlfcn" == compilation_mode or "vanilla" == compilation_mode:
-      compiler.compile_and_link(source_file, output_file + ".unprocessed")
-    else:
-      raise RuntimeError("unknown compilation mode: %s" % str(compilation_mode))
-    if compilation_mode in ("vanilla", "dlfcn", "hash"):
-      shutil.copy(output_file + ".unprocessed", output_file + ".stripped")
-      run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file + ".stripped"])
-    compress_file(compression, nice_filedump, output_file + ".stripped", output_file)
+  elif "hash" == compilation_mode:
+    compiler.compile_asm(source_file, output_file + ".S")
+    asm = AssemblerFile(output_file + ".S")
+    #asm.sort_sections()
+    #asm.remove_rodata()
+    asm.write(output_file + ".final.S", assembler)
+    assembler.assemble(output_file + ".final.S", output_file + ".o")
+    linker.generate_linker_script(output_file + ".ld")
+    linker.set_linker_script(output_file + ".ld")
+    linker.link(output_file + ".o", output_file + ".unprocessed")
+  elif "dlfcn" == compilation_mode or "vanilla" == compilation_mode:
+    compiler.compile_and_link(source_file, output_file + ".unprocessed")
+  else:
+    raise RuntimeError("unknown compilation mode: %s" % str(compilation_mode))
+  if compilation_mode in ("vanilla", "dlfcn", "hash"):
+    shutil.copy(output_file + ".unprocessed", output_file + ".stripped")
+    run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file + ".stripped"])
+  compress_file(compression, nice_filedump, output_file + ".stripped", output_file)
 
   return 0
 
