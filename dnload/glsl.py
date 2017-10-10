@@ -122,6 +122,14 @@ class Glsl:
       if operations:
         print("GLSL processing done: %s" % (", ".join(operations)))
 
+  def format(self):
+    """Format output."""
+    ret = []
+    for ii in self.__sources:
+      if not ii.hasOutputName():
+        ret += [ii.generatePrintOutput()]
+    return ret
+
   def hasInlineConflict(self, block, names):
     """Tell if given block has an inlining conflict."""
     # If block is a listing, just go over all options.
@@ -219,7 +227,7 @@ class Glsl:
     for ii in self.__sources:
       ii.parse()
 
-  def read(self, preprocessor, definition_ld, filename, varname, output_name):
+  def read(self, preprocessor, definition_ld, filename, varname, output_name = None):
     """Read source file."""
     self.__sources += [glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)]
 
@@ -300,7 +308,7 @@ class Glsl:
       ret = ("r", "g", "b", "a")
       selected_for = rgba
       selected_against = xyzw
-    if is_verbose:
+    if is_verbose():
       print("Selected GLSL swizzle: %s (%i vs. %i)" % (str(ret), selected_for, selected_against))
     return ret
 

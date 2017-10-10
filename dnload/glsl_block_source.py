@@ -11,13 +11,20 @@ from dnload.template import Template
 # Globals ##############################
 ########################################
 
-g_template_glsl = Template("""static const char *[[VARIABLE_NAME]] = \"\"
+g_template_glsl_header = Template("""static const char *[[VARIABLE_NAME]] = \"\"
 #if defined([[DEFINITION_LD]])
 \"[[FILE_NAME]]\"
 #else
 [[SOURCE]]
 #endif
 \"\";
+""")
+
+g_template_glsl_print = Template("""#ifndef __[[VARIABLE_NAME]]_header__
+static const char *[[VARIABLE_NAME]] = \"\"
+[[SOURCE]]
+\"\";
+#endif /* __[[VARIABLE_NAME]]_header__ */
 """)
 
 ########################################
@@ -27,7 +34,7 @@ g_template_glsl = Template("""static const char *[[VARIABLE_NAME]] = \"\"
 class GlslBlockSource(GlslBlock):
   """GLSL source file abstraction."""
 
-  def __init__(self, definition_ld, filename, varname, output_name):
+  def __init__(self, definition_ld, filename, varname, output_name = None):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__definition_ld = definition_ld
@@ -57,12 +64,19 @@ class GlslBlockSource(GlslBlock):
     """Return formatted output."""
     return "".join(map(lambda x: x.format(force), self._children))
 
-  def generateFileOutput(self):
+  def generateHeaderOutput(self):
     """Generate output to be written into a file."""
     ret = self.format(True)
     ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
     subst = { "DEFINITION_LD" : self.__definition_ld, "FILE_NAME" : os.path.basename(self.__filename), "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
-    return g_template_glsl.format(subst)
+    return g_template_glsl_header.format(subst)
+
+  def generatePrintOutput(self):
+    """Generate output to be written to output."""
+    ret = self.format(True)
+    ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
+    subst = { "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
+    return g_template_glsl_print.format(subst)
 
   def getFilename(self):
     """Accessor."""
@@ -71,6 +85,9 @@ class GlslBlockSource(GlslBlock):
   def getType(self):
     """Access type of this shader file. May be empty."""
     return self.__type
+
+  def hasOutputName(self):
+    return self.__output_name != None
 
   def parse(self):
     """Parse code into blocks and statements."""
@@ -113,7 +130,7 @@ class GlslBlockSource(GlslBlock):
     fd = open(self.__output_name, "w")
     if not fd:
       raise RuntimeError("could not write GLSL header '%s'" % (self.__output_name))
-    fd.write(self.generateFileOutput())
+    fd.write(self.generateHeaderOutput())
     fd.close()
     if is_verbose():
       print("Wrote GLSL header: '%s' => '%s'" % (self.__variable_name, self.__output_name))

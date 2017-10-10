@@ -709,13 +709,28 @@ def generate_elfling(output_file, compiler, elfling, definition_ld):
   asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
   return asm
 
-def generate_glsl(preprocessor, definition_ld, fname, mode, renames, simplifys):
-  """Generate GLSL for source file."""
+def generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplifys):
+  """Generate GLSL, processing given GLSL source files."""
+  glsl_db = Glsl()
+  for ii in filenames:
+    # If there's a listing, the order is filename, varname, output name.
+    if is_listing(ii):
+      glsl_db.read(preprocessor, definition_ld, ii[0], ii[1], ii[2])
+    # Otherwise only filename exists.
+    else:
+      varname = re.sub(r'\.', r'_', os.path.basename(ii))
+      glsl_db.read(preprocessor, definition_ld, ii, varname)
+  glsl_db.parse()
+  glsl_db.crunch(mode, renames, simplifys)
+  return glsl_db
+
+def generate_glsl_extract(fname, preprocessor, definition_ld, mode, renames, simplifys):
+  """Generate GLSL, extracting from source file."""
   fd = open(fname, "r")
   lines = fd.readlines()
   fd.close()
+  filenames = []
   glslre = re.compile(r'#\s*include [\<\"](.*\.glsl)\.(h|hh|hpp|hxx)[\>\"]\s*(\/\*|\/\/)\s*([^\*\/\s]+)', re.I)
-  glsl_db = Glsl()
   for ii in lines:
     match = glslre.match(ii)
     if match:
@@ -725,9 +740,8 @@ def generate_glsl(preprocessor, definition_ld, fname, mode, renames, simplifys):
         raise RuntimeError("could not locate GLSL source '%s'" % (glsl_base_filename))
       glsl_varname = match.group(4)
       glsl_output_name = glsl_filename + "." + match.group(2)
-      glsl_db.read(preprocessor, definition_ld, glsl_filename, glsl_varname, glsl_output_name)
-  glsl_db.parse()
-  glsl_db.crunch(mode, renames, simplifys)
+      filenames += [[glsl_filename, glsl_varname, glsl_output_name]]
+  glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplifys)
   glsl_db.write()
 
 def get_platform_und_symbols():
@@ -1057,12 +1071,28 @@ def main():
     else:
       raise RuntimeError("unknown source file: '%s'" % (ii))
 
+  # Find preprocessor.
+  if preprocessor:
+    if not check_executable(preprocessor):
+      raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
+  else:
+    preprocessor_list = default_preprocessor_list
+    if os.name == "nt":
+      preprocessor_list = ["cl.exe"] + preprocessor_list
+    preprocessor = search_executable(preprocessor_list, "preprocessor")
+  if not preprocessor:
+    raise RuntimeError("suitable preprocessor not found")
+  preprocessor = Preprocessor(preprocessor)
+  preprocessor.set_definitions(definitions)
+  preprocessor.set_include_dirs(include_directories)
+
   # Process GLSL source if given.
   if source_files_glsl:
     if source_files or source_files_additional:
       raise RuntimeError("can not combine GLSL source %s with other source files %s" %
           (str(source_files_glsl), str(source_files + source_files_additional)))
-    # TODO: process GLSL.
+    glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_renames, glsl_simplifys)
+    print("".join(glsl_db.format()).strip())
     sys.exit(0)
 
   # Cross-compile 32-bit arguments.
@@ -1132,21 +1162,6 @@ def main():
   # Erase contents of the header after it has been found.
   touch(target)
 
-  # Find preprocessor.
-  if preprocessor:
-    if not check_executable(preprocessor):
-      raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
-  else:
-    preprocessor_list = default_preprocessor_list
-    if os.name == "nt":
-      preprocessor_list = ["cl.exe"] + preprocessor_list
-    preprocessor = search_executable(preprocessor_list, "preprocessor")
-  if not preprocessor:
-    raise RuntimeError("suitable preprocessor not found")
-  preprocessor = Preprocessor(preprocessor)
-  preprocessor.set_definitions(definitions)
-  preprocessor.set_include_dirs(include_directories)
-
   # Clear target header before parsing to avoid problems.
   fd = open(target, "w")
   fd.write("\n")
@@ -1155,7 +1170,7 @@ def main():
     print("Analyzing source files: %s" % (str(source_files)))
   # Prepare GLSL headers before preprocessing.
   for ii in source_files:
-    generate_glsl(preprocessor, definition_ld, ii, glsl_mode, glsl_renames, glsl_simplifys)
+    generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, glsl_renames, glsl_simplifys)
   # Search symbols from source files.
   symbols = set()
   for ii in source_files:

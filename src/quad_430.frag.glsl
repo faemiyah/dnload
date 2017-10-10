@@ -1,6 +1,6 @@
 #version 430
 
-layout(location=0) uniform vec3[4] uniform_array;
+layout(location=0) uniform vec3 uniform_array[4];
 
 in vec2 position;
 

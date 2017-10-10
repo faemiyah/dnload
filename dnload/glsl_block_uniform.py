@@ -26,10 +26,10 @@ class GlslBlockUniform(GlslBlock):
     ret = ""
     if self.__layout:
       ret += self.__layout.format(force)
-    ret += "uniform " + self.__typeid.format(force)
+    ret += "uniform %s %s" % (self.__typeid.format(force), self.__name.format(force))
     if self.__size:
       ret += "[%s]" % (self.__size.format(force))
-    return ret + " " + self.__name.format(force) + ";"
+    return ret + ";"
 
   def getName(self):
     """Accessor."""
