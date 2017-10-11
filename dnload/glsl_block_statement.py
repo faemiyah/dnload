@@ -123,7 +123,7 @@ def glsl_parse_statement(source, explicit = True):
   # Could not detect statement for a reason or another.
   return (None, source)
 
-def glsl_parse_statements(source):
+def glsl_parse_statements(source, terminators = ";"):
   """Parse multiple statements."""
   lst = []
   while source:
@@ -133,9 +133,12 @@ def glsl_parse_statements(source):
       source = remaining
       continue
     raise RuntimeError("error parsing statements")
+  # Check that terminators are correct.
+  if not is_listing(terminators):
+    terminators = [terminators]
   for ii in lst[:-1]:
-    if ";" != ii.getTerminator():
-      raise RuntimeError("statement list missing terminator(s) in-between")
+    if not (ii.getTerminator() in terminators):
+      raise RuntimeError("statement '%s' terminator '%s' not in allowed terminators '%s'" % (str(ii), ii.getTerminator(), str(terminators)))
   return lst
 
 def simplify_pass(lst):

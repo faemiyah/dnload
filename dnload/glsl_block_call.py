@@ -1,5 +1,6 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
+from dnload.glsl_block_statement import glsl_parse_statements
 
 ########################################
 # GlslBlockCall ########################
@@ -8,18 +9,18 @@ from dnload.glsl_block import extract_tokens
 class GlslBlockCall(GlslBlock):
   """Function call."""
 
-  def __init__(self, name, scope):
+  def __init__(self, name, lst):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__name = name
-    self.__scope = scope
+    self.__content = lst
     # Hierarchy.
     self.addNamesUsed(name)
-    self.addChildren(scope)
+    self.addChildren(lst)
 
   def format(self, force):
     """Return formatted output."""
-    lst = "".join(map(lambda x: x.format(force), self.__scope))
+    lst = "".join(map(lambda x: x.format(force), self.__content))
     return "%s(%s);" % (self.__name.format(force), lst)
 
   def __str__(self):
@@ -33,6 +34,11 @@ class GlslBlockCall(GlslBlock):
 def glsl_parse_call(source):
   """Parse call block."""
   (name, scope, remaining) = extract_tokens(source, ("?n", "?(", ";"))
-  if name and (not (scope is None)):
-    return (GlslBlockCall(name, scope), remaining)
-  return (None, source)
+  if not name:
+    return (None, source)
+  if scope:
+    statements = glsl_parse_statements(scope, ',')
+    if not statements:
+      return (None, source)
+    return (GlslBlockCall(name, statements), remaining)
+  return (GlslBlockCall(name, []), remaining)
