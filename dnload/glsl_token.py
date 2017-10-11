@@ -140,6 +140,9 @@ class GlslToken:
       return False
     left = left_token.getSingleChild()
     right = right_token.getSingleChild()
+    # Can't collapse if either side is in itself an operator.
+    if is_glsl_operator(left) or is_glsl_operator(right):
+      return False
     # Multiply by one.
     if oper.getOperator() == "*":
       if is_glsl_number(left) and (left.getFloat() == 1.0):
@@ -395,7 +398,7 @@ class GlslToken:
     # Perform operations only after removing any possible parens.
     if (len(self.__middle) == 1):
       oper = self.__middle[0]
-      if is_glsl_operator(oper):
+      if is_glsl_operator(oper) and oper.isApplicable():
         # Try to remove trivial cases.
         if self.collapseIdentity():
           return True

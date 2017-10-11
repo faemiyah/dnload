@@ -68,9 +68,13 @@ class GlslOperator:
       return ret
     raise RuntimeError("operator '%s' has no precedence" % (str(self)))
 
+  def isApplicable(self):
+    """Tell if operator can be applied on compile-time."""
+    return self.__operator in ("-", "+", "*", "/", "%")
+
   def isAssignment(self):
     """Tell if this is an assignment operator of any kind."""
-    return (self.__operator in ("=", "+=", "-=", "*=", "/="))
+    return self.__operator in ("=", "+=", "-=", "*=", "/=")
 
   def incorporate(self, operator):
     """Try to incorporate another operator."""
@@ -126,7 +130,7 @@ class GlslOperator:
 
 def interpret_operator(source):
   """Try to interpret an operator."""
-  if source in ("+", "-", "*", "/", "%", "<", ">", "=", "!", "&", "^", "|", "?", ":" ","):
+  if source in ("+", "-", "*", "/", "%", "<", ">", "=", "!", "&", "^", "|", "?", ":", ","):
     return GlslOperator(source)
   return None
 
