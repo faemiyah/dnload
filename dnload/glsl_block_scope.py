@@ -1,3 +1,4 @@
+from dnload.common import is_verbose
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_assignment import glsl_parse_assignment
@@ -20,8 +21,13 @@ class GlslBlockScope(GlslBlock):
     GlslBlock.__init__(self)
     self.__explicit = explicit
     # Check for degenerate scope.
-    if (1 >= len(lst)) and is_glsl_block_declaration(lst[0]):
+    if (1 == len(lst)) and is_glsl_block_declaration(lst[0]):
       raise RuntimeError("scope with only block '%s' is degenerate" % (str(lst[0])))
+    # Check for empty scope (likely an error).
+    if 0 >= len(lst):
+      if is_verbose():
+        print("WARNING: preserving empty scope")
+      self.__explicit = True
     # Hierarchy.
     self.addChildren(lst)
 

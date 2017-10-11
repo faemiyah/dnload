@@ -1,5 +1,6 @@
 import re
 from dnload.common import is_verbose
+from dnload.glsl_type import interpret_type
 
 ########################################
 # GlslType #############################
@@ -17,6 +18,11 @@ class GlslName:
     # Reserved words are considered locked in all cases.
     if self.__name in get_list_locked():
       self.__rename = self.__name
+    # Some locked variables have implicit types, set them right away.
+    if self.__name in g_vec2:
+      self.setType(interpret_type("vec2"))
+    elif self.__name in g_vec4:
+      self.setType(interpret_type("vec4"))
 
   def format(self, force):
     """Return formatted output."""
@@ -96,7 +102,8 @@ class GlslName:
 # Globals ##############################
 ########################################
 
-g_locked = ("abs",
+g_locked = (
+    "abs",
     "acos",
     "asin",
     "atan",
@@ -105,13 +112,12 @@ g_locked = ("abs",
     "cos",
     "cross",
     "discard",
+    "distance",
     "dot",
     "EmitVertex",
     "EndPrimitive",
-    "gl_FragCoord",
-    "gl_FragColor",
+    "fract",
     "gl_PerVertex",
-    "gl_Position",
     "layout",
     "length",
     "location",
@@ -132,13 +138,25 @@ g_locked = ("abs",
     "tan",
     "texture",
     "transpose",
-    "uniform")
+    "uniform",
+    )
 
-g_primitives = ("lines",
+g_primitives = (
+    "lines",
     "lines_adjacency",
     "points",
     "triangles",
-    "triangle_strip")
+    "triangle_strip",
+    )
+
+g_vec2 = (
+    "gl_FragCoord",
+    )
+
+g_vec4 = (
+    "gl_FragColor",
+    "gl_Position",
+    )
 
 ########################################
 # Functions ############################
@@ -146,7 +164,7 @@ g_primitives = ("lines",
 
 def get_list_locked():
   """Get list of all locked words."""
-  return g_locked + g_primitives
+  return g_locked + g_primitives + g_vec2 + g_vec4
 
 def get_list_primitives():
   """Get list of primitive words."""
