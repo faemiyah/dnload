@@ -24,7 +24,7 @@ g_template_glsl_print = Template("""#ifndef __[[VARIABLE_NAME]]_header__
 static const char *[[VARIABLE_NAME]] = \"\"
 [[SOURCE]]
 \"\";
-#endif /* __[[VARIABLE_NAME]]_header__ */
+#endif
 """)
 
 ########################################

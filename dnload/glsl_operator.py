@@ -10,6 +10,7 @@ class GlslOperator:
     self.__operator = operator
 
   def applyOperator(self, lhs, rhs):
+    """Apply mathematical operator for given left and right operand."""
     if self.__operator == "*":
       return lhs * rhs
     elif self.__operator == "/":

@@ -7,6 +7,7 @@ from dnload.glsl_paren import GlslParen
 from dnload.glsl_paren import is_glsl_paren
 from dnload.glsl_token import token_tree_build
 from dnload.glsl_token import token_tree_simplify
+from dnload.glsl_operator import is_glsl_operator
 
 ########################################
 # GlslBlockStatement ###################
@@ -31,7 +32,7 @@ class GlslBlockStatement(GlslBlock):
     lst = ""
     if 0 < len(self.__content):
       lst = "".join(map(lambda x: x.format(force), self.__content))
-    return lst + self.__terminator
+    return lst + self.__terminator.format(force)
 
   def getTerminator(self):
     """Accessor."""

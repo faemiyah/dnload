@@ -18,6 +18,7 @@ from dnload.glsl_operator import interpret_operator
 from dnload.glsl_operator import is_glsl_operator
 from dnload.glsl_paren import interpret_paren
 from dnload.glsl_paren import is_glsl_paren
+from dnload.glsl_terminator import interpret_terminator
 from dnload.glsl_type import interpret_type
 from dnload.glsl_type import is_glsl_type
 
@@ -449,6 +450,12 @@ def tokenize_interpret(tokens):
           ii += 2
           continue
       ret += [operator]
+      ii += 1
+      continue
+    # Statement terminator.
+    terminator = interpret_terminator(element)
+    if terminator:
+      ret += [terminator]
       ii += 1
       continue
     # Try name identifier last.
