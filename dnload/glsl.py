@@ -218,9 +218,17 @@ class Glsl:
     # Return merged list.
     return merged
 
-  def inventName(self):
+  def inventName(self, counted):
     """Invent a new name when existing names have run out."""
-    raise RuntimeError("TODO: implement inventing a new name")
+    for ii in range(ord("a"), ord("z") + 1):
+      cc = chr(ii)
+      if not cc in counted:
+        return cc
+    for ii in range(ord("A"), ord("Z") + 1):
+      cc = chr(ii)
+      if not cc in counted:
+        return cc
+    raise RuntimeError("no free names in single character ascii alphabet")
 
   def parse(self):
     """Parse all source files."""
@@ -242,7 +250,7 @@ class Glsl:
           break
       # If all names conflicted, invent new one.
       if not target_name:
-        target_name = self.inventName()
+        target_name = self.inventName(counted)
     # Listing case.
     if is_listing(block):
       for ii in block:
@@ -276,7 +284,7 @@ class Glsl:
           ii.lock(letter)
         return
     # None of the letters was free, invent new one.
-    target_name = self.inventName()
+    target_name = self.inventName(counted)
     for ii in names:
       ii.lock(target_name)
 

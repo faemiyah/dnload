@@ -343,6 +343,21 @@ class GlslToken:
     self.__parent.removeChild(self)
     self.__parent = None
 
+  def removeParens(self):
+    """Remove enclosing parens if possible."""
+    if (len(self.__left) != 1) or (len(self.__right) != 1):
+      return False
+    left = self.__left[0].getSingleChild()
+    right = self.__right[0].getSingleChild()
+    if ("(" != left) or (")" != right):
+      return False
+    # Was enclosed by parens, can remove.
+    self.__left[0].removeFromParent()
+    self.__right[0].removeFromParent()
+    self.__left = []
+    self.__right = []
+    return True
+
   def replaceMiddle(self, op):
     """Replace middle content with something that is not a token."""
     self.__middle = []
@@ -371,19 +386,19 @@ class GlslToken:
 
   def simplify(self):
     """Perform any simple simplification and stop."""
-    # Trivial case, single-element expression surrounded by parens.
-    if (len(self.__left) == 1) and (len(self.__right) == 1):
-      left = self.__left[0].getSingleChild()
-      right = self.__right[0].getSingleChild()
-      if ("(" == left) and (")" == right):
-        if len(self.__middle) == 1:
-          middle = self.__middle[0]
-          if (not is_glsl_token(middle)) or (len(middle.flatten()) == 1):
-            self.__left[0].removeFromParent()
-            self.__right[0].removeFromParent()
-            self.__left = []
-            self.__right = []
-            return True
+    # Paren removal - single expression.
+    if len(self.__middle) == 1:
+      middle = self.__middle[0]
+      if (not is_glsl_token(middle)) or (len(middle.flatten()) == 1):
+        if self.removeParens():
+          return True
+    # Paren removal - number or name with access.
+    elif len(self.__middle) == 2:
+      mid_lt = self.__middle[0].getSingleChild()
+      mid_rt = self.__middle[1].getSingleChild()
+      if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
+        if self.removeParens():
+          return True
     # Recurse down.
     for ii in self.__left:
       if ii.simplify():
