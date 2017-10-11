@@ -3,9 +3,9 @@ from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_statement import glsl_parse_statement
 
 ########################################
-# GlslBlockAssignment ##################
+# GlslBlockReturn ######################
 ########################################
- 
+
 class GlslBlockReturn(GlslBlock):
   """Return block."""
 

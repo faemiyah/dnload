@@ -8,6 +8,7 @@ from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
 from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_return import glsl_parse_return
+from dnload.glsl_block_unary import glsl_parse_unary
 
 ########################################
 # GlslBlockScope #######################
@@ -81,6 +82,11 @@ def glsl_parse_content(source):
       source = remaining
       continue
     (block, remaining) = glsl_parse_return(source)
+    if block:
+      ret += [block]
+      source = remaining
+      continue
+    (block, remaining) = glsl_parse_unary(source)
     if block:
       ret += [block]
       source = remaining
