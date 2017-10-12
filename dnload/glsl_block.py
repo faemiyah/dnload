@@ -481,7 +481,7 @@ def tokenize_split(source):
   array = re.split(r'([\(\)\[\]\{\}\+\-\*\/%\|&!\.,;:<>\=])', source, 1)
   if 3 > len(array):
     return [source]
-  return filter(lambda x: x, array[:2]) + tokenize_split(array[2])
+  return list(filter(lambda x: x, array[:2])) + tokenize_split(array[2])
 
 def validate_token(token, validation):
   """Validate that token matches given requirement."""
@@ -523,7 +523,7 @@ def validate_token(token, validation):
       return None
   # Select from options.
   elif validation.find("|") >= 0:
-    variations = filter(lambda x: x, validation.split("|"))
+    variations = list(filter(lambda x: x, validation.split("|")))
     if not check_token(token, variations):
       return None
   # Unknown validation.

@@ -40,10 +40,11 @@ class Glsl:
     """Get sorted listing of counted alpha letters within the code."""
     counted = self.count()
     lst = []
+    # Sort by instance count, length of name, string comparison.
     for kk in counted.keys():
-      lst += [(kk, counted[kk])]
-    ret = sorted(lst, key=lambda x: x[1], reverse=True)
-    return map(lambda x: x[0], ret)
+      lst += [(counted[kk], -len(kk), kk)]
+    ret = sorted(lst, reverse=True)
+    return list(map(lambda x: x[2], ret))
 
   def crunch(self, mode = "full", max_renames = -1, max_simplifys = -1):
     """Crunch the source code to smaller state."""
