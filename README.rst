@@ -44,6 +44,7 @@ Unsupported but should be supportable (last updated: 2017-10-12)
 
 * ``Linux-ia32`` (crashes in linked libraries)
 * ``arm64`` (AArch64)
+* ``ES2 GLSL support``
 
 Usage
 =====
@@ -85,7 +86,7 @@ To understand how to use the script, a simple example will clarify the operation
 
 Use this command to clone the repository::
 
-    svn checkout http://faemiyah-demoscene.googlecode.com/svn/trunk/dnload
+    git clone https://github.com/faemiyah/dnload.git
 
 The checked out repository will have the ``dnload.py`` script in the root folder. The minimal example is included in the ``src/`` folder and called ``hello_world.cpp``. The example looks like this (removing non-essential comments)::
 
@@ -108,18 +109,17 @@ The checked out repository will have the ``dnload.py`` script in the root folder
 
 When beginning to work with a project, the first thing needed is to ensure that our header is up to date. To do this, run::
 
-    python dnload.py src/hello_world.cpp -v
+    python dnload.py -v -E src/hello_world.cpp
 
 This should produce output somewhat akin to this::
 
-    Header file 'dnload.h' found in path 'src/'.
-    Trying binary 'g++49'... found
-    Trying binary 'sdl-config'... found
-    Executing command: sdl-config --cflags
-    Analyzing source file 'src/hello_world.cpp'.
-    Executing command: g++49 src/hello_world.cpp -D_GNU_SOURCE=1 -D_REENTRANT -D_THREAD_SAFE -DDNLOAD_H -I/usr/local/include -I/usr/local/include/SDL -E
+    Looking for 'preprocessor' executable... 'cpp'
+    Found header file: 'src/dnload.h'
+    Selected GLSL swizzle: ('x', 'y', 'z', 'w') (0 vs. 0)
+    Executing command: cpp src/hello_world.cpp -I/usr/local/include -I/usr/local/include/freetype2/ -I/usr/local/include/SDL
     Symbols found: ['puts']
-    Wrote header file 'src/dnload.h'.
+    Template substitutions not matched: ['INCLUDE_SNDFILE', 'UND_SYMBOLS', 'INCLUDE_SDL', 'INCLUDE_RAND', 'INCLUDE_OPENGL', 'INCLUDE_FREETYPE'] (6)
+    Wrote header file: 'src/dnload.h'
 
 You should now have an up-to date header file, which can be used to build the program. You may take a look at the contents of the header, but it will be explained in detail [#The_quest_for_minimal_ELF_binaries later on].
 
@@ -128,64 +128,68 @@ Building the example without size optimizations
 
 Even when developing an intro, the programmer is hardly interested in building a size-optimized binary every time. For this purpose, everything in the generated header file is wrapped to compile-time guards that allow us to compile the program as normal from Makefiles, Autotools scripts, CMake or even Visual Studio projects.
 
-To do this, we need to set the ``USE_LD`` flag, for example by (replace with your favorite compiler)::
+By default this separation is done with the preprocessor definition ``USE_LD`` not being present for size-limited builts. So, for normal operation, the user needs to compile with it enabled. For example
+(replace with your favorite compiler)::
 
-    > clang++ -o src/hello_world src/hello_world.cpp -DUSE_LD -I/usr/local/include `sdl-config --cflags` -O2 -s && ./src/hello_world
+    > clang++ -o src/hello_world src/hello_world.cpp -DUSE_LD -O2 -s -lc && ./src/hello_world
 Hello World!
 
-**Note:** The include directory and invoking sdl-config are currently necessary since SDL backend is what will be included by the generated headers.
-
-When ``USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and all calls made with the reserved ``dnload_`` prefix will simply call the functions as normal.
+When ``USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and all calls made with the reserved ``dnload_`` prefix will simply call the functions as normal. You can change this definition to anything you want.
 
 Compiling the example as a size-optimized binary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To invoke the script and perform full compilation, use::
 
-    python dnload.py -v src/hello_world.cpp -o hello_world -lc
+    python dnload.py -v src/hello_world.cpp -o src/hello_world
 
 You might notice the flags are similar to the conventions used in other binary utilities. This is intentional. The command should produce output somewhat similar to this::
 
-    Header file 'dnload.h' found in path 'src/'.
-    Trying binary 'g++49'... found
-    Trying binary 'sdl-config'... found
-    Executing command: sdl-config --cflags
-    Trying binary '/usr/local/bin/as'... found
-    Trying binary '/usr/local/bin/ld'... found
-    Trying binary '/usr/local/bin/strip'... found
-    Analyzing source file 'src/hello_world.cpp'.
-    Executing command: g++49 src/hello_world.cpp -D_GNU_SOURCE=1 -D_REENTRANT -D_THREAD_SAFE -DDNLOAD_H -I/usr/local/include -I/usr/local/include/SDL -E
+    Looking for 'preprocessor' executable... 'cpp'
+    Found header file: 'src/dnload.h'
+    Analyzing source files: ['src/hello_world.cpp']
+    Executing command: cpp src/hello_world.cpp -I/usr/local/include -I/usr/local/include/freetype2/ -I/usr/local/include/SDL
     Symbols found: ['puts']
-    Wrote header file 'src/dnload.h'.
-    Using output file 'src/hello_world' after source file 'src/hello_world.cpp'.
-    Linking against libraries: ['c']
-    Executing command: g++49 -S src/hello_world.cpp -o src/hello_world.S -Os -ffast-math -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti -fno-threadsafe-statics -fomit-frame-pointer -fsingle-precision-constant -fwhole-program -march=pentium4 -mpreferred-stack-boundary=2 -Wall -D_GNU_SOURCE=1 -D_REENTRANT -D_THREAD_SAFE -I/usr/local/include -I/usr/local/include/SDL
+    Template substitutions not matched: ['INCLUDE_SNDFILE', 'UND_SYMBOLS', 'INCLUDE_SDL', 'INCLUDE_RAND', 'INCLUDE_OPENGL', 'INCLUDE_FREETYPE'] (6)
+    Wrote header file: 'src/dnload.h'
+    Looking for 'compiler' executable... 'g++6'
+    Looking for 'assembler' executable... '/usr/local/bin/as'
+    Looking for 'linker' executable... '/usr/local/bin/ld'
+    Looking for 'objcopy' executable... '/usr/local/bin/objcopy'
+    Looking for 'strip' executable... '/usr/local/bin/strip'
+    Autodetected libraries to link against: ['c']
+    Executing command: g++6 -S src/hello_world.cpp -o src/hello_world.S -std=c++11 -Os -ffast-math -fno-asynchronous-unwind-tables -fno-enforce-eh-specs -fno-exceptions -fno-implicit-templates -fno-rtti -fno-stack-protector -fno-threadsafe-statics -fno-use-cxa-atexit -fno-use-cxa-get-exception-ptr -fnothrow-opt -fomit-frame-pointer -funsafe-math-optimizations -fvisibility=hidden -march=pentium4 -Wall -mpreferred-stack-boundary=2 -I/usr/local/include -I/usr/local/include/freetype2/ -I/usr/local/include/SDL -fwhole-program
     Checking for required UND symbols... ['__progname', 'environ']
     Using shared library 'libc.so.7' instead of 'libc.so'.
-    Read 5 sections in 'src/hello_world.S': text, rodata, text, text, note
+    Read 4 sections in 'src/hello_world.S': text, rodata, text, data
+    Sorted sections: 1 rodata, 1 data, 2 text
+    Alignment adjustment(data): 4 -> 1
     Erasing function header from '_start': 5 lines
-    Erasing function footer after interrupt '0x3': 9 lines.
-    Replacing 4-byte alignment with 1-byte alignment.
+    Erasing function footer after interrupt '0x3': 9 lines
     Constructed fake .bss segement: 0 bytes, one PT_LOAD sufficient
     Merging headers phdr_dynamic and hash at 4 bytes.
     Merging headers hash and dynamic at 4 bytes.
     Merging headers dynamic and symtab at 15 bytes.
     Merging headers interp and strtab at 1 bytes.
     Size of headers: 245 bytes
-    Wrote assembler source 'src/hello_world.combined.S'.
-    Executing command: /usr/local/bin/as src/hello_world.combined.S -o src/hello_world.o
+    Wrote assembler source: 'src/hello_world.final.S'
+    Executing command: /usr/local/bin/as src/hello_world.final.S -o src/hello_world.final.o
     Executing command: /usr/local/bin/ld --verbose
     Wrote linker script 'src/hello_world.ld'.
-    Executing command: /usr/local/bin/ld --oformat=binary --entry=0x2000000 src/hello_world.o -o src/hello_world.unprocessed -T src/hello_world.ld
-    Executing command: readelf --file-header --program-headers src/hello_world.unprocessed
-    Executable size equals PT_LOAD size (411 bytes), no truncation necessary.
-    Executing command: xz --format=lzma --lzma1=preset=9e,lc=1,lp=0,pb=0 --stdout src/hello_world.stripped
+    Executing command: /usr/local/bin/ld --entry=0x2000000 src/hello_world.final.o -o src/hello_world.bin -T src/hello_world.ld
+    Executing command: /usr/local/bin/objcopy --output-target=binary src/hello_world.bin src/hello_world.unprocessed
+    Executing command: readelf -l src/hello_world.unprocessed
+    Executable size equals PT_LOAD size (411 bytes), no operation necessary.
+    Executing command: xz --format=lzma --lzma1=preset=9,lc=1,lp=0,nice=273,pb=0 --stdout src/hello_world.stripped
     Wrote 'src/hello_world': 321 bytes
 
-The actual program output should be::
+Actual program output should be::
 
     > ./src/hello_world
     Hello World!
+    ./src/hello_world: line 1:  8835 Trace/BPT trap          ~
+
+The error message seen here is normal, because the program does not exactly terminate normally. For details, see next chapter.
 
 Including dnload into your project
 ----------------------------------
@@ -221,7 +225,16 @@ If the macro ``USE_LD`` would be defined, all this would simply evaluate to a se
       return 0;
     }
 
-If ``USE_LD`` is not defined, the program instead uses an entry point named ``_start``. This is because even if using ``main()`` normally, it is not the real entry point into the program. In practice, the linker will generate code that will perform initialization of global variables, environment, etc., and only afterwards pass the control to the main function created by the programmer. The actual entry point generated by the compiler/linker system is traditionally called ``_start``. Since we're aiming for a small binary, we will not be using any automatically generated entry point code, and declare it ourselves.
+If ``USE_LD`` is not defined, this would evaluate to a minified version instead::
+
+    void _start()
+    {
+      dnload();
+      dnload_puts("Hello World!");
+      asm_exit();
+    }
+
+Even if using ``main()`` normally, it is not the real entry point into the program. In practice, the linker will generate code that will perform initialization of global variables, environment, etc., and only afterwards pass the control to the main function created by the programmer. The actual entry point generated by the compiler/linker system is traditionally called ``_start``. Since we're aiming for a small binary, we will not be using any automatically generated entry point code, and declare it ourselves.
 
 The two first lines of main function comprise the actual program::
 
@@ -230,13 +243,9 @@ The two first lines of main function comprise the actual program::
 
 This will perform of dynamic loading of all required symbols (here: only ``puts``) and call the appropriate function pointer. After saying our hellos, the only thing left to do is to exit the program::
 
-    #if defined(USE_LD)
-      return 0;
-    #else
-      asm_exit();
-    #endif
+    asm_exit();
 
-Since we already abandoned the default ``main`` procedure, no-one is going to terminate our program. We could make it "return" but that would normally only pass control to the shell provided by the system, we now have nowhere to return to. Thus, we must make a system call [Ref11]_ to terminate the program ourselves. The code that will do this is written into the `dnload header`_ directly as inline assembler. On i386 architecture, it will evaluate into the following single instruction::
+Since we already abandoned the default ``main`` procedure, no-one is going to terminate our program. We could make it "return" but that would normally only pass control to the shell provided by the system, we now have nowhere to return to. Thus, we must make a system call [Ref11]_ to terminate the program ourselves. The code that will do this is written into the `dnload header`_ directly as inline assembler. On ``ia32`` architecture, it will evaluate into the following single instruction::
 
     int $3
 
@@ -247,12 +256,17 @@ Advanced examples
 
 The ``src/`` folder contains two other examples: ``quad.cpp`` and ``intro.cpp``. The quad example will simply open a coder-colored window, whereas the intro example performs (extremely primitive) raycasting and outputs 8-bit music (from very short programs) for a couple of seconds. The intro example can also be compiled with CMake for a interactive program with a 'debug mode'. To compile this, run (you will need Boost, GLEW, libPNG, OpenGL and SDL)::
 
-    cmake . && make clean all && ./src/intro -d -w
+    > python dnload.py -E src/intro.cpp
+    > cmake .
+    > make clean all
+    > ./intro -d -w
 
 This should open a window allowing mouse pan and WASD movement.
+
 You can size-optimize the program with::
 
-    python dnload.py -c src/intro.cpp -lGL -lSDL -v
+    > python dnload.py -v src/intro.cpp -lGL -lSDL
+    > ./src/intro
 
 Have fun!
 
@@ -267,11 +281,10 @@ Compiler flags
 We can alter the compiler output to produce smaller binaries both by making it actually optimize for size and by altering the output to be more compressable. The command line options would fall into three categories:
 
 * Options that decrease size of generated code or constants.
-* Options that (either randomly or unintentionally) produce a smaller or 
-  better compressable binary.
+* Options that (either randomly or unintentionally) produce a smaller or better compressable binary.
 * Options that disable language features, making output smaller.
 
-Despite Clang being all the rage nowadays, gcc seems to still produce binaries that size-optimize better. In particular, the script will attempt to use whichever ``g++`` is currently the latest available on FreeBSD (``g++49`` at the time of writing).
+Despite Clang being all the rage nowadays, gcc seems to still produce binaries that size-optimize better. In particular, the script will attempt to use whichever ``g++`` is currently the latest available on FreeBSD (``g++6`` at the time of writing).
 
 **Note:** Any compiler may be specified with the ``-C`` or ``--compiler`` command line option, but compilation is currently only supported with ``gcc`` or ``clang``. ``cl.exe`` may be used to generate the header in Windows.
 
@@ -287,23 +300,14 @@ These are all self-explanatory. In general, mere ``-Os -ffast-math -fomit-frame-
 
 The following options are of the second type, seeming to consistently produce code that compresses better:
 
-* ``-march=<arch>``: Some subsets of the instruction set seem to yield 
-  better results. As an example, on i386 architecture, after permutating
-  through all available instruction sets with several different intros, 
-  Pentium 4 was usually the best choice.
-* ``-mpreferred-stack-boundary=<align>``: Forces the compiler to attempt 
-  keeping the stack aligned at 2\^\<align\> bytes. It seems it's 
-  advantageous to keep this at the smallest possible value for any given 
-  architecture.
+* ``-march=<arch>``: Some subsets of the instruction set seem to yield better results. As an example, on i386 architecture, after permutating through all available instruction sets with several different intros, Pentium 4 was usually the best choice.
+* ``-mpreferred-stack-boundary=<align>``: Forces the compiler to attempt keeping the stack aligned at 2\^\<align\> bytes. It seems it's advantageous to keep this at the smallest possible value for any given architecture.
 
 Some flags of the third type, which disable fancy language features, are:
 
-* ``-fno-threadsafe-statics``: By default some code is generated to ensure 
-  thread-safe initialization of local static variables. This code seems to
-  get generated even if no statics actually exist.
-* ``-fno-asynchronous-unwind-tables``: Disables generation of stack unwind 
-  information that could be used to debug stack contents at locations other
-  than at the function call boundary.
+* ``-fno-threadsafe-statics``: By default some code is generated to ensure thread-safe initialization of local static variables. This code seems to get generated even if no statics actually exist.
+* ``-fno-asynchronous-unwind-tables``: Disables generation of stack unwind information that could be used to debug stack contents at locations other than at the function call boundary.
+* ``-funsafe-math-optimizations``: If you're doing math that needs exception checking in an intro context, you're probably doing it wrong.
 * ``-fno-exceptions``: Self-evident.
 * ``-fno-rtti``: Self-evident.
 
@@ -318,8 +322,7 @@ There are some other variants afterwards, but the first use of the modern one-li
 
 The concept of self-dumping shell script is to have the first n bytes of a file be plain text that will be executed by normal ``sh``-compatible shells. The shell code will:
 
-* Extract the rest of the file using common `*`nix tools (the compressed 
-  data starts immediately after the script).
+* Extract the rest of the file using common *nix tools (the compressed data starts immediately after the script).
 * Write the extracted data as a file into system temporary folder.
 * Make the file executable.
 * Run it.

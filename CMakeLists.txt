@@ -120,8 +120,3 @@ else()
   target_link_libraries(intro "${SDL2_LIBRARY}")
 endif()
 target_link_libraries(intro "${THREADS_LIBRARY}")
-
-# TODO: Remove when Wave works with C++11.
-if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-  set_property(SOURCE "src/glsl_wave.cpp" APPEND_STRING PROPERTY COMPILE_FLAGS "-std=c++03")
-endif()

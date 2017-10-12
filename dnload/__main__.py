@@ -5,10 +5,12 @@ import shutil
 import stat
 import subprocess
 import sys
+import textwrap
 
 from dnload.assembler import Assembler
 from dnload.assembler_file import AssemblerFile
 from dnload.assembler_segment import AssemblerSegment
+from dnload.common import get_indent
 from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.common import listify
@@ -258,9 +260,11 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #endif\n
 #if defined(__cplusplus)
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #else
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #endif
 [[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
@@ -741,8 +745,9 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, renames, sim
       glsl_varname = match.group(4)
       glsl_output_name = glsl_filename + "." + match.group(2)
       filenames += [[glsl_filename, glsl_varname, glsl_output_name]]
-  glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplifys)
-  glsl_db.write()
+  if filenames:
+    glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplifys)
+    glsl_db.write()
 
 def get_platform_und_symbols():
   """Get the UND symbols required for this platform."""
@@ -982,7 +987,7 @@ def main():
   parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
-  parser.add_argument("--glsl-mode", default = "full", choices = ("none", "combine", "full"), help = "GLSL crunching mode.\n(default: %(default))")
+  parser.add_argument("--glsl-mode", default = "full", choices = ("none", "combine", "full"), help = "GLSL crunching mode.\n(default: %(default)s)")
   parser.add_argument("--glsl-renames", default = -1, type = int, help = "Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--glsl-simplifys", default = -1, type = int, help = "Maximum number of simplify operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--linux", action = "store_true", help = "Try to target Linux if not in Linux. Equal to '-O linux'.")
@@ -990,7 +995,7 @@ def main():
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
   parser.add_argument("--preprocessor", default = None, help = "Try to use given preprocessor executable as opposed to autodetect.")
-  parser.add_argument("--rand", default = "bsd", choices = ("bsd", "gnu"), help = "rand() implementation to use.\n(default: %(default))")
+  parser.add_argument("--rand", default = "bsd", choices = ("bsd", "gnu"), help = "rand() implementation to use.\n(default: %(default)s)")
   parser.add_argument("--rpath", default = [], action = "append", help = "Extra rpath locations for linking.")
   parser.add_argument("--safe-symtab", action = "store_true", help = "Handle DT_SYMTAB in a safe manner.")
   parser.add_argument("-s", "--search-path", default = [], action = "append", help = "Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
