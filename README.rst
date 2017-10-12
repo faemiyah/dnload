@@ -322,7 +322,7 @@ There are some other variants afterwards, but the first use of the modern one-li
 
 The concept of self-dumping shell script is to have the first n bytes of a file be plain text that will be executed by normal ``sh``-compatible shells. The shell code will:
 
-* Extract the rest of the file using common *nix tools (the compressed data starts immediately after the script).
+* Extract the rest of the file using common \*nix tools (the compressed data starts immediately after the script).
 * Write the extracted data as a file into system temporary folder.
 * Make the file executable.
 * Run it.
