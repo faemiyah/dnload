@@ -950,7 +950,7 @@ What we consider to be regular instuctions for the cpu might be missing for for 
 
 If using integer division on ARM, the compiler will actually generate a call to an internal function that implements the division, then include it to the program at the linking phase. Since it's impossible to rely on this when generating minimal binaries, we have to supply implementations for these functions ourselves.
 
-Suppose, using unsigned integer division, the compiler would generate link in a function with the name ``__aeabi_uidivmod``. We know that the eabi calling convention passes input variables in ``r0`` and ``r1`` and passes the output variables in ``r0`` and ``r1`` also. Using this information, we can implement our own unsigned division.
+Suppose, using unsigned integer division, the compiler would generate link in a function with the name ``__aeabi_uidivmod``. We know that the eabi calling convention passes input variables in ``r0`` and ``r1`` and passes the output variables in ``r0`` and ``r1`` also. Using this information, we can implement our own unsigned division::
 
     unsigned __aeabi_uidivmod(unsigned num, unsigned den)
     {
