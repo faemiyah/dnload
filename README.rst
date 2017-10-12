@@ -1,20 +1,20 @@
 ########
  dnload
 ########
-------------------------------------------------------
+----
  Minimal binary generator for \*nix operating systems
-------------------------------------------------------
+----
 
 .. contents::
     :depth: 3
 
 dnload.py
-=========
+====
 
 ``dnload.py`` is a script for generating minimal ELF binaries from C code. It serves no practical real-world use case, but can be utilized to aid in the creation of size-limited demoscene productions.
 
 System requirements
-===================
+====
 
 The bridging header file can be created on any \*nix or Windows platform with an up-to-date Python installation and a suitable compiler.
 
@@ -27,7 +27,7 @@ For compiling without size optimizations, GLEW and SDL development files are nee
 **Note:** Cross-compilation is not (yet?) supported. Building of binaries must be done on the actual target system. If you want to develop 32-bit software on a 64-bit system, you will need to set up a chroot/jail environment or a virtual machine.
 
 Supported (last updated: 2017-10-12)
-------------------------------------
+----
 
 * ``FreeBSD``
 * ``Linux``
@@ -40,14 +40,14 @@ Supported (last updated: 2017-10-12)
 * ``cl.exe`` (preprocessing only)
 
 Unsupported but should be supportable (last updated: 2017-10-12)
-----------------------------------------------------------------
+----
 
 * ``Linux-ia32`` (crashes in linked libraries)
 * ``arm64`` (AArch64)
 * ``ES2 GLSL support``
 
 Usage
-=====
+====
 
 The script is used for the following purposes purposes:
 
@@ -56,7 +56,7 @@ The script is used for the following purposes purposes:
 * Minifying GLSL shaders. This may done as part of compilation or used separately.
 
 Summary of operation
---------------------
+----
 
 When invoked, the script will:
 
@@ -80,7 +80,7 @@ If the script was invoked to additionally generate the binary:
 Only one source file is supported when generating a binary. This is to enable whole program optimization. The user can ``#include`` other source files inside this main source for convenience.
 
 Example program
----------------
+----
 
 To understand how to use the script, a simple example will clarify the operation with more ease than any lengthy explanation would. This tutorial will cover a traditional hello world program.
 
@@ -124,7 +124,7 @@ This should produce output somewhat akin to this::
 You should now have an up-to date header file, which can be used to build the program. You may take a look at the contents of the header, but it will be explained in detail [#The_quest_for_minimal_ELF_binaries later on].
 
 Building the example without size optimizations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 Even when developing an intro, the programmer is hardly interested in building a size-optimized binary every time. For this purpose, everything in the generated header file is wrapped to compile-time guards that allow us to compile the program as normal from Makefiles, Autotools scripts, CMake or even Visual Studio projects.
 
@@ -137,7 +137,7 @@ Hello World!
 When ``USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and all calls made with the reserved ``dnload_`` prefix will simply call the functions as normal. You can change this definition to anything you want.
 
 Compiling the example as a size-optimized binary
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 To invoke the script and perform full compilation, use::
 
@@ -192,7 +192,7 @@ Actual program output should be::
 The error message seen here is normal, because the program does not exactly terminate normally. For details, see next chapter.
 
 Including dnload into your project
-----------------------------------
+----
 
 First of all, all programs wanting to use the loader will have to include the generated header file::
 
@@ -252,7 +252,7 @@ Since we already abandoned the default ``main`` procedure, no-one is going to te
 Note that this is not the traditional exit system call. Instead, it's a trap [ref30]_ that will break into debugger or exit the program if a debugger is not available. It has the advantage of taking less space than moving ``$1`` into ``eax`` and executing a normal ``int $128`` system call. The return value for the program is irrelevant, as the decompressor shell script the program is eventually wrapped in would eventually mask it anyway.
 
 Advanced examples
------------------
+----
 
 The ``src/`` folder contains two other examples: ``quad.cpp`` and ``intro.cpp``. The quad example will simply open a coder-colored window, whereas the intro example performs (extremely primitive) raycasting and outputs 8-bit music (from very short programs) for a couple of seconds. The intro example can also be compiled with CMake for a interactive program with a 'debug mode'. To compile this, run (you will need Boost, GLEW, libPNG, OpenGL and SDL)::
 
@@ -271,12 +271,12 @@ You can size-optimize the program with::
 Have fun!
 
 The quest for minimal ELF binaries
-==================================
+====
 
 This section of the documentation explores both the current and historical methods of reducing executable file size on \*nix systems. If you are only interested in the current "best practice" operation of the script, you can skip to `Current compression procedure`_.
 
 Compiler flags
---------------
+----
 
 We can alter the compiler output to produce smaller binaries both by making it actually optimize for size and by altering the output to be more compressable. The command line options would fall into three categories:
 
@@ -314,7 +314,7 @@ Some flags of the third type, which disable fancy language features, are:
 **Note:** One could ask why C++ to begin with if we're not using any of its features? The answer is, that it should never be detrimental. After manually disabling all the features that would increase code footprint, we can basically write C using a C++ compiler. In some cases the C++ syntax will be beneficial.
 
 The self-dumping shell script
------------------------------
+----
 
 Scouring old releases, the first instance of a \*nix 4k using a self-dumping shell script seems to be *helsinki-spiegelberg* by **tsygä** [ref12]_. However, instead of dumping an executable binary, this entry actually unpacks to a source and compiles before execution.
 
@@ -352,15 +352,15 @@ For academic interest, the script can create its output using nothing besides th
 
     'src/hello_world.stripped': 1396 bytes
     'src/hello_world': 625 bytes
-    'src/intro.stripped': 5048 bytes
-    'src/intro': 1629 bytes
+    'src/intro.stripped': 3360 bytes
+    'src/intro': 1546 bytes
 
 **Note:** Unless otherwise mentioned, all sizes, code excerpts and implementation details in this chapter refer to ``FreeBSD-ia32``, which was the original supported platform.
 
 The "stripped" binaries listed above are generated by just removing all non-needed sections from output binaries. These include ``.comment``, ``.eh_frame``, ``.eh_frame_hdr``, ``.fini``, ``.gnu.hash``, ``.gnu.version``, ``.jcr``, ``.note``, ``.note.ABI-tag`` and ``.note.tag``. Using the compiler/linker ``-s`` flag seems to leave some of these in, so ``strip`` is called manually afterwards.
 
 My symbol table is too big - dlopen/dlsym
------------------------------------------
+----
 
 Besides the modern unpack header, *Yellow Rose* also introduced the concept of using POSIX ``dlopen`` [ref14]_ and ``dlsym`` [ref15]_ to load the OpenGL functions it required.
 
@@ -441,14 +441,14 @@ To gain access to these functions, we need to link against the standard C librar
 Recompiling with ``-m dlfcn``, we get new sizes::
 
     'hello_world.stripped': 1544 bytes
-    'hello_world': 736 bytes
-    'intro.stripped': 5076 bytes
-    'intro': 1590 bytes
+    'hello_world': 735 bytes
+    'intro.stripped': 2996 bytes
+    'intro': 1515 bytes
 
-Interestingly, this method does not really seem to be that advantageous at all on modern FreeBSD. Small binaries actually get larger due to additional program logic in the function loading system. On any nontrivial program there is a slight tradeoff in favor of just using plain ``ld`` though.
+Interestingly, this method does not really seem to be that advantageous. Small binaries actually get larger due to additional program logic in the function loading system. On any nontrivial program there is a slight tradeoff in favor of just using plain ``ld`` though.
 
 Import by hash - scouring ELF headers
--------------------------------------
+----
 
 Even if the cost of function name only is rather little, it still adds up for a large block of data, especially as using ``dlopen`` and ``dlsym`` requires us to have symbol definitions and all the PLT/GOT information required for them in the binary.
 
@@ -507,12 +507,10 @@ In here, the element ``r_map`` will contain a pointer to a linked list of struct
 
 The field ``l_ld`` in this structure is a pointer to the particular .dynamic section of this shared object. Reading the ELF specification [#References [16]], we also know that:
 
-* All symbols of the shared object are located in the section pointed by tag 
-  ``DT_SYMTAB``.
+* All symbols of the shared object are located in the section pointed by tag ``DT_SYMTAB``.
 * All symbol names are located in the section pointed by tag ``DT_STRTAB``.
 * Symbols names point to offsets from the start of ``DT_STRTAB`` section.
-* The total number of symbols in a shared object is the number of chains in 
-  the hash table of the shared object.
+* The total number of symbols in a shared object is the number of chains in the hash table of the shared object.
 
 Using this information, we can simply go through the shared objects, one by one, then go through the symbols in these shared objects, one by one, only stopping when we find a name with a hash matching the hash we want. We can also use the symbol table format defined in the earlier section by storing these hashes at the same location the function pointer is going to get stored at. The only thing that remains to be done is to find a convenient hashing algorithm.
 
@@ -610,17 +608,17 @@ Combining all this, gives us the following proof-of-concept implementation::
 
 Compiling with ``-m hash`` and linking against normal libraries (as opposed to what was needed with the dlfcn method) gives us new sizes::
 
-    'hello_world.stripped': 1100 bytes
-    'hello_world': 556 bytes
-    'intro.stripped': 5464 bytes
-    'intro': 1356 bytes
+    'hello_world.stripped': 1116 bytes
+    'hello_world': 567 bytes
+    'intro.stripped': 2240 bytes
+    'intro': 1265 bytes
 
 Significantly better.
 
 The command line option ``-m hash`` additionally does some low-hanging optimizations such as removing all known unneeded symbols (``_end``, ``_edata`` and ``__bss_start``) and combining ``.rodata`` and ``.text`` into one section to free 40 bytes that would be consumed by a section header. This kind of hacking is, however, ultimately uninteresting as the only real way to further reduce the size is to construct all the ELF headers manually.
 
 Crafting headers manually
--------------------------
+----
 
 There are earlier examples, on manually writing Linux ELF32 headers byte [ref21]_ by byte [ref22]_. These are easily executable even on FreeBSD 32-bit Linux emulation. The also come complete with source code, so one would assume switching between operating systems would be as easy as changing 8th byte of the ELF header into ``ELFOSABI_FREEBSD`` (i.e. 9) and recompiling with ``nasm``. Unfortunately, things are not quite so easy, and binaries constructed  thus will just crash.
 
@@ -728,12 +726,12 @@ So that's why it crashes.
 From this on, it's all just manual work, instrumenting the dynamic linker and seeing what can be done to minimize size. As this is an ongoing process, we will simply itemize the current findings.
 
 Current compression procedure
------------------------------
+----
 
 The ``maximum`` compression mode uses certain techniques to decrease binary size, described below.
 
 Section headers and sections
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 These seem to be not needed. At all.
 
@@ -742,7 +740,7 @@ ELF uses the section information for introspection. Names of sections are contai
 However, when push comes to shove, the program will still be executed solely based on instructions in program headers and the ``.dynamic`` information. Section headers are 40 bytes a piece. We will have none of that.
 
 Fake .bss section
-~~~~~~~~~~~~~~~~~
+~~~~
 
 Traditionally programs put uninitialized but statically reserved memory in a section named ``.bss`` or *Block Started by Symbol* that will be handled by the linker. We naturally do not have anything of the like. However, the program header PT_LOAD provides a possibility to set the size on disk (``p_filesz``) as different from size in memory (``p_memsz``).
 
@@ -764,7 +762,7 @@ The file size will use ``end`` while the memory size will use ``bss_end``.
 **Note:** This will fail with a **bus error** if the size of fake ``.bss`` segment nears 128 megabytes. If this happens, the solution is to do the exact same thing ``ld`` would do - construct another ``PT_LOAD`` segment at the next memory page without the execute flag set and assign all uninitialized memory there instead.
 
 Entry into and exit from ``_start``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 As described in `Example program`_ earlier, we take care from entry and exit from the ``_start`` procedure ourselves. The compiler will happily push registers at the beginning and subtract the stack at the end of the function. On i386, this looks like the following (from ``hello_world.cpp`` example)::
 
@@ -791,7 +789,7 @@ As described in `Example program`_ earlier, we take care from entry and exit fro
 None of the push operations at the beginning or any operations after the system call are necessary. They may be discarded.
 
 Alignment
-~~~~~~~~~
+~~~~
 
 Compilers seem to generate alignment directives rather arbitrarily. This is necessary on some architectures, but unnecessarily high alignments are irrelevant.
 
@@ -800,7 +798,7 @@ All alignment takes space on disk. To prevent this, all alignment directives gre
 **Note:** It turns out that on alignment can sometimes be completely removed by effectively aligning one byte. This is not possible on any architectures where instruction pointer is assumed to be aligned to instruction size, but works at least on ``amd64`` and on ``ia32``.
 
 Merging headers
-~~~~~~~~~~~~~~~
+~~~~
 
 As **Brian Raiter** already noted in *A Whirlwind Tutorial on Creating Really Teensy ELF Executables for Linux* [ref2]_, it does not really seem to matter if the ELF headers overlap. The structures will be assigned addresses exactly based on the offsets given, and they can freely overlap with other structs in memory.
 
@@ -829,14 +827,14 @@ In this particular case, the merging takes advantage of:
 **Note:** Interleaving with ``DT_DEBUG`` is dangerous, as the structure will be filled on runtime as seen in `Import by hash - scouring ELF headers`_. In practice, it seems to not cause problems currently.
 
 Entry point
-~~~~~~~~~~~
+~~~~
 
 Default ELF entry point is fixed to address ``0x8048000``. This can be changed to a better compressable address.
 
 The only issue here is that specifying ``--entry`` to ``ld`` does not actually change the entry point (it probably would if ``ld`` would also construct the headers). We need to modify linker scripts. This is done the same way as in `Import by hash - scouring ELF headers`_ - make the linker export the full linker script and change the ``SEGMENT_START`` directives into a better constant (``0x2000000`` at the time of writing).
 
 Minimal ``DT_HASH``
-~~~~~~~~~~~~~~~~~~~
+~~~~
 
 If symbols are present in the object, a hash table must be present to allow the dynamic linker to look for symbols. Either a GNU hash table or the traditional SYSV ELF hash table could be used. GNU hash table however uses 16 bytes for the mere headers, and does not look all that promising. SYSV hash tables seem to be relatively small. They look like this (all values are unsigned 32-bit integers):
 
@@ -875,7 +873,7 @@ The total cost of adding symbols would thus be ``8`` (for dynamic structure refe
 **Note**: In FreeBSD, where ``libc`` requires symbols ``environ`` and ``__progname`` this would be 99 bytes exactly.
 
 Location of ``r_debug``
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 When not constructing headers manually, the ``r_debug`` debugger structure containing the link map to iterate over linked shared libraries must be found by examining the program headers, starting right from the entry point.
 
@@ -900,7 +898,7 @@ Into::
     #define elf_get_link_map() dynamic_r_debug
 
 Ordering of `DT_STRTAB` and ``DT_SYMTAB``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 Logically, before iterating through the symbols in a library, their total amount would be interpreted from that library's hash table. This only takes a bit of space on FreeBSD where (easily interpretable) SYSV hash tables seem to be present in every library. On Linux, some libraries only contain GNU hash tables the parsing of which significantly increases code footprint [ref25]_.
 
@@ -940,27 +938,79 @@ Using this information, the symbol scourer part of the loader can be reduced int
 
 To see the difference compared to actually interpreting the hash, compile using ``--safe-symtab`` command line option.
 
+Platform-specific details
+----
+
+Some platforms allow additional optimizations and/or need specific things to be taken into account when creating the binary.
+
+Auto-generated functions (arm32l)
+~~~~
+
+What we consider to be regular instuctions for the cpu might be missing for for some architectures. The most obvious example of this is the absence of integer division on 32-bit ARM.
+
+If using integer division on ARM, the compiler will actually generate a call to an internal function that implements the division, then include it to the program at the linking phase. Since it's impossible to rely on this when generating minimal binaries, we have to supply implementations for these functions ourselves.
+
+Suppose, using unsigned integer division, the compiler would generate link in a function with the name ``__aeabi_uidivmod``. We know that the eabi calling convention passes input variables in ``r0`` and ``r1`` and passes the output variables in ``r0`` and ``r1`` also. Using this information, we can implement our own unsigned division.
+
+    unsigned __aeabi_uidivmod(unsigned num, unsigned den)
+    {
+      unsigned shift = 1;
+      unsigned quotient = 0;
+    
+      for(;;)
+      {
+        unsigned next = den << 1;
+        if(next > num)
+        {
+          break;
+        }
+        den = next;
+        shift <<= 1;
+      }
+    
+      while(shift > 0)
+      {
+        if(den <= num)
+        {
+          num -= den;
+          quotient += shift;
+        }
+        den >>= 1;
+        shift >>= 1;
+      }
+      volatile register int r1 asm("r1") = num;
+      asm("" : /**/ : "r"(r1) : /**/); // output: remainder
+      return quotient; // r0
+    }
+
+Same mechanic can be used for other functions such as (``memset``) or signed division (``__aeabi_idivmod``), which can actually use unsigned division as a sub-call to save space.
+
 Empty ``DT_SYMTAB`` (Linux)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
 
 Linux ``libc`` does not require the user program to define ``environ`` and ``__progname``. I was initially just leaving the ``hash`` and ``symtab`` segments blank. A blank ``symtab`` consists of just one empty (``NULL``) symbol, which already saves quite a lot of space.
 
 However, as Amand Tihon [ref23]_ points in his own similar project [ref24]_, on Linux the whole of symbol table can be omitted. This is done by having the ``DT_SYMTAB`` dynamic structure entry point to address value ``0`` and by omitting ``DT_HASH`` completely. All in all, this means that size-optimized binaries on Linux are 99 bytes (`Minimal DT_HASH`_) smaller than on FreeBSD. Interleaving of headers takes away some of this advantage, in practice it seems to be about 30 compressed bytes.
 
 Final sizes
-~~~~~~~~~~~
+~~~~
 
 Compiling with all the tricks listed above (using ``-m maximum`` or just omitting the option) gives us::
 
     'hello_world.stripped': 411 bytes
     'hello_world': 321 bytes
-    'intro.stripped': 1609 bytes
-    'intro': 1099 bytes
+    'intro.stripped': 1510 bytes
+    'intro': 1024 bytes
 
 **Note:** Sizes subject to change.
 
+GLSL minification
+====
+
+**TODO**: Write this chapter. Explain renaming, local frequency analysis, token simplification, etc.
+
 Acknowledgements
-================
+====
 
 This script would not have been possible without the prior work done by various other parties. Especially the following entities deserve kudos for their efforts:
 
@@ -987,7 +1037,7 @@ And:
 The list might be missing some parties. Please notify me of any errors or omissions, so that people will get the credit they deserve.
 
 Legalese
-========
+====
 
 All contained code is licensed under the `new BSD license`_ [ref9]_.
 
@@ -996,34 +1046,27 @@ Note that this license only pertains to the code of the script(s) themselves. Th
 To be honest, even that doesn't really mean anything. Just do whatever you want, but if you improve on the mechanisms, I would prefer to incorporate the improvements.
 
 FAQ
-===
+====
 
 No-one runs 32-bit FreeBSD anymore, especially if it's only for curiosities like this. Why bother?
---------------------------------------------------------------------------------------------------
+----
 
 Even on a 64-bit system, you should be able to execute the result file if the compatibility layer is set up correctly. The easiest way to do it is to just install a 32-bit jail [ref10]_ and point ``LD_32_LIBRARY_PATH`` environment variable to the ``/usr/local/lib`` of that jail. This has the added benefit of enabling full 32-bit compatibility and easy cross-compiling.
 
 There are probably easy ways to do the same on Linux, but they are out of the scope of this document.
 
-What about ELF64?
------------------
-
-It turns out the techniques described in this document are suitable for 64-bit ELF with minor or no changes. No specific new tricks are required.
-
-The script supports ELF64 just the same way it supports ELF32, the description is kept in 32-bit particulars for simplicity of explanation.
-
 What does ``USE_LD`` stand for?
--------------------------------
+----
 
 The name ``USE_LD`` is legacy, which has preserved unchanged from earlier Faemiyah prods. You may change the definition with the ``-d`` or ``--definition`` command line argument when invoking the script.
 
 Do I need to use ``_start``?
-----------------------------
+----
 
 When manually creating the program headers, the symbol would not necessarily need to be named ``_start`` - it could be anything, and the name will be stripped out anyway. However, this is a known convention.
 
 What are ``environ`` and ``__progname``?
-----------------------------------------
+----
 
 You you looked into the generated header, you might have seen something like this::
 
@@ -1054,7 +1097,7 @@ We do not need these symbols, but libc expects them to be present in the binary.
 **Note:** These symbols seem to be not needed on Linux.
 
 Why is there an attribute ``externally_visible`` specified for some symbols?
-----------------------------------------------------------------------------
+----
 
 The suffix ``__attribute__((externally_visible))`` is present in some symbols defined, most notable in ``_start``. This is due to Gnu C Compiler semantics.
 
@@ -1067,16 +1110,13 @@ This attribute explicitly marks functions as symbols to be externally visible, s
 TODO
 ====
 
-* Should probably create the header file in a smart(er) manner if it is not 
-  found.
-* Add cross-compilation support, at the very least between \*nix systems at 
-  the "maximum" operation mode.
+* Add cross-compilation support between operating systems, not only 32/64 bit binary generation.
 * Only SDL/OpenGL supported right now. Should probably also support GLFW.
-* Perhaps there are more efficient ways to interleave the header structs? 
-  Perhaps this can be permutated?
+* Perhaps there are more efficient ways to interleave the header structs? Perhaps this can be permutated?
+* Perhaps .data segment contents can be sorted and rearranged for better compression?
 
 References
-==========
+====
 
 .. [ref1] http://www.pouet.net/user.php?who=4078 Marq/Fit in Pouet]
 .. [ref2] http://www.muppetlabs.com/~breadbox/software/tiny/teensy.html A Whirlwind Tutorial on Creating Really Teensy ELF Executables for Linux

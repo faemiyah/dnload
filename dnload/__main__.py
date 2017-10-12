@@ -1127,6 +1127,41 @@ def main():
   elif "hash" == compilation_mode:
     definitions += ["DNLOAD_NO_FIXED_R_DEBUG_ADDRESS"]
 
+  # Find assembler.
+  if assembler:
+    if not check_executable(assembler):
+      raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
+  else:
+    assembler = search_executable(default_assembler_list, "assembler")
+  if not assembler:
+    raise RuntimeError("suitable assembler not found")
+  assembler = Assembler(assembler)
+  if extra_assembler_flags:
+    assembler.addExtraFlags(extra_assembler_flags)
+  # Find linker.
+  if linker:
+    if not check_executable(linker):
+      raise RuntimeError("could not use supplied linker '%s'" % (linker))
+  else:
+    linker = search_executable(default_linker_list, "linker")
+  linker = Linker(linker)
+  if extra_linker_flags:
+    linker.addExtraFlags(extra_linker_flags)
+  # Find objcopy.
+  if objcopy:
+    if not check_executable(objcopy):
+      raise RuntimeError("could not use supplied objcopy executable '%s'" % (objcopy))
+  else:
+    objcopy = search_executable(default_objcopy_list, "objcopy")
+  # Find strip.
+  if strip:
+    if not check_executable(strip):
+      raise RuntimeError("could not use supplied strip executable '%s'" % (strip))
+  else:
+    strip = search_executable(default_strip_list, "strip")
+  if not strip:
+    raise RuntimeError("suitable strip executable not found")
+
   gles_reason = None
   if not no_glesv2:
     if os.path.exists(PATH_MALI):
@@ -1290,41 +1325,6 @@ def main():
   if extra_compiler_flags:
     compiler.add_extra_compiler_flags(extra_compiler_flags)
 
-  # Find assembler.
-  if assembler:
-    if not check_executable(assembler):
-      raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
-  else:
-    assembler = search_executable(default_assembler_list, "assembler")
-  if not assembler:
-    raise RuntimeError("suitable assembler not found")
-  assembler = Assembler(assembler)
-  if extra_assembler_flags:
-    assembler.addExtraFlags(extra_assembler_flags)
-  # Find linker.
-  if linker:
-    if not check_executable(linker):
-      raise RuntimeError("could not use supplied linker '%s'" % (linker))
-  else:
-    linker = search_executable(default_linker_list, "linker")
-  linker = Linker(linker)
-  if extra_linker_flags:
-    linker.addExtraFlags(extra_linker_flags)
-  # Find objcopy.
-  if objcopy:
-    if not check_executable(objcopy):
-      raise RuntimeError("could not use supplied objcopy executable '%s'" % (objcopy))
-  else:
-    objcopy = search_executable(default_objcopy_list, "objcopy")
-  # Find strip.
-  if strip:
-    if not check_executable(strip):
-      raise RuntimeError("could not use supplied strip executable '%s'" % (strip))
-  else:
-    strip = search_executable(default_strip_list, "strip")
-  if not strip:
-    raise RuntimeError("suitable strip executable not found")
-
   # Determine abstraction layer if it's not been set.
   if not abstraction_layer:
     if symbols_has_library(symbols, "SDL"):
@@ -1348,7 +1348,7 @@ def main():
       output_path = target_path
     output_file = os.path.normpath(os.path.join(output_path, output_basename))
   else:
-    output_path, output_basename = os.path.split(source_file)
+    output_path, output_basename = os.path.split(source_files[0])
     output_basename, source_extension = os.path.splitext(output_basename)
     output_file = os.path.normpath(os.path.join(output_path, output_basename))
     if is_verbose():

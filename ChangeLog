@@ -1,5 +1,5 @@
-r14 (20??-??-??)
-  * -
+r14 (2017-10-12)
+  * Add GLSL minifier.
 
 r13 (2016-11-25)
   * Better LZMA compression parameters.
