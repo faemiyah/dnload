@@ -939,12 +939,12 @@ Using this information, the symbol scourer part of the loader can be reduced int
 To see the difference compared to actually interpreting the hash, compile using ``--safe-symtab`` command line option.
 
 Platform-specific details
-----
+====
 
 Some platforms allow additional optimizations and/or need specific things to be taken into account when creating the binary.
 
 Auto-generated functions (arm32l)
-~~~~
+----
 
 What we consider to be regular instuctions for the cpu might be missing for for some architectures. The most obvious example of this is the absence of integer division on 32-bit ARM.
 
@@ -986,7 +986,7 @@ Suppose, using unsigned integer division, the compiler would generate link in a 
 Same mechanic can be used for other functions such as (``memset``) or signed division (``__aeabi_idivmod``), which can actually use unsigned division as a sub-call to save space.
 
 Empty ``DT_SYMTAB`` (Linux)
-~~~~
+----
 
 Linux ``libc`` does not require the user program to define ``environ`` and ``__progname``. I was initially just leaving the ``hash`` and ``symtab`` segments blank. A blank ``symtab`` consists of just one empty (``NULL``) symbol, which already saves quite a lot of space.
 
@@ -1110,6 +1110,7 @@ This attribute explicitly marks functions as symbols to be externally visible, s
 TODO
 ====
 
+* Why is ``linux-ia32`` / ``linux-amd64`` failing on modern distros suddenly?
 * Add cross-compilation support between operating systems, not only 32/64 bit binary generation.
 * Only SDL/OpenGL supported right now. Should probably also support GLFW.
 * Perhaps there are more efficient ways to interleave the header structs? Perhaps this can be permutated?
