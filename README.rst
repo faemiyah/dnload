@@ -26,38 +26,33 @@ For compiling without size optimizations, GLEW and SDL development files are nee
 
 **Note:** Cross-compilation is not (yet?) supported. Building of binaries must be done on the actual target system. If you want to develop 32-bit software on a 64-bit system, you will need to set up a chroot/jail environment or a virtual machine.
 
-Supported operating systems (for binary compilation)
-----------------------------------------------------
+Supported (last updated: 2017-10-12)
+------------------------------------
 
 * ``FreeBSD``
 * ``Linux``
-* ``Windows`` (for preprocessing only)
-
-Supported architectures
------------------------
-
+* ``Windows`` (preprocessing only)
 * ``amd64`` (x86_64)
 * ``ia32`` (i386)
-
-Supported compilers
--------------------
-
+* ``arm32l`` (armel)
 * ``clang++``
-* ``cl.exe`` (for preprocessing only)
 * ``g++``
+* ``cl.exe`` (preprocessing only)
+
+Unsupported but should be supportable (last updated: 2017-10-12)
+----------------------------------------------------------------
+
+* ``Linux-ia32`` (crashes in linked libraries)
+* ``arm64`` (AArch64)
 
 Usage
 =====
 
-The script is used for two purposes:
+The script is used for the following purposes purposes:
 
-* Building size-limited binaries directly from C/C++ source on systems,
-  where compilation is supported.
-* Generating a header file to hide the complexities of size-limited linking. 
-  This can be also be on systems where compilation is not supported. The 
-  main use of this feature is to allow demo developers to work on other 
-  platforms except the main targets. The generated header tries to preserve 
-  portability.
+* Building size-limited binaries directly from C/C++ source on systems, where compilation is supported.
+* Generating a header file to hide the complexities of size-limited linking. This can be also be on systems where compilation is not supported. The purpose of this feature is to allow developers to work on platforms besides the main targets. The generated header tries to preserve portability.
+* Minifying GLSL shaders. This may done as part of compilation or used separately.
 
 Summary of operation
 --------------------
@@ -65,27 +60,23 @@ Summary of operation
 When invoked, the script will:
 
 * Probe for suitable compiler, usually `gcc` or `clang`, `cl.exe` on Windows.
-* Search for header file it was supposed to generate. By default this is 
-  called `dnload.h`.
-* Examine the location the header file was found in. If a source file was 
-  given on command line, only operate on it. Otherwise take all source files 
-  from this location.
-* Preprocess the source files with the compiler found earlier.
-* Examine preprocessor output and locate all function calls made with a 
-  specific prefix. By default this prefix is ``dnload_``.
+* Search for header file it was supposed to generate. By default this is called `dnload.h`.
+* Preprocess given source files with the compiler found earlier.
+* Examine preprocessor output and locate all function calls made with a specific prefix. By default this prefix is ``dnload_``.
 * Generate a loader code block that locates pointers to given functions.
 * Write the header file.
 
 If the script was invoked to additionally generate the binary:
 
+* Search source files for ``#include`` directives pointing to GLSL source, if found, minify them.
 * Search for usual binary utilities in addition to the compiler.
 * Compile given source file with flags aiming for small code footprint.
-* Perform a series on operations on the compiler output known to further 
-  reduce code footprint.
+* Perform a series on operations on the compiler output known to further reduce code footprint.
 * Link an output binary.
 * Possibly strip the generated binary.
-* Compress the produced binary and concatenate it with a shell script that 
-  will decompress and execute it.
+* Compress the produced binary and concatenate it with a shell script that will decompress and execute it.
+
+Only one source file is supported when generating a binary. This is to enable whole program optimization. The user can ``#include`` other source files inside this main source for convenience.
 
 Example program
 ---------------
