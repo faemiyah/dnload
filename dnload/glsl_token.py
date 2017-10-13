@@ -271,6 +271,37 @@ class GlslToken:
       return rt.findEqualToken(orig)
     return (None, None)
 
+  def findHighestPrioOperatorMiddle(self):
+    """Find highest priority operator from elements in the middle."""
+    prio = -1
+    for ii in self.__middle:
+      mid = ii.getSingleChildMiddleNonToken()
+      if is_glsl_operator(mid):
+        prio = max(prio, mid.getPrecedence())
+    return prio
+
+  def findSiblingOperatorLeft(self):
+    """Find nearest left operator."""
+    if not self.__parent:
+      return None
+    mid = self.__parent.getSingleChildMiddleNonToken()
+    if not is_glsl_operator(mid):
+      return None
+    if self.__parent.getSingleChildLeft() != self:
+      return mid
+    return self.__parent.findSiblingOperatorLeft()
+
+  def findSiblingOperatorRight(self):
+    """Find nearest right operator."""
+    if not self.__parent:
+      return None
+    mid = self.__parent.getSingleChildMiddleNonToken()
+    if not is_glsl_operator(mid):
+      return None
+    if self.__parent.getSingleChildRight() != self:
+      return mid
+    return self.__parent.findSiblingOperatorRight()
+
   def getPrecedenceIfOperator(self):
     """Return precedence if middle element is a single child that is an operator."""
     mid = self.getSingleChildMiddleNonToken()
@@ -319,6 +350,14 @@ class GlslToken:
       return True
     return False
 
+  def isSurroundedByParens(self):
+    """Tell if this is a token surrounded by parens."""
+    if (len(self.__left) != 1) or (len(self.__right) != 1):
+      return False
+    left = self.__left[0].getSingleChild()
+    right = self.__right[0].getSingleChild()
+    return ("(" == left) and (")" == right)
+
   def removeChild(self, op):
     """Remove a child from this."""
     for ii in range(len(self.__left)):
@@ -345,11 +384,7 @@ class GlslToken:
 
   def removeParens(self):
     """Remove enclosing parens if possible."""
-    if (len(self.__left) != 1) or (len(self.__right) != 1):
-      return False
-    left = self.__left[0].getSingleChild()
-    right = self.__right[0].getSingleChild()
-    if ("(" != left) or (")" != right):
+    if not self.isSurroundedByParens():
       return False
     # Was enclosed by parens, can remove.
     self.__left[0].removeFromParent()
@@ -386,19 +421,41 @@ class GlslToken:
 
   def simplify(self):
     """Perform any simple simplification and stop."""
-    # Paren removal - single expression.
-    if len(self.__middle) == 1:
-      middle = self.__middle[0]
-      if (not is_glsl_token(middle)) or (len(middle.flatten()) == 1):
-        if self.removeParens():
-          return True
-    # Paren removal - number or name with access.
-    elif len(self.__middle) == 2:
-      mid_lt = self.__middle[0].getSingleChild()
-      mid_rt = self.__middle[1].getSingleChild()
-      if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
-        if self.removeParens():
-          return True
+    # Remove parens.
+    if self.isSurroundedByParens():
+      # Single expression.
+      if len(self.__middle) == 1:
+        middle = self.__middle[0]
+        if (not is_glsl_token(middle)) or (len(middle.flatten()) == 1):
+          if self.removeParens():
+            return True
+      # Number or name with access.
+      elif len(self.__middle) == 2:
+        mid_lt = self.__middle[0].getSingleChild()
+        mid_rt = self.__middle[1].getSingleChild()
+        if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
+          if self.removeParens():
+            return True
+      # Only contains lower-priority operators compared to outside.
+      prio = self.findHighestPrioOperatorMiddle()
+      if prio >= 0:
+        left = self.findSiblingOperatorLeft()
+        right = self.findSiblingOperatorRight()
+        if left:
+          if left.getPrecedence() > prio:
+            if right:
+              if right.getPrecedence() > prio:
+                if self.removeParens():
+                  return True
+            elif self.removeParens():
+              return True
+        elif right:
+          if right.getPrecedence() > prio:
+            if self.removeParens():
+              return True
+        else:
+          if self.removeParens():
+            return True
     # Recurse down.
     for ii in self.__left:
       if ii.simplify():
