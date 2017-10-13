@@ -10,6 +10,7 @@ import textwrap
 from dnload.assembler import Assembler
 from dnload.assembler_file import AssemblerFile
 from dnload.assembler_segment import AssemblerSegment
+from dnload.common import check_executable
 from dnload.common import get_indent
 from dnload.common import is_listing
 from dnload.common import is_verbose
@@ -17,7 +18,9 @@ from dnload.common import listify
 from dnload.common import locate
 from dnload.common import run_command
 from dnload.common import set_verbose
+from dnload.common import search_executable
 from dnload.compiler import Compiler
+from dnload.custom_help_formatter import CustomHelpFormatter
 from dnload.glsl import Glsl
 from dnload.library_definition import g_library_definitions
 from dnload.linker import Linker
@@ -434,51 +437,8 @@ void *__progname DNLOAD_VISIBILITY;
 """)
 
 ########################################
-# CustomHelpFormatter ##################
-########################################
-
-class CustomHelpFormatter(argparse.HelpFormatter):
-  """Help formatter with necessary changes."""
-
-  def _fill_text(self, text, width, indent):
-    """Method override."""
-    ret = []
-    for ii in text.splitlines():
-      ret += [textwrap.fill(ii, width, initial_indent=indent, subsequent_indent=indent)]
-    return "\n\n".join(ret)
-
-  def _split_lines(self, text, width):
-    """Method override."""
-    indent_len = len(get_indent(1))
-    ret = []
-    for ii in text.splitlines():
-      indent = 0
-      for jj in range(len(ii)):
-        if not ii[jj].isspace():
-          indent = jj
-          break
-      lines = textwrap.wrap(ii[indent:], width - jj * indent_len)
-      for ii in range(len(lines)):
-        lines[ii] = get_indent(indent) + lines[ii]
-      ret += lines
-    return ret
-
-########################################
 # Functions ############################
 ########################################
-
-def check_executable(op):
-  """Check for existence of a single binary."""
-  try:
-    proc = subprocess.Popen([op], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-  except OSError:
-    return False
-  try:
-    if proc.poll():
-      proc.kill()
-  except OSError:
-    return True
-  return True
 
 def collect_libraries(libraries, symbols, compilation_mode):
   """Collect libraries to link against from symbols given."""
@@ -719,7 +679,13 @@ def generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplif
   for ii in filenames:
     # If there's a listing, the order is filename, varname, output name.
     if is_listing(ii):
-      glsl_db.read(preprocessor, definition_ld, ii[0], ii[1], ii[2])
+      if 3 < len(ii):
+        glsl_db.read(preprocessor, definition_ld, ii[0], ii[1], ii[2])
+      elif 2 == len(ii):
+        varname = re.sub(r'\.', r'_', os.path.basename(ii[0]))
+        glsl_db.read(preprocessor, definition_ld, ii[0], varname, ii[1])
+      else:
+        raise RuntimeError("invalid glsl file listing input: '%s'" % (str(ii)))
     # Otherwise only filename exists.
     else:
       varname = re.sub(r'\.', r'_', os.path.basename(ii))
@@ -884,33 +850,6 @@ def replace_conflicting_library(symbols, src_name, dst_name):
       ret += [ii]
   return ret
 
-def search_executable(op, description = None):
-  """Check for existence of binary, everything within the list will be tried."""
-  checked = []
-  ret = None
-  if isinstance(op, (list, tuple)):
-    for ii in op:
-      if not ii in checked:
-        if check_executable(ii):
-          ret = ii
-          break
-        else:
-          checked += [ii]
-  elif isinstance(op, str):
-    if not op in checked:
-      if check_executable(op):
-        ret = op
-      checked += [op]
-  else:
-    raise RuntimeError("weird argument given to executable search: %s" % (str(op)))
-  if description and is_verbose():
-    output_message = "Looking for '%s' executable... " % (description)
-    if ret:
-      print("%s'%s'" % (output_message, ret))
-    else:
-      print("%snot found" % (output_message))
-  return ret
-
 def set_program_start(op):
   """Set label to start program execution from."""
   replace_platform_variable("start", op)
@@ -1002,7 +941,7 @@ def main():
   parser.add_argument("-S", "--strip-binary", default = None, help = "Try to use given strip executable as opposed to autodetect.")
   parser.add_argument("-t", "--target", default = "dnload.h", help = "Target header file to look for.\n(default: %(default)s)")
   parser.add_argument("-u", "--unpack-header", choices = ("lzma", "xz"), default = compression, help = "Unpack header to use.\n(default: %(default)s)")
-  parser.add_argument("-v", "--verbose", action = "store_true", help = "Print more about what is being done.")
+  parser.add_argument("-v", "--verbose", action = "store_true", help = "Print more info about what is being done.")
   parser.add_argument("-V", "--version", action = "store_true", help = "Print version and exit.")
   parser.add_argument("source", default = [], nargs = "*", help = "Source file(s) to preprocess and/or compile.")
  
@@ -1093,11 +1032,19 @@ def main():
 
   # Process GLSL source if given.
   if source_files_glsl:
+    if output_file:
+      if (1 < len(source_files_glsl)):
+        raise RuntimeError("output file '%s' given for multiple glsl files '%s'" % (str(output_file), str(source_files_glsl)))
+      else:
+        source_files_glsl = [[source_files_glsl[0], output_file]]
     if source_files or source_files_additional:
       raise RuntimeError("can not combine GLSL source %s with other source files %s" %
           (str(source_files_glsl), str(source_files + source_files_additional)))
     glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_renames, glsl_simplifys)
-    print("".join(glsl_db.format()).strip())
+    if output_file:
+      glsl_db.write()
+    else:
+      print("".join(glsl_db.format()).strip())
     sys.exit(0)
 
   # Cross-compile 32-bit arguments.

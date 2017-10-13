@@ -14,6 +14,19 @@ IGNORE_PATHS = ("/lib/modules",)
 # Functions ############################
 ########################################
 
+def check_executable(op):
+  """Check for existence of a single binary."""
+  try:
+    proc = subprocess.Popen([op], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+  except OSError:
+    return False
+  try:
+    if proc.poll():
+      proc.kill()
+  except OSError:
+    return True
+  return True
+
 def file_is_ascii_text(op):
   """Check if given file contains nothing but ASCII7 text."""
   if not os.path.isfile(op):
@@ -120,6 +133,33 @@ def run_command(lst, decode_output = True):
   if 0 != proc.returncode:
     raise RuntimeError("command failed: %i, stderr output:\n%s" % (proc.returncode, proc_stderr))
   return (proc_stdout, proc_stderr)
+
+def search_executable(op, description = None):
+  """Check for existence of binary, everything within the list will be tried."""
+  checked = []
+  ret = None
+  if is_listing(op):
+    for ii in op:
+      if not ii in checked:
+        if check_executable(ii):
+          ret = ii
+          break
+        else:
+          checked += [ii]
+  elif isinstance(op, str):
+    if not op in checked:
+      if check_executable(op):
+        ret = op
+      checked += [op]
+  else:
+    raise RuntimeError("weird argument given to executable search: %s" % (str(op)))
+  if description and is_verbose():
+    output_message = "Looking for '%s' executable... " % (description)
+    if ret:
+      print("%s'%s'" % (output_message, ret))
+    else:
+      print("%snot found" % (output_message))
+  return ret
 
 def set_verbose(op):
   """Set verbosity status."""
