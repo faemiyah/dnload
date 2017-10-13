@@ -14,7 +14,7 @@ class GlslType:
 
   def format(self, force):
     """Return formatted output."""
-    if self.__modifier:
+    if self.__modifier and (not force or (self.__modifier != "const")):
       return "%s %s" % (self.__modifier, self.__type)
     return self.__type
 
@@ -43,6 +43,7 @@ class GlslType:
 ########################################
 
 g_type_modifiers = (
+    "const",
     "flat",
     )
 

@@ -21,10 +21,6 @@ class GlslAccess:
     """Explicitly disable swizzle."""
     self.__swizzle = None
 
-  def format(self):
-    """Return formatted output."""
-    return "." + self.__name.format()
-
   def format(self, force):
     """Return formatted output."""
     ret = "."
