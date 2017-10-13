@@ -18,7 +18,11 @@ class GlslBlockReturn(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    return "return %s" % (self.__statement.format(force))
+    ret = self.__statement.format(force)
+    # Statement starting with paren does not need the space.
+    if ret[:1] == "(":
+      return "return" + ret
+    return "return " + ret
 
   def getStatement(self):
     """Accessor."""

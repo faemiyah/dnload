@@ -444,13 +444,13 @@ class GlslToken:
         if left:
           if left.getPrecedence() > prio:
             if right:
-              if right.getPrecedence() > prio:
+              if right.getPrecedence() >= prio:
                 if self.removeParens():
                   return True
             elif self.removeParens():
               return True
         elif right:
-          if right.getPrecedence() > prio:
+          if right.getPrecedence() >= prio:
             if self.removeParens():
               return True
         else:
