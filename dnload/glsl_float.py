@@ -12,13 +12,18 @@ class GlslFloat:
     self.__integer1 = integer1
     self.__integer2 = integer2
     self.__number = float(str(integer1.getInt()) + "." + str(integer2.getInt()))
+    self.__allow_integrify = False
 
   def format(self, force):
     """Return formatted output."""
-    if 0 == self.__integer1.getInt():
-      if 0 == self.__integer2.getInt():
+    if self.__integer1.getInt() == 0:
+      if self.__integer2.getInt() == 0:
+        if self.__allow_integrify:
+          return "0"
         return ".0"
       return "." + self.__integer2.getStr().rstrip("0")
+    if (self.__integer2.getInt() == 0) and self.__allow_integrify:
+      return str(self.__integer1.getInt())
     return "%s.%s" % (str(self.__integer1.getInt()), self.__integer2.getStr().rstrip("0"))
 
   def getFloat(self):
@@ -34,6 +39,14 @@ class GlslFloat:
   def getPrecision(self):
     """Get precision - number of numbers to express."""
     return self.__integer1.getPrecision() + self.__integer2.getPrecision()
+
+  def isIntegrifyAllowed(self):
+    """Tell if integrification is allowed?"""
+    return self.__allow_integrify
+
+  def setAllowIntegrify(self, flag):
+    """Set allow integrify flag."""
+    self.__allow_integrify = flag
 
   def truncatePrecision(self, op):
     """Truncate numeric precision to some value of expressed numbers."""

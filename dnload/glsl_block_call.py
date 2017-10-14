@@ -37,8 +37,10 @@ def glsl_parse_call(source):
   if not name:
     return (None, source)
   if scope:
-    statements = glsl_parse_statements(scope, ',')
+    (statements, scope_remaining) = glsl_parse_statements(scope)
     if not statements:
       return (None, source)
+    if scope_remaining:
+      raise RuntimeError("call scope cannot have remaining elements: '%s'" % str(scope_remaining))
     return (GlslBlockCall(name, statements), remaining)
   return (GlslBlockCall(name, []), remaining)

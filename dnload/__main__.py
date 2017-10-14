@@ -679,7 +679,7 @@ def generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplif
   for ii in filenames:
     # If there's a listing, the order is filename, varname, output name.
     if is_listing(ii):
-      if 3 < len(ii):
+      if 3 == len(ii):
         glsl_db.read(preprocessor, definition_ld, ii[0], ii[1], ii[2])
       elif 2 == len(ii):
         varname = re.sub(r'\.', r'_', os.path.basename(ii[0]))
