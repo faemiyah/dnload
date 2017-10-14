@@ -11,8 +11,11 @@ class GlslFloat:
     """Constructor."""
     self.__integer1 = integer1
     self.__integer2 = integer2
-    self.__number = float(str(integer1.getInt()) + "." + str(integer2.getInt()))
+    self.__number = float(str(integer1.getStr()) + "." + str(integer2.getStr()))
     self.__allow_integrify = False
+    # Check.
+    if float(self.format(False)) != self.__number:
+      raise RuntimeError("incorrect float parse: '%f' vs. '%s'" % (self.__number, self.format(False)))
 
   def format(self, force):
     """Return formatted output."""
@@ -30,12 +33,6 @@ class GlslFloat:
     """Accessor."""
     return self.__number
   
-  def getInt(self):
-    """Get integer representation. Only meaningful if not fractional."""
-    if self.__integer2.getInt() == 0:
-      return self.__integer1.getInt()
-    return None
-
   def getPrecision(self):
     """Get precision - number of numbers to express."""
     return self.__integer1.getPrecision() + self.__integer2.getPrecision()
@@ -58,7 +55,7 @@ class GlslFloat:
 
   def __str__(self):
     """String representation."""
-    return "GlslFloat('%s.%s')" % (self.__integer1.format(False), self.__integer2.format(False))
+    return "GlslFloat('%s')" % (self.format(False))
     
 ########################################
 # Functions ############################
