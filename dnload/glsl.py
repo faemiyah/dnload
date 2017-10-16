@@ -81,11 +81,8 @@ class Glsl:
           block = ii[0]
           if is_listing(block):
             inout_merges += [block[0]]
-        print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
-      # After all names have been collected, it's possible to collapse swizzles.
-      swizzle = self.selectSwizzle()
-      for ii in self.__sources:
-        ii.selectSwizzle(swizzle)
+        if inout_merges:
+          print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
       # Run rename passes until done.
       renames = 0
       for ii in merged:
@@ -105,6 +102,10 @@ class Glsl:
         if (0 > max_renames) or (renames < max_renames):
           self.renameBlock(ii[0])
           renames += 1
+      # After all names have been renamed, it's possible to select the best swizzle.
+      swizzle = self.selectSwizzle()
+      for ii in self.__sources:
+        ii.selectSwizzle(swizzle)
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:

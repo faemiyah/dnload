@@ -464,7 +464,6 @@ class GlslToken:
       if not left and not right:
         if is_glsl_float(mid) and (not mid.isIntegrifyAllowed()):
           mid.setAllowIntegrify(True)
-          print("allowing integrify on float '%s'" % (str(mid)))
           return True
     # Recurse down.
     for ii in self.__left:

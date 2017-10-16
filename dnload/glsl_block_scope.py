@@ -27,16 +27,21 @@ class GlslBlockScope(GlslBlock):
     # Check for empty scope (likely an error).
     if 0 >= len(lst):
       if is_verbose():
-        print("WARNING: preserving empty scope")
-      self.__explicit = True
+        print("WARNING: empty scope")
     # Hierarchy.
     self.addChildren(lst)
+
+  def setExplicit(self, flag):
+    """Set explicit flag."""
+    self.__explicit = flag
 
   def format(self, force):
     """Return formatted output."""
     ret = "".join(map(lambda x: x.format(force), self._children))
-    if self.__explicit or (1 < len(self._children)):
+    if len(self._children) > 1:
       return "{%s}" % (ret)
+    elif self.__explicit and (not ret):
+      return ";"
     return ret
 
   def __str__(self):
@@ -125,6 +130,9 @@ def merge_control_pass(lst):
     # Declaration following control makes no sense.
     if is_glsl_block_declaration(mm):
       raise RuntimeError("'%s' followed by '%s'" % (str(vv), str(mm)))
+    # Scope following control must be explicit.
+    if is_glsl_block_scope(mm):
+      mm.setExplicit(True)
     vv.setTarget(mm)
     lst.pop(ii + 1)
     return True
