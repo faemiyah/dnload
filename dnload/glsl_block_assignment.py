@@ -16,8 +16,7 @@ class GlslBlockAssignment(GlslBlock):
     self.__name = name
     self.__modifiers = lst
     self.__assign = assign
-    self.__statement = statement
-    if self.__assign and (not self.__statement):
+    if self.__assign and (not statement):
       raise RuntimeError("if assigning, must have a statement")
     # Hierarchy.
     self.addNamesUsed(name)
@@ -29,17 +28,24 @@ class GlslBlockAssignment(GlslBlock):
     ret = self.__name.format(force)
     if self.__modifiers:
       ret += "".join(map(lambda x: x.format(force), self.__modifiers))
+    statements = "".join(map(lambda x: x.format(force), self._children))
     if not self.__assign:
-      return ret + self.__statement.format(force)
-    return ret + ("%s%s" % (self.__assign.format(force), self.__statement.format(force)))
+      return ret + statements
+    return ret + ("%s%s" % (self.__assign.format(force), statements))
 
   def getName(self):
     """Accessor."""
     return self.__name
 
-  def getStatement(self):
+  def getTerminator(self):
     """Accessor."""
-    return self.__statement
+    if len(self._children) != 1:
+      raise RuntimeError("GlslBlockAssignment::getTerminator(), child count not 1")
+    return self._children[0].getTerminator()
+
+  def replaceTerminator(self, op):
+    """Replace terminator with given element."""
+    self._children[0].replaceTerminator(op)
 
   def __str__(self):
     """String representation."""
@@ -84,3 +90,7 @@ def glsl_parse_assignment(source):
   if not statement:
     return (None, source)
   return (GlslBlockAssignment(name, lst, operator, statement), remaining)
+
+def is_glsl_block_assignment(op):
+  """Tell if given object is GlslBlockAssignment."""
+  return isinstance(op, GlslBlockAssignment)

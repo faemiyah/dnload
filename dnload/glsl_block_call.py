@@ -9,19 +9,25 @@ from dnload.glsl_block_statement import glsl_parse_statements
 class GlslBlockCall(GlslBlock):
   """Function call."""
 
-  def __init__(self, name, lst):
+  def __init__(self, name, lst, terminator):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__name = name
-    self.__content = lst
+    self.__terminator = terminator
     # Hierarchy.
     self.addNamesUsed(name)
     self.addChildren(lst)
 
   def format(self, force):
     """Return formatted output."""
-    lst = "".join(map(lambda x: x.format(force), self.__content))
-    return "%s(%s);" % (self.__name.format(force), lst)
+    lst = "".join(map(lambda x: x.format(force), self._children))
+    return "%s(%s)%s" % (self.__name.format(force), lst, self.__terminator.format(force))
+
+  def replaceTerminator(self, op):
+    """Replace terminator with given element."""
+    if not (op in (',', ';')):
+      raise RuntimeError("invalid replacement terminator for GlslBlockCall: '%s'" % (op))
+    self.__terminator = op
 
   def __str__(self):
     """String representation."""
@@ -33,7 +39,7 @@ class GlslBlockCall(GlslBlock):
 
 def glsl_parse_call(source):
   """Parse call block."""
-  (name, scope, remaining) = extract_tokens(source, ("?n", "?(", ";"))
+  (name, scope, terminator, remaining) = extract_tokens(source, ("?n", "?(", "?;"))
   if not name:
     return (None, source)
   if scope:
@@ -42,5 +48,9 @@ def glsl_parse_call(source):
       return (None, source)
     if scope_remaining:
       raise RuntimeError("call scope cannot have remaining elements: '%s'" % str(scope_remaining))
-    return (GlslBlockCall(name, statements), remaining)
-  return (GlslBlockCall(name, []), remaining)
+    return (GlslBlockCall(name, statements, terminator), remaining)
+  return (GlslBlockCall(name, [], terminator), remaining)
+
+def is_glsl_block_call(op):
+  """Tell if given object is GlslBlockCall."""
+  return isinstance(op, GlslBlockCall)

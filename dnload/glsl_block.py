@@ -19,6 +19,7 @@ from dnload.glsl_operator import is_glsl_operator
 from dnload.glsl_paren import interpret_paren
 from dnload.glsl_paren import is_glsl_paren
 from dnload.glsl_terminator import interpret_terminator
+from dnload.glsl_terminator import is_glsl_terminator
 from dnload.glsl_type import interpret_type
 from dnload.glsl_type import is_glsl_type
 
@@ -46,7 +47,7 @@ class GlslBlock:
       return
     self.__accesses += [op]
 
-  def addChildren(self, lst):
+  def addChildren(self, lst, prepend = False):
     """Add another block as a child of this."""
     if not is_listing(lst):
       self.addChildren([lst])
@@ -56,7 +57,10 @@ class GlslBlock:
         raise RuntimeError("element '%s' to be added is not of type GlslBlock" % (str(ii)))
       if ii.getParent():
         raise RuntimeError("block '%s' to be added already has parent '%s'" % (str(ii), str(ii.getParent())))
-      self._children += [ii]
+      if prepend:
+        self._children = [ii] + self._children
+      else:
+        self._children += [ii]
       ii.setParent(self)
       if ii.getParent() != self:
         raise RuntimeError("")
@@ -516,6 +520,10 @@ def validate_token(token, validation):
   # Type.
   elif "t" == validation:
     if not is_glsl_type(token):
+      return None
+  # Terminator.
+  elif ";" == validation:
+    if not is_glsl_terminator(token):
       return None
   # Valid identifier name.
   elif "n" == validation:

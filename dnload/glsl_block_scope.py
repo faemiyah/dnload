@@ -2,13 +2,17 @@ from dnload.common import is_verbose
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_assignment import glsl_parse_assignment
+from dnload.glsl_block_assignment import is_glsl_block_assignment
 from dnload.glsl_block_call import glsl_parse_call
+from dnload.glsl_block_call import is_glsl_block_call
 from dnload.glsl_block_control import glsl_parse_control
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
 from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_return import glsl_parse_return
+from dnload.glsl_block_return import is_glsl_block_return
 from dnload.glsl_block_unary import glsl_parse_unary
+from dnload.glsl_block_unary import is_glsl_block_unary
 
 ########################################
 # GlslBlockScope #######################
@@ -20,7 +24,9 @@ class GlslBlockScope(GlslBlock):
   def __init__(self, lst, explicit):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__explicit = explicit
+    self.__explicit = None
+    if explicit:
+      self.__explicit = "force"
     # Check for degenerate scope.
     if (1 == len(lst)) and is_glsl_block_declaration(lst[0]):
       raise RuntimeError("scope with only block '%s' is degenerate" % (str(lst[0])))
@@ -38,9 +44,9 @@ class GlslBlockScope(GlslBlock):
   def format(self, force):
     """Return formatted output."""
     ret = "".join(map(lambda x: x.format(force), self._children))
-    if len(self._children) > 1:
+    if len(self._children) > 1 or (self.__explicit == "force"):
       return "{%s}" % (ret)
-    elif self.__explicit and (not ret):
+    elif (not ret) and self.__explicit:
       return ";"
     return ret
 
@@ -97,10 +103,14 @@ def glsl_parse_content(source):
       source = remaining
       continue
     raise RuntimeError("cannot parse content: %s" % (str(map(str, source))))
-  # Looping over content done, merge control blocks with following blocks.
+  # Merge control blocks with following blocks.
   while True:
     if not merge_control_pass(ret):
       break
+  # Merge blocks preceding return blocks with return blocks if possible.
+  #while True:
+  #  if not merge_return_pass(ret):
+  #    break
   return ret
 
 def glsl_parse_scope(source, explicit = True):
@@ -136,4 +146,17 @@ def merge_control_pass(lst):
     vv.setTarget(mm)
     lst.pop(ii + 1)
     return True
+  return False
+
+def merge_return_pass(lst):
+  """Merge one control block with following block."""
+  for ii in range(1, len(lst)):
+    vv = lst[ii]
+    if not is_glsl_block_return(vv):
+      continue
+    mm = lst[ii - 1]
+    if is_glsl_block_assignment(mm) or is_glsl_block_call(mm) or is_glsl_block_unary(mm):
+      vv.addChildren(mm, True)
+      lst.pop(ii - 1)
+      return True
   return False

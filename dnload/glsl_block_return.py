@@ -12,21 +12,16 @@ class GlslBlockReturn(GlslBlock):
   def __init__(self, lst):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__statements = lst
     # Hierarchy.
     self.addChildren(lst)
 
   def format(self, force):
     """Return formatted output."""
-    ret = "".join(map(lambda x: x.format(force), self.__statements))
+    ret = "".join(map(lambda x: x.format(force), self._children))
     # Statement starting with paren does not need the space.
     if ret[:1] == "(":
       return "return" + ret
     return "return " + ret
-
-  def getStatement(self):
-    """Accessor."""
-    return self.__statement
 
   def __str__(self):
     """String representation."""
@@ -45,3 +40,7 @@ def glsl_parse_return(source):
   if not statements:
     return (None, source)
   return (GlslBlockReturn(statements), remaining)
+
+def is_glsl_block_return(op):
+  """Tell if given object is GlslBlockReturn."""
+  return isinstance(op, GlslBlockReturn)

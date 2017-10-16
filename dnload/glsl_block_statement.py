@@ -42,6 +42,12 @@ class GlslBlockStatement(GlslBlock):
     """Accessor."""
     return self.__content
 
+  def replaceTerminator(self, op):
+    """Replace terminator with given operator."""
+    if not (op in (',', ';')):
+      raise RuntimeError("invalid replacement terminator for GlslBlockStatement: '%s'" % (op))
+    self.__terminator = op
+
   def replaceUsedNameExact(self, name, tokens):
     """Replace exact instances of given used name with a list of tokens."""
     ret = 0

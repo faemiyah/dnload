@@ -13,17 +13,18 @@ class GlslBlockUnary(GlslBlock):
   def __init__(self, statement):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__statement = statement
     # Hierarchy.
     self.addChildren(statement)
 
   def format(self, force):
     """Return formatted output."""
-    return "%s" % (self.__statement.format(force))
+    if len(self._children) != 1:
+      raise RuntimeError("GlslBlockUnary::format(), child count != 1")
+    return "%s" % (self._childen.format(force))
 
-  def getStatement(self):
-    """Accessor."""
-    return self.__statement
+  def replaceTerminator(self, op):
+    """Replace terminator with given operator."""
+    self._children[0].replaceTerminator(op)
 
   def __str__(self):
     """String representation."""
@@ -57,3 +58,7 @@ def glsl_parse_unary(source):
     return (GlslBlockUnary(statement), remaining)
   # Was somehow invalid.
   return (None, source)
+
+def is_glsl_block_unary(op):
+  """Tell if given object is GlslBlockUnary."""
+  return isinstance(op, GlslBlockUnary)

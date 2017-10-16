@@ -34,7 +34,7 @@ class GlslBlockDeclaration(GlslBlock):
         self.addNamesDeclared(ii.getName())
       for ii in range(len(self._children) - 1):
         vv = self._children[ii]
-        vv.getStatement().setTerminator(",")
+        vv.replaceTerminator(",")
       return True
     return False
 
@@ -80,7 +80,7 @@ def glsl_parse_declaration(source):
     if assignment:
       lst += [assignment]
       # Might have been last assignement.
-      if assignment.getStatement().getTerminator() == ";":
+      if assignment.getTerminator() == ";":
         return (GlslBlockDeclaration(typeid, lst), remaining)
       # Otherwise keep going.
       content = remaining
