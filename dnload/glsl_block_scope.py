@@ -9,6 +9,8 @@ from dnload.glsl_block_control import glsl_parse_control
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
 from dnload.glsl_block_declaration import is_glsl_block_declaration
+from dnload.glsl_block_group import GlslBlockGroup
+from dnload.glsl_block_group import is_glsl_block_group
 from dnload.glsl_block_return import glsl_parse_return
 from dnload.glsl_block_return import is_glsl_block_return
 from dnload.glsl_block_unary import glsl_parse_unary
@@ -37,10 +39,6 @@ class GlslBlockScope(GlslBlock):
     # Hierarchy.
     self.addChildren(lst)
 
-  def setExplicit(self, flag):
-    """Set explicit flag."""
-    self.__explicit = flag
-
   def format(self, force):
     """Return formatted output."""
     ret = "".join(map(lambda x: x.format(force), self._children))
@@ -49,6 +47,14 @@ class GlslBlockScope(GlslBlock):
     elif (not ret) and self.__explicit:
       return ";"
     return ret
+
+  def isExplicit(self):
+    """Accessor."""
+    return self.__explicit != None
+
+  def setExplicit(self, flag):
+    """Set explicit flag."""
+    self.__explicit = flag
 
   def __str__(self):
     """String representation."""
@@ -107,10 +113,14 @@ def glsl_parse_content(source):
   while True:
     if not merge_control_pass(ret):
       break
-  # Merge blocks preceding return blocks with return blocks if possible.
-  #while True:
-  #  if not merge_return_pass(ret):
-  #    break
+  # Expand scopes of size 1. They are not needed after control merge.
+  while True:
+    if not expand_scope_pass(ret):
+      break
+  # Merge blocks that can be comma-merged.
+  while True:
+    if not merge_comma_pass(ret):
+      break
   return ret
 
 def glsl_parse_scope(source, explicit = True):
@@ -132,6 +142,8 @@ def is_glsl_block_scope(op):
 
 def merge_control_pass(lst):
   """Merge one control block with following block."""
+  if len(lst) <= 1:
+    return False
   for ii in range(len(lst) - 1):
     vv = lst[ii]
     if (not is_glsl_block_control(vv)) or vv.getTarget():
@@ -148,15 +160,51 @@ def merge_control_pass(lst):
     return True
   return False
 
-def merge_return_pass(lst):
+def expand_scope_pass(lst):
+  """Expand one single-element scope."""
+  for ii in range(len(lst)):
+    vv = lst[ii]
+    if (not is_glsl_block_scope(vv)) or vv.isExplicit():
+      continue
+    children = vv.getChildren()
+    if len(children) != 1:
+      continue
+    children[0].setParent(None)
+    lst[ii] = children[0]
+    return True
+  return False
+
+def merge_comma_pass(lst):
   """Merge one control block with following block."""
+  if len(lst) <= 1:
+    return False
   for ii in range(1, len(lst)):
     vv = lst[ii]
-    if not is_glsl_block_return(vv):
-      continue
+    print(str(vv))
     mm = lst[ii - 1]
-    if is_glsl_block_assignment(mm) or is_glsl_block_call(mm) or is_glsl_block_unary(mm):
+    vv_mergable = is_glsl_block_assignment(vv) or is_glsl_block_call(vv) or is_glsl_block_unary(vv)
+    mm_mergable = is_glsl_block_assignment(mm) or is_glsl_block_call(mm) or is_glsl_block_unary(mm)
+    # Prepend blocks in front of return.
+    if is_glsl_block_return(vv) and mm_mergable:
+      mm.replaceTerminator(",")
       vv.addChildren(mm, True)
       lst.pop(ii - 1)
+      return True
+    # Assignment can start a group.
+    if is_glsl_block_assignment(vv):
+      print("assignment found with '%s'" % (str(mm)))
+      if mm_mergable:
+        print("make group")
+        lst[ii] = GlslBlockGroup(vv)
+        mm.replaceTerminator(",")
+        lst[ii].addChildren(mm, True)
+        lst.pop(ii - 1)
+        return True
+    # Append into group.
+    if is_glsl_block_group(mm) and vv_mergable:
+      print("append to group")
+      mm.getChildren()[-1].replaceTerminator(",")
+      mm.addChildren(vv)
+      lst.pop(ii)
       return True
   return False

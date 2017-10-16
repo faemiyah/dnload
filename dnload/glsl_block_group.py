@@ -1,0 +1,26 @@
+from dnload.glsl_block import GlslBlock
+
+########################################
+# GlslBlockGroup #######################
+########################################
+
+class GlslBlockGroup(GlslBlock):
+  """Group of other blocks. Not parsed, but combined."""
+
+  def __init__(self, block):
+    """Constructor."""
+    GlslBlock.__init__(self)
+    # Hierarchy.
+    self.addChildren(block)
+
+  def format(self, force):
+    """Return formatted output."""
+    return "".join(map(lambda x: x.format(force), self._children))
+
+########################################
+# Functions ############################
+########################################
+
+def is_glsl_block_group(op):
+  """Tell if given object is GlslBlockGroup."""
+  return isinstance(op, GlslBlockGroup)
