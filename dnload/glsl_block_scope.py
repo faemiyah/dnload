@@ -9,6 +9,7 @@ from dnload.glsl_block_control import glsl_parse_control
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import glsl_parse_declaration
 from dnload.glsl_block_declaration import is_glsl_block_declaration
+from dnload.glsl_block_flow import glsl_parse_flow
 from dnload.glsl_block_group import GlslBlockGroup
 from dnload.glsl_block_group import is_glsl_block_group
 from dnload.glsl_block_return import glsl_parse_return
@@ -72,7 +73,7 @@ def glsl_parse_content(source):
   # Loop over content.
   ret = []
   while source:
-    # Can assume non-explicit scope within existing scope.
+    # Parse scope, allow one-statement scope (will be merged with a control or destroyed later).
     (block, remaining) = glsl_parse_scope(source, False)
     if block:
       ret += [block]
@@ -84,11 +85,6 @@ def glsl_parse_content(source):
       source = remaining
       continue
     (block, remaining) = glsl_parse_declaration(source)
-    if block:
-      ret += [block]
-      source = remaining
-      continue
-    (block, remaining) = glsl_parse_assignment(source)
     if block:
       ret += [block]
       source = remaining
@@ -128,11 +124,14 @@ def glsl_parse_scope(source, explicit = True):
   (content, remaining) = extract_tokens(source, ("?{",))
   if not (content is None):
     return (GlslBlockScope(glsl_parse_content(content), explicit), remaining)
-  # If explicit scope is not expected, try one-statement scope.
+  # If explicit scope is not expected, try legal one-statement scopes.
   elif not explicit:
-    (assignment, remaining) = glsl_parse_assignment(source)
-    if assignment:
-      return (GlslBlockScope([assignment], explicit), remaining)
+    (block, remaining) = glsl_parse_flow(source)
+    if block:
+      return (GlslBlockScope([block], explicit), remaining)
+    (block, remaining) = glsl_parse_assignment(source)
+    if block:
+      return (GlslBlockScope([block], explicit), remaining)
   # No scope found.
   return (None, source)
 
@@ -180,7 +179,6 @@ def merge_comma_pass(lst):
     return False
   for ii in range(1, len(lst)):
     vv = lst[ii]
-    print(str(vv))
     mm = lst[ii - 1]
     vv_mergable = is_glsl_block_assignment(vv) or is_glsl_block_call(vv) or is_glsl_block_unary(vv)
     mm_mergable = is_glsl_block_assignment(mm) or is_glsl_block_call(mm) or is_glsl_block_unary(mm)
@@ -191,18 +189,14 @@ def merge_comma_pass(lst):
       lst.pop(ii - 1)
       return True
     # Assignment can start a group.
-    if is_glsl_block_assignment(vv):
-      print("assignment found with '%s'" % (str(mm)))
-      if mm_mergable:
-        print("make group")
-        lst[ii] = GlslBlockGroup(vv)
-        mm.replaceTerminator(",")
-        lst[ii].addChildren(mm, True)
-        lst.pop(ii - 1)
-        return True
+    if is_glsl_block_assignment(vv) and mm_mergable:
+      lst[ii] = GlslBlockGroup(vv)
+      mm.replaceTerminator(",")
+      lst[ii].addChildren(mm, True)
+      lst.pop(ii - 1)
+      return True
     # Append into group.
     if is_glsl_block_group(mm) and vv_mergable:
-      print("append to group")
       mm.getChildren()[-1].replaceTerminator(",")
       mm.addChildren(vv)
       lst.pop(ii)

@@ -109,6 +109,7 @@ g_locked = (
     "atan",
     "break",
     "clamp",
+    "continue",
     "cos",
     "cross",
     "discard",
