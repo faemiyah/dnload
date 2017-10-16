@@ -74,6 +74,10 @@ class Glsl:
         if (0 <= max_simplifys) and (simplifys >= max_simplifys):
           break
         simplifys += simplify_pass(ii, max_simplifys - simplifys)
+      # After all names have been collected, it's possible to select the best swizzle.
+      swizzle = self.selectSwizzle()
+      for ii in self.__sources:
+        ii.selectSwizzle(swizzle)
       # Print number of inout merges.
       if is_verbose():
         inout_merges = []
@@ -102,10 +106,6 @@ class Glsl:
         if (0 > max_renames) or (renames < max_renames):
           self.renameBlock(ii[0])
           renames += 1
-      # After all names have been renamed, it's possible to select the best swizzle.
-      swizzle = self.selectSwizzle()
-      for ii in self.__sources:
-        ii.selectSwizzle(swizzle)
     # Recombine unless crunching completely disabled.
     if "none" != mode:
       for ii in self.__sources:
@@ -392,7 +392,7 @@ def flatten(block):
 
 def has_inline_conflict(parent, block, names, comparison = None):
   """Tell if given block has inline conflict."""
-  # Iterate over statement names if name not present.
+  # Iterate over statement names if comparison not present.
   if not comparison:
     for ii in block.getStatement().getTokens():
       if is_glsl_name(ii) and has_inline_conflict(parent, block, names, ii):

@@ -37,6 +37,12 @@ class GlslBlockAssignment(GlslBlock):
     """Accessor."""
     return self.__name
 
+  def getStatement(self):
+    """Accessor."""
+    if len(self._children) != 1:
+      raise RuntimeError("GlslBlockAssignment::getStatement(), child count != 1")
+    return self._children[0]
+
   def getTerminator(self):
     """Accessor."""
     if len(self._children) != 1:
