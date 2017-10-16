@@ -20,7 +20,7 @@ class GlslBlockUnary(GlslBlock):
     """Return formatted output."""
     if len(self._children) != 1:
       raise RuntimeError("GlslBlockUnary::format(), child count != 1")
-    return "%s" % (self._childen.format(force))
+    return "%s" % ("".join(map(lambda x: x.format(force), self._children)))
 
   def replaceTerminator(self, op):
     """Replace terminator with given operator."""
