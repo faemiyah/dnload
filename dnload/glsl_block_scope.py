@@ -90,7 +90,7 @@ class GlslBlockScope(GlslBlock):
 
   def isExplicit(self):
     """Accessor."""
-    return self.__explicit != None
+    return self.__explicit
 
   def setExplicit(self, flag):
     """Set explicit flag."""
@@ -142,11 +142,6 @@ def glsl_parse_content(source):
       ret += [block]
       source = remaining
       continue
-    (block, remaining) = glsl_parse_unary(source)
-    if block:
-      ret += [block]
-      source = remaining
-      continue
     raise RuntimeError("cannot parse content: %s" % (str(map(str, source))))
   # Merge control blocks with following blocks.
   while True:
@@ -166,6 +161,9 @@ def glsl_parse_scope(source, explicit = True):
   # If explicit scope is not expected, try legal one-statement scopes.
   elif not explicit:
     (block, remaining) = glsl_parse_flow(source)
+    if block:
+      return (GlslBlockScope([block], explicit), remaining)
+    (block, remaining) = glsl_parse_unary(source)
     if block:
       return (GlslBlockScope([block], explicit), remaining)
     (block, remaining) = glsl_parse_assignment(source)

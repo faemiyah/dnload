@@ -530,6 +530,10 @@ def validate_token(token, validation):
   elif "o" == validation:
     if not is_glsl_inout(token):
       return None
+  # Operator.
+  elif "p" == validation:
+    if not is_glsl_operator(token):
+      return None
   # Type.
   elif "t" == validation:
     if not is_glsl_type(token):

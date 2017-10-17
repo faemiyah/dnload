@@ -45,18 +45,22 @@ g_allowed_operators = (
 
 def glsl_parse_unary(source):
   """Parse unary block."""
-  (statement, remaining) = glsl_parse_statement(source)
-  if not statement:
-    return (None, source)
-  # Unary statement block must start or end with pre- or postfix operator.
-  tokens = statement.getTokens()
-  if not tokens:
-    raise RuntimeError("empty statement parsed")
-  if is_glsl_operator(tokens[0]) and (tokens[0].getOperator() in g_allowed_operators):
+  # Try prefix unary.
+  (operator, name, terminator, remaining) = extract_tokens(source, ("?p", "?n", "?;"))
+  if operator in g_allowed_operators:
+    (statement, discarded) = glsl_parse_statement([operator, name, terminator])
+    if discarded:
+      raise RuntimeError("discarded elements in prefix unary")
     return (GlslBlockUnary(statement), remaining)
-  if is_glsl_operator(tokens[-1]) and (tokens[-1].getOperator() in g_allowed_operators):
+  # Try postfix unary.
+  print("trying '%s'" % str(map(str, source[:3])))
+  (name, operator, terminator, remaining) = extract_tokens(source, ("?n", "?p", "?;"))
+  if operator in g_allowed_operators:
+    (statement, discarded) = glsl_parse_statement([name, operator, terminator])
+    if discarded:
+      raise RuntimeError("discarded elements in postfix unary")
     return (GlslBlockUnary(statement), remaining)
-  # Was somehow invalid.
+  # No match.
   return (None, source)
 
 def is_glsl_block_unary(op):
