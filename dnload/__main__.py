@@ -52,7 +52,7 @@ PATH_MALI = "/usr/lib/arm-linux-gnueabihf/mali-egl"
 PATH_VIDEOCORE = "/opt/vc"
 
 VERSION_REVISION = "r14"
-VERSION_DATE = "20170122"
+VERSION_DATE = "20171017"
 
 g_assembler_ehdr = (
     "ehdr",
