@@ -3,6 +3,7 @@ CMakeCache.txt
 CMakeFiles/
 Debug/
 dnload/*.pyc
+dnload/__pycache__/
 fcmp
 Makefile
 intro
