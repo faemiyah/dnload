@@ -27,9 +27,9 @@ class GlslBlockScope(GlslBlock):
   def __init__(self, lst, explicit):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__explicit = None
-    if explicit:
-      self.__explicit = "force"
+    self.__explicit = explicit
+    self.__squashable = False
+    self.__allow_squash = False
     # Check for degenerate scope.
     if (1 == len(lst)) and is_glsl_block_declaration(lst[0]):
       raise RuntimeError("scope with only block '%s' is degenerate" % (str(lst[0])))
@@ -42,8 +42,14 @@ class GlslBlockScope(GlslBlock):
 
   def collapseContents(self, mode):
     """Perform comma squash on contents."""
-    if (len(self._children) <= 1) or (mode != "full"):
+    if mode != "full":
       return False
+    if (mode != "nosquash") and self.__squashable and (not self._children) and (not self.__allow_squash):
+      self.__allow_squash = True
+      return True
+    if len(self._children) <= 1:
+      return False
+    # Comma-collapse contents.
     for ii in range(1, len(self._children)):
       aa = self._children[ii - 1]
       bb = self._children[ii]
@@ -73,10 +79,13 @@ class GlslBlockScope(GlslBlock):
   def format(self, force):
     """Return formatted output."""
     ret = "".join(map(lambda x: x.format(force), self._children))
-    if len(self._children) > 1 or (self.__explicit == "force"):
+    if (len(self._children) > 1) or (self.__explicit and (not self.__squashable)):
       return "{%s}" % (ret)
-    elif (not ret) and self.__explicit:
-      return ";"
+    # Empty scope squashing may or may not be allowed.
+    if (not ret) and self.__squashable:
+      if self.__allow_squash:
+        return ";"
+      return "{}"
     return ret
 
   def isExplicit(self):
@@ -86,6 +95,10 @@ class GlslBlockScope(GlslBlock):
   def setExplicit(self, flag):
     """Set explicit flag."""
     self.__explicit = flag
+
+  def setSquashable(self, flag):
+    """Set squashable flag."""
+    self.__squashable = flag
 
   def __str__(self):
     """String representation."""
@@ -180,6 +193,7 @@ def merge_control_pass(lst):
     # Scope following control must be explicit.
     if is_glsl_block_scope(mm):
       mm.setExplicit(True)
+      mm.setSquashable(True)
     vv.setTarget(mm)
     lst.pop(ii + 1)
     return True
