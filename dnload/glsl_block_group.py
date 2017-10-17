@@ -10,7 +10,9 @@ class GlslBlockGroup(GlslBlock):
   def __init__(self, block):
     """Constructor."""
     GlslBlock.__init__(self)
-    # Hierarchy.
+    # Assumed block is already within the tree.
+    if block.getParent():
+      block.removeFromParent()
     self.addChildren(block)
 
   def format(self, force):

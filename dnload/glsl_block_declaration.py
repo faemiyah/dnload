@@ -25,7 +25,7 @@ class GlslBlockDeclaration(GlslBlock):
     """Return formatted output."""
     return "%s %s" % (self.__typeid.format(force), "".join(map(lambda x: x.format(force), self._children)))
 
-  def collapse(self, other):
+  def collapse(self, other, mode):
     """Collapse another declaration."""
     if is_glsl_block_declaration(other) and (other.getType() == self.__typeid):
       for ii in other.getChildren():

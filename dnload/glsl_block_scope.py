@@ -40,6 +40,36 @@ class GlslBlockScope(GlslBlock):
     # Hierarchy.
     self.addChildren(lst)
 
+  def collapseContents(self, mode):
+    """Perform comma squash on contents."""
+    if (len(self._children) <= 1) or (mode != "full"):
+      return False
+    for ii in range(1, len(self._children)):
+      aa = self._children[ii - 1]
+      bb = self._children[ii]
+      aa_mergable = is_glsl_block_assignment(aa) or is_glsl_block_call(aa) or is_glsl_block_unary(aa)
+      bb_mergable = is_glsl_block_assignment(bb) or is_glsl_block_call(bb) or is_glsl_block_unary(bb)
+      # Prepend blocks in front of return.
+      if is_glsl_block_return(bb) and aa_mergable:
+        aa.replaceTerminator(",")
+        aa.removeFromParent()
+        bb.addChildren(aa, True)
+        return True
+      # Assignment can start a group.
+      if aa_mergable and bb_mergable:
+        vv = GlslBlockGroup(bb)
+        self.replaceChild(ii - 1, vv)
+        aa.replaceTerminator(",")
+        vv.addChildren(aa, True)
+        return True
+      # Append into group.
+      if is_glsl_block_group(aa) and bb_mergable:
+        aa.getChildren()[-1].replaceTerminator(",")
+        bb.removeFromParent()
+        aa.addChildren(bb)
+        return True
+    return False
+
   def format(self, force):
     """Return formatted output."""
     ret = "".join(map(lambda x: x.format(force), self._children))
@@ -113,10 +143,6 @@ def glsl_parse_content(source):
   while True:
     if not expand_scope_pass(ret):
       break
-  # Merge blocks that can be comma-merged.
-  while True:
-    if not merge_comma_pass(ret):
-      break
   return ret
 
 def glsl_parse_scope(source, explicit = True):
@@ -171,34 +197,4 @@ def expand_scope_pass(lst):
     children[0].setParent(None)
     lst[ii] = children[0]
     return True
-  return False
-
-def merge_comma_pass(lst):
-  """Merge one control block with following block."""
-  if len(lst) <= 1:
-    return False
-  for ii in range(1, len(lst)):
-    vv = lst[ii]
-    mm = lst[ii - 1]
-    vv_mergable = is_glsl_block_assignment(vv) or is_glsl_block_call(vv) or is_glsl_block_unary(vv)
-    mm_mergable = is_glsl_block_assignment(mm) or is_glsl_block_call(mm) or is_glsl_block_unary(mm)
-    # Prepend blocks in front of return.
-    if is_glsl_block_return(vv) and mm_mergable:
-      mm.replaceTerminator(",")
-      vv.addChildren(mm, True)
-      lst.pop(ii - 1)
-      return True
-    # Assignment can start a group.
-    if is_glsl_block_assignment(vv) and mm_mergable:
-      lst[ii] = GlslBlockGroup(vv)
-      mm.replaceTerminator(",")
-      lst[ii].addChildren(mm, True)
-      lst.pop(ii - 1)
-      return True
-    # Append into group.
-    if is_glsl_block_group(mm) and vv_mergable:
-      mm.getChildren()[-1].replaceTerminator(",")
-      mm.addChildren(vv)
-      lst.pop(ii)
-      return True
   return False

@@ -673,7 +673,7 @@ def generate_elfling(output_file, compiler, elfling, definition_ld):
   asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
   return asm
 
-def generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplifys):
+def generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames, simplifys):
   """Generate GLSL, processing given GLSL source files."""
   glsl_db = Glsl()
   for ii in filenames:
@@ -691,10 +691,10 @@ def generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplif
       varname = re.sub(r'\.', r'_', os.path.basename(ii))
       glsl_db.read(preprocessor, definition_ld, ii, varname)
   glsl_db.parse()
-  glsl_db.crunch(mode, renames, simplifys)
+  glsl_db.crunch(mode, inlines, renames, simplifys)
   return glsl_db
 
-def generate_glsl_extract(fname, preprocessor, definition_ld, mode, renames, simplifys):
+def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, renames, simplifys):
   """Generate GLSL, extracting from source file."""
   fd = open(fname, "r")
   lines = fd.readlines()
@@ -712,7 +712,7 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, renames, sim
       glsl_output_name = glsl_filename + "." + match.group(2)
       filenames += [[glsl_filename, glsl_varname, glsl_output_name]]
   if filenames:
-    glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, renames, simplifys)
+    glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames, simplifys)
     glsl_db.write()
 
 def get_platform_und_symbols():
@@ -926,7 +926,8 @@ def main():
   parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
-  parser.add_argument("--glsl-mode", default = "full", choices = ("none", "combine", "full"), help = "GLSL crunching mode.\n(default: %(default)s)")
+  parser.add_argument("--glsl-mode", default = "full", choices = ("none", "nosquash", "full"), help = "GLSL crunching mode.\n(default: %(default)s)")
+  parser.add_argument("--glsl-inlines", default = -1, type = int, help = "Maximum number of inline operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--glsl-renames", default = -1, type = int, help = "Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--glsl-simplifys", default = -1, type = int, help = "Maximum number of simplify operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--linux", action = "store_true", help = "Try to target Linux if not in Linux. Equal to '-O linux'.")
@@ -963,6 +964,7 @@ def main():
   compilation_mode = args.method
   compression = args.unpack_header
   elfling = args.elfling
+  glsl_inlines = args.glsl_inlines
   glsl_renames = args.glsl_renames
   glsl_simplifys = args.glsl_simplifys
   glsl_mode = args.glsl_mode
@@ -1040,7 +1042,7 @@ def main():
     if source_files or source_files_additional:
       raise RuntimeError("can not combine GLSL source %s with other source files %s" %
           (str(source_files_glsl), str(source_files + source_files_additional)))
-    glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_renames, glsl_simplifys)
+    glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_inlines, glsl_renames, glsl_simplifys)
     if output_file:
       glsl_db.write()
     else:
@@ -1157,7 +1159,7 @@ def main():
     print("Analyzing source files: %s" % (str(source_files)))
   # Prepare GLSL headers before preprocessing.
   for ii in source_files:
-    generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, glsl_renames, glsl_simplifys)
+    generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, glsl_inlines, glsl_renames, glsl_simplifys)
   # Search symbols from source files.
   symbols = set()
   for ii in source_files:

@@ -46,7 +46,7 @@ class Glsl:
     ret = sorted(lst, reverse=True)
     return list(map(lambda x: x[2], ret))
 
-  def crunch(self, mode = "full", max_renames = -1, max_simplifys = -1):
+  def crunch(self, mode = "full", max_inlines = -1, max_renames = -1, max_simplifys = -1):
     """Crunch the source code to smaller state."""
     combines = None
     inlines = None
@@ -56,18 +56,16 @@ class Glsl:
     if "none" != mode:
       for ii in self.__sources:
         ii.expandRecursive()
-    # Rename is optional.
-    if "full" == mode:
-      inlines = 0
       # Perform inlining passes.
+      inlines = 0
       while True:
-        inline_pass_rv = self.inlinePass()
+        inline_pass_rv = self.inlinePass((max_inlines < 0) or (inlines < max_inlines))
         # Last pass will return a listing of merged variable names.
         if is_listing(inline_pass_rv):
           merged = inline_pass_rv
           break
-        # Otherwise what was returned was the number of inlinings done.
-        inlines += inline_pass_rv
+        # Inlining was done, another round.
+        inlines += 1
       # Perform simplification passes.
       simplifys = 0
       for ii in self.__sources:
@@ -106,10 +104,9 @@ class Glsl:
         if (0 > max_renames) or (renames < max_renames):
           self.renameBlock(ii[0])
           renames += 1
-    # Recombine unless crunching completely disabled.
-    if "none" != mode:
+      # Perform recombine passes.
       for ii in self.__sources:
-        combines = ii.collapseRecursive()
+        combines = ii.collapseRecursive(mode)
     # Print summary of operations.
     if is_verbose():
       operations = []
@@ -178,7 +175,7 @@ class Glsl:
     block.removeFromParent()
     return ret
 
-  def inlinePass(self):
+  def inlinePass(self, allow_inline):
     """Run inline pass. Return list of merged names if no inlining could be done."""
     # Collect identifiers. First pass - collect from generic sources and append from non-generic.
     collected = []
@@ -205,6 +202,9 @@ class Glsl:
         continue
       lst = collect_member_accesses(ii[0], ii[1:])
       block.setMemberAccesses(lst)
+    # If inlining is not allowed, just return merged block.
+    if not allow_inline:
+      return merged
     # Perform inlining if possible.
     for ii in range(len(merged)):
       vv = merged[ii]
@@ -216,7 +216,8 @@ class Glsl:
         continue
       # If no inline conflict, perform inline and return nothing to signify another pass can be done.
       if not self.hasInlineConflict(block, names):
-        return self.inline(block, names)
+        self.inline(block, names)
+        return None
     # Return merged list.
     return merged
 

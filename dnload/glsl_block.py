@@ -62,8 +62,6 @@ class GlslBlock:
       else:
         self._children += [ii]
       ii.setParent(self)
-      if ii.getParent() != self:
-        raise RuntimeError("")
 
   def addNamesDeclared(self, op):
     """Add given names as names declared by this block."""
@@ -95,27 +93,34 @@ class GlslBlock:
     """Clear used names."""
     self.__names_used = []
 
-  def collapse(self, other):
-    """Default collapse implementation, returns False because no collapse happened."""
+  def collapse(self, other, mode):
+    """Default collapse implementation. Default implementation just returns False."""
     return False
 
-  def collapseRecursive(self):
+  def collapseContents(self, mode):
+    """Run collapse pass on contents (children). Default implementation just returns False."""
+    return False
+
+  def collapseRecursive(self, mode):
     """Collapse collapsable elements."""
     ret = 0
     while True:
-      if not self.collapseRun():
+      if not self.collapseContents(mode):
+        break
+    while True:
+      if not self.collapseRun(mode):
         break
       ret += 1
     for ii in self._children:
-      ret += ii.collapseRecursive()
+      ret += ii.collapseRecursive(mode)
     return ret
 
-  def collapseRun(self):
+  def collapseRun(self, mode):
     """Perform one collapse run. Return true if collapse was made."""
     for ii in range(len(self._children) - 1):
       vv = self._children[ii]
       ww = self._children[ii + 1]
-      if vv.collapse(ww):
+      if vv.collapse(ww, mode):
         self._children.pop(ii + 1)
         return True
     return False
@@ -253,6 +258,14 @@ class GlslBlock:
         self._children.pop(ii)
         return
     raise RuntimeError("could not find child to remove")
+
+  def replaceChild(self, index, child):
+    """Replace child at given index with another."""
+    if self._children[index] == child:
+      raise RuntimeError("trying to replace child '%s' with itself" % (str(child)))
+    self._children[index].setParent(None)
+    self._children[index] = child
+    child.setParent(self)
 
   def removeFromParent(self):
     """Remove this from its parent."""
