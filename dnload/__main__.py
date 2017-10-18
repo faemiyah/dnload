@@ -1,11 +1,11 @@
 import argparse
+import copy
 import os
 import re
 import shutil
 import stat
 import subprocess
 import sys
-import textwrap
 
 from dnload.assembler import Assembler
 from dnload.assembler_file import AssemblerFile
@@ -903,9 +903,10 @@ def main():
   library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
   opengl_reason = None
   opengl_version = None
+  program_name = os.path.basename(sys.argv[0])
   sdl_version = 2
 
-  parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (sys.argv[0]), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
+  parser = argparse.ArgumentParser(usage = "%s [args] <source file(s)> [-o output]" % (program_name), description = "Size-optimized executable generator for *nix platforms.\nPreprocesses given source file(s) looking for specifically marked function calls, then generates a dynamic loader header file that can be used within these same source files to decrease executable size.\nOptionally also perform the actual compilation of a size-optimized binary after generating the header.", formatter_class = CustomHelpFormatter, add_help = False)
   parser.add_argument("--32", dest = "m32", action = "store_true", help = "Try to target 32-bit version of the architecture if on a 64-bit system.")
   parser.add_argument("-a", "--abstraction-layer", choices = ("sdl1", "sdl2"), help = "Specify abstraction layer to use instead of autodetecting.")
   parser.add_argument("-A", "--assembler", default = None, help = "Try to use given assembler executable as opposed to autodetect.")
@@ -1233,7 +1234,7 @@ def main():
     subst["UND_SYMBOLS"] = g_template_und_symbols.format()
   # Add remaining simple substitutions and generate file contents.
   subst["DEFINITION_LD"] = definition_ld
-  subst["FILENAME"] = os.path.basename(sys.argv[0])
+  subst["FILENAME"] = program_name
   file_contents = g_template_header.format(subst)
   # Write target file.
   fd = open(target, "w")

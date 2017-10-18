@@ -1,4 +1,7 @@
 import argparse
+import textwrap
+
+from dnload.common import get_indent
 
 ########################################
 # CustomHelpFormatter ##################

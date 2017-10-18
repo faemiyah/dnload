@@ -53,7 +53,6 @@ def glsl_parse_unary(source):
       raise RuntimeError("discarded elements in prefix unary")
     return (GlslBlockUnary(statement), remaining)
   # Try postfix unary.
-  print("trying '%s'" % str(map(str, source[:3])))
   (name, operator, terminator, remaining) = extract_tokens(source, ("?n", "?p", "?;"))
   if operator in g_allowed_operators:
     (statement, discarded) = glsl_parse_statement([name, operator, terminator])

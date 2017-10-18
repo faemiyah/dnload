@@ -12,8 +12,7 @@ static const char *g_shader_vertex_quad = ""
 ";"
 "void main()"
 "{"
-"i=e;"
-"gl_Position=vec4(e,.0,1.);"
+"i=e,gl_Position=vec4(e,.0,1.);"
 "}"
 #endif
 "";

@@ -49,18 +49,23 @@ class GlslBlockScope(GlslBlock):
       return True
     if len(self._children) <= 1:
       return False
-    # Comma-collapse contents.
+    # Collapse statements into return statements, if possible.
     for ii in range(1, len(self._children)):
       aa = self._children[ii - 1]
       bb = self._children[ii]
       aa_mergable = is_glsl_block_assignment(aa) or is_glsl_block_call(aa) or is_glsl_block_unary(aa)
       bb_mergable = is_glsl_block_assignment(bb) or is_glsl_block_call(bb) or is_glsl_block_unary(bb)
-      # Prepend blocks in front of return.
       if is_glsl_block_return(bb) and aa_mergable:
         aa.replaceTerminator(",")
         aa.removeFromParent()
         bb.addChildren(aa, True)
         return True
+    # Comma-collapse other contents, if possible.
+    for ii in range(1, len(self._children)):
+      aa = self._children[ii - 1]
+      bb = self._children[ii]
+      aa_mergable = is_glsl_block_assignment(aa) or is_glsl_block_call(aa) or is_glsl_block_unary(aa)
+      bb_mergable = is_glsl_block_assignment(bb) or is_glsl_block_call(bb) or is_glsl_block_unary(bb)
       # Assignment can start a group.
       if aa_mergable and bb_mergable:
         vv = GlslBlockGroup(bb)

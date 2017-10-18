@@ -1,18 +1,9 @@
 #!/bin/sh
 
-DNLOAD="dnload"
-DNLOAD_MODULE="${DNLOAD}/__init__.py"
-if [ -f "./${DNLOAD_MODULE}" ] ; then
-  DNLOAD_PATH="."
-else
-  echo "${0}: could not find dnload module"
+DNLOAD="dnload.py"
+if [ ! -f "${DNLOAD}" ] ; then
+  echo "${0}: could not find dnload.py"
   exit 1
-fi
-
-if [ -z "${PYTHONPATH}" ] ; then
-  PYTHONPATH="${DNLOAD_PATH}"
-else
-  PYTHONPATH="${PYTHONPATH}:${DNLOAD_PATH}"
 fi
 
 if [ ! -f "src/dnload.h" ] ; then
@@ -20,9 +11,9 @@ if [ ! -f "src/dnload.h" ] ; then
 fi
 
 if [ -d "/usr/lib/arm-linux-gnueabihf/mali-egl" ] ; then # Mali
-  python -m "${DNLOAD}" -v src/intro.cpp --rpath "/usr/local/lib" -lc -ldl -lgcc -lm -lEGL -lGLESv2 -lSDL2 -m dlfcn $*
+  python "${DNLOAD}" -v src/intro.cpp --rpath "/usr/local/lib" -lc -ldl -lgcc -lm -lEGL -lGLESv2 -lSDL2 -m dlfcn $*
 else
-  python -m "${DNLOAD}" -v src/intro.cpp $*
+  python "${DNLOAD}" -v src/intro.cpp $*
 fi
 if [ $? -ne 0 ] ; then
   echo "${0}: compilation failed"
