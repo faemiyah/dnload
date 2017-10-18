@@ -20,11 +20,11 @@ The bridging header file can be created on any \*nix or Windows platform with an
 
 Generating a final binary is supported on \*nix platforms only. Due to practical purposes (i.e. the OS of choice of the author), the primary target operating system is FreeBSD. Existence of binutils toolchain (``as``, ``ld``, etc.) on the system is assumed.
 
-The script is self-contained, and should require no external python packages to be installed. Both Python versions 2.7.x and 3.x should work.
+The script is self-contained, and should require no external python packages to be installed.
 
 For compiling without size optimizations, GLEW and SDL development files are needed. This is subject to change if/when other backends are added.
 
-**Note:** Cross-compilation is not (yet?) supported. Building of binaries must be done on the actual target system. If you want to develop 32-bit software on a 64-bit system, you will need to set up a chroot/jail environment or a virtual machine.
+**Note:** Cross-compilation support is limited. You should be able to compile 32-bit binaries on a 64-bit host by using the ``--32`` -command line argument. You will still need 32-bit libraries or chroot/jail environment to run the generated binary though.
 
 Supported (last updated: 2017-10-12)
 ----
@@ -38,6 +38,8 @@ Supported (last updated: 2017-10-12)
 * ``clang++``
 * ``g++``
 * ``cl.exe`` (preprocessing only)
+* ``python2.7``
+* ``python3``
 
 Unsupported but should be supportable (last updated: 2017-10-12)
 ----
