@@ -358,6 +358,19 @@ class GlslToken:
     right = self.__right[0].getSingleChild()
     return ("(" == left) and (")" == right)
 
+  def isTypeOpen(self):
+    """Tell if is a type opening statement."""
+    if self.__left or self.__right:
+      return False
+    if len(self.__middle) != 2:
+      return False
+    if (not is_glsl_token(self.__middle[0])) or (not is_glsl_token(self.__middle[1])):
+      return False
+    left = self.__middle[0].getSingleChildMiddleNonToken()
+    if (not is_glsl_type(left)) or (not left.isVectorType()):
+      return False
+    return (self.__middle[1].getSingleChildMiddleNonToken() == "(")
+
   def removeChild(self, op):
     """Remove a child from this."""
     for ii in range(len(self.__left)):
@@ -511,13 +524,19 @@ class GlslToken:
             return True
     # Operations are done. Allow simplification of remaining constans, if possible.
     mid = self.getSingleChildMiddleNonToken()
-    if mid and is_glsl_float(mid):
+    if mid and is_glsl_float(mid) and (not mid.isIntegrifyAllowed()):
+      # No operators, left or right.
       left = self.findSiblingOperatorLeft()
       right = self.findSiblingOperatorRight()
       if not left and not right:
-        if is_glsl_float(mid) and (not mid.isIntegrifyAllowed()):
-          mid.setAllowIntegrify(True)
-          return True
+        mid.setAllowIntegrify(True)
+        return True
+      # Alone in vecN() directive.
+      left = self.getSingleChildLeft()
+      right = self.getSingleChildRight()
+      if left and left.isTypeOpen() and right and (right.getSingleChildMiddleNonToken() == ")"):
+        mid.setAllowIntegrify(True)
+        return True
     return False
 
   def __str__(self):
