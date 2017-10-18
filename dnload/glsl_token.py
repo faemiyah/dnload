@@ -456,15 +456,6 @@ class GlslToken:
         else:
           if self.removeParens():
             return True
-    # Check for allowing simpler representation of constants.
-    mid = self.getSingleChildMiddleNonToken()
-    if mid and is_glsl_float(mid):
-      left = self.findSiblingOperatorLeft()
-      right = self.findSiblingOperatorRight()
-      if not left and not right:
-        if is_glsl_float(mid) and (not mid.isIntegrifyAllowed()):
-          mid.setAllowIntegrify(True)
-          return True
     # Recurse down.
     for ii in self.__left:
       if ii.simplify():
@@ -518,6 +509,15 @@ class GlslToken:
               left_token.collapseUp()
               right_token.replaceMiddle(result)
             return True
+    # Operations are done. Allow simplification of remaining constans, if possible.
+    mid = self.getSingleChildMiddleNonToken()
+    if mid and is_glsl_float(mid):
+      left = self.findSiblingOperatorLeft()
+      right = self.findSiblingOperatorRight()
+      if not left and not right:
+        if is_glsl_float(mid) and (not mid.isIntegrifyAllowed()):
+          mid.setAllowIntegrify(True)
+          return True
     return False
 
   def __str__(self):
