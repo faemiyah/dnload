@@ -890,7 +890,7 @@ def main():
   global g_osname
   compression = str(PlatformVar("compression"))
   default_assembler_list = ["/usr/local/bin/as", "as"]
-  default_compiler_list = ["g++6", "g++49", "g++-4.9", "g++48", "g++-4.8", "g++", "clang++"]
+  default_compiler_list = ["g++7", "g++-7", "g++49", "g++-4.9", "c++"]
   default_linker_list = ["/usr/local/bin/ld", "ld"]
   default_preprocessor_list = ["cpp", "clang-cpp"]
   default_objcopy_list = ["/usr/local/bin/objcopy", "objcopy"]
@@ -1058,7 +1058,10 @@ def main():
       replace_osarch("ia32", "Cross-compile: ")
       extra_assembler_flags = ["--32"]
       extra_compiler_flags = ["-m32"]
-      extra_linker_flags = ["-melf_i386"]
+      if osname_is_freebsd():
+        extra_linker_flags = ["-melf_i386_fbsd"]
+      else:
+        extra_linker_flags = ["-melf_i386"]
     else:
       raise RuntimeError("cannot attempt 32-bit compile for osarch '%s'" % (g_osarch))
   if args.march:
