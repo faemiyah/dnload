@@ -36,6 +36,10 @@ class GlslInt:
     """Get precision - number of numbers to express."""
     return len(self.__string.strip("+-0"))
 
+  def getSign(self):
+    """Access sign, only minus sign is preserved."""
+    return self.__sign
+
   def getStr(self):
     """Access actual string."""
     return self.__sign + self.__string

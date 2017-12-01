@@ -2,6 +2,7 @@ import re
 
 from dnload.common import is_listing
 from dnload.common import is_verbose
+from dnload.glsl_block_assignment import is_glsl_block_assignment
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_function import is_glsl_block_function
@@ -134,7 +135,7 @@ class Glsl:
     # If block is a listing, just go over all options.
     if is_listing(block):
       for ii in block:
-        if self.hasInlineConflict(ii, name):
+        if self.hasInlineConflict(ii, names):
           return True
       return False
     # Check for inline conflicts within this block.
@@ -406,13 +407,13 @@ def has_inline_conflict(parent, block, names, comparison = None):
     if block == ii:
       found = True
     # If name is found used by this particular block, decrement uses. Can stop iteration at 0 uses.
-    for ii in names:
-      if ii.hasUsedNameExact(ii):
+    for jj in names:
+      if ii.hasUsedNameExact(jj):
         uses -= 1
     if 0 >= uses:
       return False
     # Assignment into a name used by the statement makes inlining impossible.
-    if found and is_glsl_block_assignment(ii) and ii.getName() == name:
+    if found and is_glsl_block_assignment(ii) and ii.getName() == comparison:
       return True
   return False
 

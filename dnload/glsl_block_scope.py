@@ -32,7 +32,7 @@ class GlslBlockScope(GlslBlock):
     self.__allow_squash = False
     # Check for degenerate scope.
     if (1 == len(lst)) and is_glsl_block_declaration(lst[0]):
-      raise RuntimeError("scope with only block '%s' is degenerate" % (str(lst[0])))
+      raise RuntimeError("scope with only block '%s' is degenerate" % (lst[0].format(True)))
     # Check for empty scope (likely an error).
     if 0 >= len(lst):
       if is_verbose():

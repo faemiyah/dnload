@@ -9,9 +9,12 @@ class GlslFloat:
 
   def __init__(self, integer1, integer2):
     """Constructor."""
+    if integer2.getSign():
+      raise RuntimeError("invalid second integer for float: %s" % (integer2.getStr()))
     self.__integer1 = integer1
     self.__integer2 = integer2
     self.__number = float(str(integer1.getStr()) + "." + str(integer2.getStr()))
+    self.__sign = integer1.getSign()
     self.__allow_integrify = False
     # Check.
     if float(self.format(False)) != self.__number:
@@ -24,7 +27,7 @@ class GlslFloat:
         if self.__allow_integrify:
           return "0"
         return ".0"
-      return "." + self.__integer2.getStr().rstrip("0")
+      return self.__sign + "." + self.__integer2.getStr().rstrip("0")
     if (self.__integer2.getInt() == 0) and self.__allow_integrify:
       return str(self.__integer1.getInt())
     return "%s.%s" % (str(self.__integer1.getInt()), self.__integer2.getStr().rstrip("0"))
