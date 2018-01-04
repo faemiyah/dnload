@@ -270,7 +270,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #include <stdio.h>
 #include <stdlib.h>
 #endif
-[[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
+[[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
 #if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
 #define DNLOAD_MAIN SDL_main
 #else
@@ -411,6 +411,10 @@ g_template_include_opengl = Template("""
 #endif
 #endif
 #endif
+""")
+
+g_template_include_png = Template("""
+#include \"png.h\"
 """)
 
 g_template_include_rand = Template("""
@@ -1199,6 +1203,8 @@ def main():
     subst["INCLUDE_FREETYPE"] = g_template_include_freetype.format()
   if symbols_has_library(symbols, ("GL", "GLESv2")):
     subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({ "DEFINITION_LD" : definition_ld })
+  if symbols_has_library(symbols, "png"):
+    subst["INCLUDE_PNG"] = g_template_include_png.format()
   if symbols_has_library(symbols, ("SDL", "SDL2")):
     subst["INCLUDE_SDL"] = g_template_include_sdl.format()
   if symbols_has_library(symbols, "sndfile"):
