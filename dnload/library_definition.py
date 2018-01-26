@@ -156,6 +156,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glTexStorage3D", "GLenum", "GLsizei", "GLenum", "GLsizei", "GLsizei", "GLsizei"),
   ("void", "glTexSubImage2D", "GLenum", "GLint", "GLint", "GLint", "GLsizei", "GLsizei", "GLenum", "GLenum", "const GLvoid*"),
   ("void", "glTexSubImage3D", "GLenum", "GLint", "GLint", "GLint", "GLint", "GLsizei", "GLsizei", "GLsizei", "GLenum", "GLenum", "const GLvoid*"),
+  ("void", "glTexParameterf", "GLenum", "GLenum", "GLfloat"),
   ("void", "glTexParameteri", "GLenum", "GLenum", "GLint"),
   ("void", "glTextureParameterf", "GLuint", "GLenum", "GLfloat"),
   ("void", "glTextureParameteri", "GLuint", "GLenum", "GLint"),
