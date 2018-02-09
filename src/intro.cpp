@@ -691,7 +691,7 @@ void _start()
     GLenum err = glewInit();
     if(GLEW_OK != err)
     {
-      std::cerr  << "glewInit(): " << glewGetErrorString(err) << std::endl;
+      std::cerr << "glewInit(): " << glewGetErrorString(err) << std::endl;
       teardown();
       exit(1);
     }

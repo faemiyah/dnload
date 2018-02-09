@@ -117,6 +117,7 @@ g_locked = (
     "dot",
     "EmitVertex",
     "EndPrimitive",
+    "false",
     "fract",
     "gl_PerVertex",
     "layout",
@@ -138,7 +139,11 @@ g_locked = (
     "step",
     "tan",
     "texture",
+    "texture2D",
+    "textureCube",
+    "textureGrad",
     "transpose",
+    "true",
     "uniform",
     )
 

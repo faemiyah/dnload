@@ -53,7 +53,7 @@ g_type_modifiers = (
 
 def match_type_id(op):
   """Tell if given string matches a type."""
-  if re.match(r'^(bool|float|int|ivec\d|mat\d|sampler\dD|vec\d|void)$', op):
+  if re.match(r'^(bool|float|int|ivec\d|mat\d|sampler\dD|samplerCube|vec\d|void)$', op):
     return True
   return False
 
