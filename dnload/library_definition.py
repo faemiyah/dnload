@@ -107,6 +107,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
   ("void", "glDisable", "GLenum"),
   ("void", "glDisableVertexAttribArray", "GLuint"),
   ("void", "glDrawArrays", "GLenum", "GLint", "GLsizei"),
+  ("void", "glDrawArraysInstanced", "GLenum", "GLint", "GLsizei, GLsizei"),
   ("void", "glDrawElements", "GLenum", "GLsizei", "GLenum", "const GLvoid*"),
   ("void", "glEnable", "GLenum"),
   ("void", "glEnableVertexAttribArray", "GLuint"),
