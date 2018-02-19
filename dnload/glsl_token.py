@@ -93,7 +93,10 @@ class GlslToken:
       result_number = interpret_float(integer_part, decimal_part)
     else:
       result_number = interpret_int(str(result_number))
-    result_number.truncatePrecision(max(left.getPrecision(), right.getPrecision()))
+    # Not all operations require truncation afterwards.
+    if oper.requiresTruncation():
+      precision = max(left.getPrecision(), right.getPrecision())
+      result_number.truncatePrecision(precision)
     return result_number
 
   def collapse(self):

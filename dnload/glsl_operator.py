@@ -35,9 +35,6 @@ class GlslOperator:
     if self.__operator in ("++", "--", "!"):
       return ret
     ret += 1
-    if self.__operator in ("*", "/"):
-      return ret
-    ret += 1
     if self.__operator in ("*", "/", "%"):
       return ret
     ret += 1
@@ -104,6 +101,10 @@ class GlslOperator:
         self.__operator = "||"
         return True
     return False
+
+  def requiresTruncation(self):
+    """Tell if results of calculations made with this operator require truncation."""
+    return self.__operator in ("*", "/")
 
   def __lt__(self, other):
     """Less than operator."""

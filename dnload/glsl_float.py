@@ -13,7 +13,7 @@ class GlslFloat:
       raise RuntimeError("invalid second integer for float: %s" % (integer2.getStr()))
     self.__integer1 = integer1
     self.__integer2 = integer2
-    self.__number = float(str(integer1.getStr()) + "." + str(integer2.getStr()))
+    self.updateNumber()
     self.__sign = integer1.getSign()
     self.__allow_integrify = False
     # Check.
@@ -55,6 +55,11 @@ class GlslFloat:
       self.__integer2 = interpret_int("0")
     else:
       self.__integer2.truncatePrecision(op - used)
+    self.updateNumber()
+
+  def updateNumber(self):
+    """Update the number value."""
+    self.__number = float(str(self.__integer1.getStr()) + "." + str(self.__integer2.getStr()))
 
   def __str__(self):
     """String representation."""

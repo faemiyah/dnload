@@ -119,6 +119,7 @@ g_locked = (
     "EndPrimitive",
     "false",
     "fract",
+    "gl_InstanceID",
     "gl_PerVertex",
     "layout",
     "length",
