@@ -95,7 +95,8 @@ class GlslToken:
       result_number = interpret_int(str(result_number))
     # Not all operations require truncation afterwards.
     if oper.requiresTruncation():
-      precision = max(left.getPrecision(), right.getPrecision())
+      lower_precision = min(left.getPrecision(), right.getPrecision()) + 1
+      precision = max(max(left.getPrecision(), right.getPrecision()), lower_precision)
       result_number.truncatePrecision(precision)
     return result_number
 
