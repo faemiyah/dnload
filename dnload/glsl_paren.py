@@ -39,6 +39,16 @@ class GlslParen:
     """Tell if this is a paren."""
     return self.__paren in ("(", ")")
 
+  def matches(self, other):
+    """Tell if this is an opening paren that matches a given other closing paren."""
+    if not is_glsl_paren(other):
+      return False
+    if self.__paren == "(":
+      return (other == ")")
+    elif self.__paren == "[":
+      return (other == "]")
+    return False
+
   def update(self, elem, count):
     """Generic update, update matching paren count only."""
     if self.isBracket():

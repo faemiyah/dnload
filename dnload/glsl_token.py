@@ -440,19 +440,35 @@ class GlslToken:
     """Perform any simple simplification and stop."""
     # Remove parens.
     if self.isSurroundedByParens():
+      middle_lst = []
+      for ii in self.__middle:
+        if is_glsl_token(ii):
+          middle_lst += ii.flatten()
+        else:
+          middle_lst += [ii]
+      #debug_str = " ".join(map(lambda x: str(x), middle_lst))
+      #if debug_str.find("normalize") > -1:
+      #  print(debug_str)
       # Single expression.
-      if len(self.__middle) == 1:
-        middle = self.__middle[0]
-        if (not is_glsl_token(middle)) or (len(middle.flatten()) == 1):
-          if self.removeParens():
-            return True
+      if len(middle_lst) == 1:
+        if self.removeParens():
+          return True
       # Number or name with access.
-      elif len(self.__middle) == 2:
-        mid_lt = self.__middle[0].getSingleChild()
-        mid_rt = self.__middle[1].getSingleChild()
+      elif len(middle_lst) == 2:
+        lt = middle_lst[0]
+        rt = middle_lst[1]
         if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
           if self.removeParens():
             return True
+      # Single function call.
+      elif len(middle_lst) >= 3:
+        mid_name = middle_lst[0]
+        mid_opening = middle_lst[1]
+        mid_ending = middle_lst[-1]
+        if is_glsl_name(mid_name) and is_glsl_paren(mid_opening) and mid_opening.matches(mid_ending):
+          if is_single_call_or_access_list(middle_lst[2:-1], mid_opening):
+            if self.removeParens():
+              return True
       # Only contains lower-priority operators compared to outside.
       prio = self.findHighestPrioOperatorMiddle()
       if prio >= 0:
@@ -562,6 +578,25 @@ def is_glsl_number(op):
 def is_glsl_token(op):
   """Tell if given object is a GLSL token."""
   return isinstance(op, GlslToken)
+
+def is_single_call_or_access_list(lst, opening_paren):
+  """Tell if given list is a single call or access."""
+  parens = 1
+  simplify_allowed = True
+  for ii in lst:
+    if 0 >= parens:
+      if "(" == opening_paren:
+        return False
+      # Chaining brackets is ok.
+      if "[" == opening_paren:
+        if opening_paren != ii:
+          return False
+    # Keep track of paren count.
+    if opening_paren == ii:
+      parens += 1
+    elif opening_paren.matches(ii):
+      parens -= 1
+  return (0 < parens)
 
 def token_descend(token):
   """Descend token or token list."""
