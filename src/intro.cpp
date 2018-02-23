@@ -101,7 +101,7 @@ typedef uint8_t sample_t;
 //######################################
 
 /// Audio buffer for output.
-static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8 / sizeof(sample_t)];
+static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8];
 
 /// Current audio position.
 static int g_audio_position = INTRO_START;
