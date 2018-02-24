@@ -460,13 +460,19 @@ class GlslToken:
         if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
           if self.removeParens():
             return True
-      # Single function call.
+      # Single function call or indexing (with potential access).
       elif len(middle_lst) >= 3:
         mid_name = middle_lst[0]
         mid_opening = middle_lst[1]
-        mid_ending = middle_lst[-1]
+        last_index = -1
+        mid_ending = middle_lst[last_index]
+        # If last part is access, try the element before that instead.
+        if is_glsl_access(mid_ending) and (len(middle_lst) >= 4):
+          last_index = -2
+          mid_ending = middle_lst[last_index]
+        # Check for function call or indexing format.
         if is_glsl_name(mid_name) and is_glsl_paren(mid_opening) and mid_opening.matches(mid_ending):
-          if is_single_call_or_access_list(middle_lst[2:-1], mid_opening):
+          if is_single_call_or_access_list(middle_lst[2:last_index], mid_opening):
             if self.removeParens():
               return True
       # Only contains lower-priority operators compared to outside.
