@@ -106,6 +106,12 @@ class GlslOperator:
     """Tell if results of calculations made with this operator require truncation."""
     return self.__operator in ("*", "/")
 
+  def setOperator(self, oper):
+    """Replace the operator."""
+    if not (oper in g_operators):
+      raise RuntimeError("invalid operator to replace: '%s'" % (oper))
+    self.__operator = oper
+
   def __lt__(self, other):
     """Less than operator."""
     if not is_glsl_operator(other):
@@ -127,12 +133,34 @@ class GlslOperator:
     return "GlslOperator('%s')" % (self.__operator)
 
 ########################################
+# Globals ##############################
+########################################
+
+g_operators = (
+    "+",
+    "-",
+    "*",
+    "/",
+    "%",
+    "<",
+    ">",
+    "=",
+    "!",
+    "&",
+    "^",
+    "|",
+    "?",
+    ":",
+    ",",
+    )
+
+########################################
 # Functions ############################
 ########################################
 
 def interpret_operator(source):
   """Try to interpret an operator."""
-  if source in ("+", "-", "*", "/", "%", "<", ">", "=", "!", "&", "^", "|", "?", ":", ","):
+  if source in g_operators:
     return GlslOperator(source)
   return None
 

@@ -538,6 +538,22 @@ class GlslToken:
           # Same operation -> can be just applied.
           elif left_parent == right_parent:
             result = self.applyOperator(left_oper, left_token, right_token)
+          # Substract addition: <something> - a + b => <something> + (b - a)
+          elif (left_oper == "-") and (oper == "+") and (oper is right_oper):
+            result = self.applyOperator(left_oper, right_token, left_token)
+            print(str(right_token) + " " + str(left_oper) + " " + str(left_token))
+            # If c - b is negative, replace it with its absolute value which is going to get subtracted.
+            if result.getFloat() < 0.0:
+              right_oper.setOperator("-")
+              if is_glsl_int(result):
+                result = interpret_int(str(abs(result.getInt())))
+              elif is_glsl_float(result):
+                number_string = str(abs(result.getFloat()))
+                (integer_part, decimal_part) = number_string.split(".")
+                result = interpret_float(integer_part, decimal_part)
+                print(str(result))
+              else:
+                raise RuntimeError("unknown result object '%s'" % (str(result)))
           # TODO: further cases.
           # On success, eliminate upper token (left only if necessary) and replace other token with result.
           if result:
