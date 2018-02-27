@@ -21,9 +21,11 @@ def check_executable(op):
   except OSError:
     return False
   try:
-    if proc.poll():
+    if not proc.poll():
       proc.kill()
+      proc.wait()
   except OSError:
+    print("WARNING: subprocess '%s' did not terminate properly" % (op))
     return True
   return True
 

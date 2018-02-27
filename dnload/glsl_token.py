@@ -471,7 +471,7 @@ class GlslToken:
           last_index = -2
           mid_ending = middle_lst[last_index]
         # Check for function call or indexing format.
-        if is_glsl_name(mid_name) and is_glsl_paren(mid_opening) and mid_opening.matches(mid_ending):
+        if (is_glsl_name(mid_name) or is_glsl_type(mid_name)) and is_glsl_paren(mid_opening) and mid_opening.matches(mid_ending):
           if is_single_call_or_access_list(middle_lst[2:last_index], mid_opening):
             if self.removeParens():
               return True
