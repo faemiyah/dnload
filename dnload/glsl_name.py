@@ -118,6 +118,7 @@ g_locked = (
     "EmitVertex",
     "EndPrimitive",
     "false",
+    "floor",
     "fract",
     "gl_InstanceID",
     "gl_PerVertex",
