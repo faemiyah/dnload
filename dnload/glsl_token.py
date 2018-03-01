@@ -550,7 +550,6 @@ class GlslToken:
                 number_string = str(abs(result.getFloat()))
                 (integer_part, decimal_part) = number_string.split(".")
                 result = interpret_float(integer_part, decimal_part)
-                print(str(result))
               else:
                 raise RuntimeError("unknown result object '%s'" % (str(result)))
           # TODO: further cases.
