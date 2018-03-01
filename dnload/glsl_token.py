@@ -541,7 +541,6 @@ class GlslToken:
           # Substract addition: <something> - a + b => <something> + (b - a)
           elif (left_oper == "-") and (oper == "+") and (oper is right_oper):
             result = self.applyOperator(left_oper, right_token, left_token)
-            print(str(right_token) + " " + str(left_oper) + " " + str(left_token))
             # If b - a is negative, replace it with its absolute value which is going to get subtracted.
             if result.getFloat() < 0.0:
               right_oper.setOperator("-")
