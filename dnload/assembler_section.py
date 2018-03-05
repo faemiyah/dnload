@@ -104,7 +104,7 @@ class AssemblerSection:
     reinstated_lines = []
     while True:
       current_line = self.__content[jj]
-      match = re.match(r'\s*(push\S).*%(\S+)', current_line, re.IGNORECASE)
+      match = re.match(r'\s*(push\w).*%(\w+)', current_line, re.IGNORECASE)
       if match:
         if is_stack_save_register(match.group(2)):
           stack_save_decrement += get_push_size(match.group(1))
@@ -119,16 +119,15 @@ class AssemblerSection:
         jj += 1
         continue
       # Saving stack pointer or sometimes initializing edx seem to be within pushing.
-      match = re.match(r'\s*mov.*,\s*%(rbp|ebp|edx).*', current_line, re.IGNORECASE)
+      match = re.match(r'\s*mov\w\s+%\w+,\s*%(rbp|ebp|edx).*', current_line, re.IGNORECASE)
       if match:
         if is_stack_save_register(match.group(1)):
           stack_save_decrement = 0
         reinstated_lines += [current_line]
         jj += 1
         continue;
-      # xor (zeroing) seems to be inserted in the 'middle' of pushing.
-      match = re.match(r'\s*xor.*\s+%(\S+)\s?,.*', current_line, re.IGNORECASE)
-      if match:
+      # Some types of lines can be in the middle of pushing.
+      if is_reinstate_line(current_line):
         reinstated_lines += [current_line]
         jj += 1
         continue
@@ -356,6 +355,18 @@ def get_push_size(op):
     return 4
   else:
     raise RuntimeError("push size not known for instruction '%s'" % (ins))
+
+def is_reinstate_line(op):
+  """Tell if line is one of the legal lines to exist within entry push."""
+  # Zeroing.
+  match = re.match(r'\s*xor.*\s+%(\S+)\s?,.*', op, re.IGNORECASE)
+  if match:
+    return True
+  # Moving labels into registers.
+  match = re.match(r'\s*mov\w\s+\$[a-zA-Z_]\S*,\s+%\w+$', op, re.IGNORECASE)
+  if match:
+    return True
+  return False
 
 def is_stack_save_register(op):
   """Tell if given register is used for saving the stack."""
