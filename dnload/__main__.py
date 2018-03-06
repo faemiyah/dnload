@@ -470,10 +470,18 @@ def collect_libraries(libraries, symbols, compilation_mode):
     if ii in libraries:
       libraries.remove(ii)
       front += [ii]
-  ret = front + sorted(libraries)
+  ret = map(lambda x: collect_libraries_rename(x), front + sorted(libraries))
   if is_verbose():
     print("%s%s" % (output_message, str(ret)))
   return ret
+
+def collect_libraries_rename(op):
+  """Find replacement name for a library if it's problematic."""
+  # TODO: Remove when FreeBSD libmap.conf handles libGL correctly.
+  if "FreeBSD" == g_osname:
+    if "GL" == op:
+      return "libGL.so.1"
+  return op
 
 def compress_file(compression, pretty, src, dst):
   """Compress a file to be a self-extracting file-dumping executable."""
