@@ -56,10 +56,11 @@ class GlslBlockSource(GlslBlock):
     elif re.match(stub % ("vert"), self.__filename, re.I) or re.match(stub % ("vertex"), self.__filename, re.I):
       self.__type = "vertex"
     if is_verbose():
+      output_message = "Shader file '%s' type" % (self.__filename)
       if self.__type:
-        print("Assuming shader file '%s' type: '%s'" % (self.__filename, self.__type))
+        print(output_message + (": '%s'" % (self.__type)))
       else:
-        print("Could not detect shader file '%s' type, assuming generic." % (self.__filename))
+        print(output_message + " not detected, assuming generic.")
 
   def format(self, force):
     """Return formatted output."""

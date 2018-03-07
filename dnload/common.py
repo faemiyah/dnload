@@ -14,7 +14,7 @@ IGNORE_PATHS = ("/lib/modules",)
 # Functions ############################
 ########################################
 
-def check_executable(op):
+def executable_check(op):
   """Check for existence of a single binary."""
   try:
     proc = subprocess.Popen([op], stdout = subprocess.PIPE, stderr = subprocess.PIPE)
@@ -28,6 +28,45 @@ def check_executable(op):
     print("WARNING: subprocess '%s' did not terminate properly" % (op))
     return True
   return True
+
+def executable_find(proposition, default_list, name):
+  """Try to find given executable from proposition and default list."""
+  if proposition:
+    if not executable_check(proposition):
+      raise RuntimeError("could not use supplied '%s' executable '%s'" % (name, proposition))
+    return proposition
+  ret = executable_search(default_list, name)
+  if not ret:
+    raise RuntimeError("suitable '%s' executable not found" % (name))
+  return ret
+
+def executable_search(op, description = None):
+  """Check for existence of binary, everything within the list will be tried."""
+  checked = []
+  ret = None
+  if is_listing(op):
+    for ii in op:
+      if not ii in checked:
+        if executable_check(ii):
+          ret = ii
+          break
+        else:
+          checked += [ii]
+  elif isinstance(op, str):
+    if not op in checked:
+      if executable_check(op):
+        ret = op
+      checked += [op]
+  else:
+    raise RuntimeError("weird argument given to executable search: %s" % (str(op)))
+  if description and is_verbose():
+    output_message = "Looking for '%s' executable... " % (description)
+    if ret:
+      print("%s'%s'" % (output_message, ret))
+    else:
+      print("%snot found" % (output_message))
+  return ret
+
 
 def file_is_ascii_text(op):
   """Check if given file contains nothing but ASCII7 text."""
@@ -135,33 +174,6 @@ def run_command(lst, decode_output = True):
   if 0 != proc.returncode:
     raise RuntimeError("command failed: %i, stderr output:\n%s" % (proc.returncode, proc_stderr))
   return (proc_stdout, proc_stderr)
-
-def search_executable(op, description = None):
-  """Check for existence of binary, everything within the list will be tried."""
-  checked = []
-  ret = None
-  if is_listing(op):
-    for ii in op:
-      if not ii in checked:
-        if check_executable(ii):
-          ret = ii
-          break
-        else:
-          checked += [ii]
-  elif isinstance(op, str):
-    if not op in checked:
-      if check_executable(op):
-        ret = op
-      checked += [op]
-  else:
-    raise RuntimeError("weird argument given to executable search: %s" % (str(op)))
-  if description and is_verbose():
-    output_message = "Looking for '%s' executable... " % (description)
-    if ret:
-      print("%s'%s'" % (output_message, ret))
-    else:
-      print("%snot found" % (output_message))
-  return ret
 
 def set_verbose(op):
   """Set verbosity status."""

@@ -10,7 +10,8 @@ import sys
 from dnload.assembler import Assembler
 from dnload.assembler_file import AssemblerFile
 from dnload.assembler_segment import AssemblerSegment
-from dnload.common import check_executable
+from dnload.common import executable_find
+from dnload.common import executable_search
 from dnload.common import get_indent
 from dnload.common import is_listing
 from dnload.common import is_verbose
@@ -18,7 +19,6 @@ from dnload.common import listify
 from dnload.common import locate
 from dnload.common import run_command
 from dnload.common import set_verbose
-from dnload.common import search_executable
 from dnload.compiler import Compiler
 from dnload.custom_help_formatter import CustomHelpFormatter
 from dnload.glsl import Glsl
@@ -477,8 +477,8 @@ def collect_libraries(libraries, symbols, compilation_mode):
 
 def collect_libraries_rename(op):
   """Find replacement name for a library if it's problematic."""
-  # TODO: Remove when FreeBSD libmap.conf handles libGL correctly.
-  if "FreeBSD" == g_osname:
+  # TODO: Remove when FreeBSD/Linux handles libGL.so correctly.
+  if ("FreeBSD" == g_osname) or ("Linux" == g_osname):
     if "GL" == op:
       return "libGL.so.1"
   return op
@@ -708,6 +708,9 @@ def generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames
 
 def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, renames, simplifys):
   """Generate GLSL, extracting from source file."""
+  src_path, src_basename = os.path.split(fname)
+  if src_path:
+    src_path += "/"
   fd = open(fname, "r")
   lines = fd.readlines()
   fd.close()
@@ -717,7 +720,10 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, ren
     match = glslre.match(ii)
     if match:
       glsl_path, glsl_base_filename = os.path.split(match.group(1))
-      glsl_filename = locate(glsl_path, glsl_base_filename)
+      # Try with base path of source file first to limit location.
+      glsl_filename = locate(src_path + glsl_path, glsl_base_filename)
+      if not glsl_filename and src_base_path:
+        glsl_filename = locate(glsl_path, glsl_base_filename)
       if not glsl_filename:
         raise RuntimeError("could not locate GLSL source '%s'" % (glsl_base_filename))
       glsl_varname = match.group(4)
@@ -1031,17 +1037,10 @@ def main():
       raise RuntimeError("unknown source file: '%s'" % (ii))
 
   # Find preprocessor.
-  if preprocessor:
-    if not check_executable(preprocessor):
-      raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
-  else:
-    preprocessor_list = default_preprocessor_list
-    if os.name == "nt":
-      preprocessor_list = ["cl.exe"] + preprocessor_list
-    preprocessor = search_executable(preprocessor_list, "preprocessor")
-  if not preprocessor:
-    raise RuntimeError("suitable preprocessor not found")
-  preprocessor = Preprocessor(preprocessor)
+  preprocessor_list = default_preprocessor_list
+  if os.name == "nt":
+    preprocessor_list = ["cl.exe"] + preprocessor_list
+  preprocessor = Preprocessor(executable_find(preprocessor, preprocessor_list, "preprocessor"))
   preprocessor.set_definitions(definitions)
   preprocessor.set_include_dirs(include_directories)
 
@@ -1091,41 +1090,6 @@ def main():
     raise RuntimeError("unknown method '%s'" % (compilation_mode))
   elif "hash" == compilation_mode:
     definitions += ["DNLOAD_NO_FIXED_R_DEBUG_ADDRESS"]
-
-  # Find assembler.
-  if assembler:
-    if not check_executable(assembler):
-      raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
-  else:
-    assembler = search_executable(default_assembler_list, "assembler")
-  if not assembler:
-    raise RuntimeError("suitable assembler not found")
-  assembler = Assembler(assembler)
-  if extra_assembler_flags:
-    assembler.addExtraFlags(extra_assembler_flags)
-  # Find linker.
-  if linker:
-    if not check_executable(linker):
-      raise RuntimeError("could not use supplied linker '%s'" % (linker))
-  else:
-    linker = search_executable(default_linker_list, "linker")
-  linker = Linker(linker)
-  if extra_linker_flags:
-    linker.addExtraFlags(extra_linker_flags)
-  # Find objcopy.
-  if objcopy:
-    if not check_executable(objcopy):
-      raise RuntimeError("could not use supplied objcopy executable '%s'" % (objcopy))
-  else:
-    objcopy = search_executable(default_objcopy_list, "objcopy")
-  # Find strip.
-  if strip:
-    if not check_executable(strip):
-      raise RuntimeError("could not use supplied strip executable '%s'" % (strip))
-  else:
-    strip = search_executable(default_strip_list, "strip")
-  if not strip:
-    raise RuntimeError("suitable strip executable not found")
 
   gles_reason = None
   if not no_glesv2:
@@ -1268,22 +1232,15 @@ def main():
 
   # TODO: deprecated
   if elfling:
-    elfling = search_executable(["elfling-packer", "./elfling-packer"], "elfling-packer")
+    elfling = executable_search(["elfling-packer", "./elfling-packer"], "elfling-packer")
     if elfling:
       elfling = Elfling(elfling)
 
   # Find compiler.
-  if compiler:
-    if not check_executable(compiler):
-      raise RuntimeError("could not use supplied compiler '%s'" % (compiler))
-  else:
-    compiler_list = default_compiler_list
-    if os.name == "nt":
-      compiler_list = ["cl.exe"] + compiler_list
-    compiler = search_executable(compiler_list, "compiler")
-  if not compiler:
-    raise RuntimeError("suitable compiler not found")
-  compiler = Compiler(compiler)
+  compiler_list = default_compiler_list
+  if os.name == "nt":
+    compiler_list = ["cl.exe"] + compiler_list
+  compiler = Compiler(executable_find(compiler, compiler_list, "compiler"))
   compiler.set_definitions(definitions)
   # Some special linker directories may be necessary.
   if compiler.get_command() in ('gcc48', 'g++-4.8'):
@@ -1291,6 +1248,14 @@ def main():
   compiler.set_include_dirs(include_directories)
   if extra_compiler_flags:
     compiler.add_extra_compiler_flags(extra_compiler_flags)
+  # Find assembler.
+  assembler = Assembler(executable_find(assembler, default_assembler_list, "assembler"))
+  if extra_assembler_flags:
+    assembler.addExtraFlags(extra_assembler_flags)
+  # Find linker.
+  linker = Linker(executable_find(linker, default_linker_list, "linker"))
+  if extra_linker_flags:
+    linker.addExtraFlags(extra_linker_flags)
 
   # Determine abstraction layer if it's not been set.
   if not abstraction_layer:
@@ -1333,6 +1298,7 @@ def main():
   linker.set_library_directories(library_directories)
   linker.set_rpath_directories(rpath)
   if "maximum" == compilation_mode:
+    objcopy = executable_find(objcopy, default_objcopy_list, "objcopy")
     generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
         source_files_additional)
     # Now have complete binary, may need to reprocess.
@@ -1355,6 +1321,7 @@ def main():
   else:
     raise RuntimeError("unknown compilation mode: %s" % str(compilation_mode))
   if compilation_mode in ("vanilla", "dlfcn", "hash"):
+    strip = executable_find(strip, default_strip_list, "strip")
     shutil.copy(output_file + ".unprocessed", output_file + ".stripped")
     run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file + ".stripped"])
   compress_file(compression, nice_filedump, output_file + ".stripped", output_file)
