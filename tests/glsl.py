@@ -9,10 +9,10 @@ import sys
 if pathname and (pathname != "."):
   sys.path.append(pathname + "/..")
 
-from dnload.common import check_executable
+from dnload.common import executable_check
+from dnload.common import executable_search
 from dnload.common import is_verbose
 from dnload.common import run_command
-from dnload.common import search_executable
 from dnload.common import set_verbose
 from dnload.custom_help_formatter import CustomHelpFormatter
 from dnload.preprocessor import Preprocessor
@@ -105,13 +105,13 @@ def main():
 
   # Find preprocessor.
   if preprocessor:
-    if not check_executable(preprocessor):
+    if not executable_check(preprocessor):
       raise RuntimeError("could not use supplied preprocessor '%s'" % (preprocessor))
   else:
     preprocessor_list = default_preprocessor_list
     if os.name == "nt":
       preprocessor_list = ["cl.exe"] + preprocessor_list
-    preprocessor = search_executable(preprocessor_list, "preprocessor")
+    preprocessor = executable_search(preprocessor_list, "preprocessor")
   if not preprocessor:
     raise RuntimeError("suitable preprocessor not found")
   preprocessor = Preprocessor(preprocessor)

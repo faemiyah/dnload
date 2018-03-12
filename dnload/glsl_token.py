@@ -455,8 +455,8 @@ class GlslToken:
           return True
       # Number or name with access.
       elif len(middle_lst) == 2:
-        lt = middle_lst[0]
-        rt = middle_lst[1]
+        mid_lt = middle_lst[0]
+        mid_rt = middle_lst[1]
         if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
           if self.removeParens():
             return True
