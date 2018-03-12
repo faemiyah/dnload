@@ -577,6 +577,10 @@ class GlslToken:
       if left and left.isTypeOpen() and right and (right.getSingleChildMiddleNonToken() == ")"):
         mid.setAllowIntegrify(True)
         return True
+      # If could not be integrified, at least ensure that float precision is not exceeded.
+      if mid.getPrecision() > 6:
+        mid.truncatePrecision(6)
+        return True
     return False
 
   def __str__(self):
