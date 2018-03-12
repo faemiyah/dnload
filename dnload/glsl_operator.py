@@ -47,6 +47,9 @@ class GlslOperator:
     if self.__operator in ("==", "!="):
       return ret
     ret += 1
+    if self.__operator in ("&",):
+      return ret
+    ret += 1
     if self.__operator in ("&&",):
       return ret
     ret += 1
