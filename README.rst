@@ -1115,9 +1115,9 @@ Wtf?!? <x> does not work / crashes / is not supported?!?
 Please:
 
 * Send E-mail to trilkk ATSYMBOL iki.fi
-*  Please include as much debug information and logs as possible, especially about the platform.
+ * Please include as much debug information and logs as possible, especially about the platform.
 * Contact Trilkk @ freenode/ircnet/quakenet.
-*  This is better and faster than E-mail. 
+ * This is better and faster than E-mail. 
 * Fix it yourself and make a patch/PR.
 
 This software has a very narrow usecase, but it's not that unlikely there will at least be an attempt for a fix.
