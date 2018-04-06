@@ -48,6 +48,8 @@ Unsupported but should be supportable (last updated: 2017-10-12)
 * ``arm64`` (AArch64)
 * ``ES2 GLSL support``
 
+****
+
 Usage
 ====
 
@@ -271,6 +273,8 @@ You can size-optimize the program with::
     > ./src/intro
 
 Have fun!
+
+****
 
 The quest for minimal ELF binaries
 ====
@@ -952,6 +956,8 @@ Compiling with all the tricks listed above (using ``-m maximum`` or just omittin
 
 **Note:** Sizes subject to change.
 
+****
+
 Platform-specific details
 ====
 
@@ -1006,10 +1012,14 @@ Linux ``libc`` does not require the user program to define ``environ`` and ``__p
 
 However, as Amand Tihon [ref23]_ points in his own similar project [ref24]_, on Linux the whole of symbol table can be omitted. This is done by having the ``DT_SYMTAB`` dynamic structure entry point to address value ``0`` and by omitting ``DT_HASH`` completely. All in all, this means that size-optimized binaries on Linux are 99 bytes (`Minimal DT_HASH`_) smaller than on FreeBSD. Interleaving of headers takes away some of this advantage, in practice it seems to be about 30 compressed bytes.
 
+****
+
 GLSL minification
 ====
 
 **TODO**: Write this chapter. Explain renaming, local frequency analysis, token simplification, etc.
+
+****
 
 Acknowledgements
 ====
@@ -1114,10 +1124,8 @@ Wtf?!? <x> does not work / crashes / is not supported?!?
 
 Please:
 
-* Send E-mail to trilkk ATSYMBOL iki.fi
- * Please include as much debug information and logs as possible, especially about the platform.
-* Contact Trilkk @ freenode/ircnet/quakenet.
- * This is better and faster than E-mail. 
+* Send E-mail to <trilkk ATSYMBOL iki.fi>. Please include as much debug information and logs as possible, especially about the platform.
+* Contact Trilkk @ freenode/ircnet/quakenet. This is better and faster than E-mail. 
 * Fix it yourself and make a patch/PR.
 
 This software has a very narrow usecase, but it's not that unlikely there will at least be an attempt for a fix.
