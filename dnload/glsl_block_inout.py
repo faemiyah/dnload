@@ -76,14 +76,6 @@ class GlslBlockInOutStruct(GlslBlockInOut):
     """Accessor."""
     return self.__type_name
 
-  def hasLockedMember(self, name):
-    """Tell if any of the members has locked into the given name."""
-    for ii in self.__members:
-      member_name = ii.getName()
-      if member_name.isLocked() and (member_name.resolveName() == name):
-        return True
-    return False
-
   def isMergableWith(self, op):
     """Tell if this inout block can be merged with given block."""
     if is_glsl_block_inout_struct(op) and (op.getTypeName() == self.__type_name):

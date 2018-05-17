@@ -9,6 +9,7 @@ from dnload.glsl_block_function import is_glsl_block_function
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
 from dnload.glsl_block_scope import is_glsl_block_scope
+from dnload.glsl_block_struct import is_glsl_block_struct
 from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
 from dnload.glsl_block_uniform import is_glsl_block_uniform
@@ -199,7 +200,7 @@ class Glsl:
       block = ii[0]
       if is_listing(block):
         block = block[0]
-      if not is_glsl_block_inout_struct(block):
+      if not (is_glsl_block_inout_struct(block) or is_glsl_block_struct(block)):
         continue
       lst = collect_member_accesses(ii[0], ii[1:])
       block.setMemberAccesses(lst)

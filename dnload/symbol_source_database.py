@@ -121,6 +121,23 @@ g_symbol_sources = SymbolSourceDatabase((
   }\n
   return ptr;
 }"""),
+  # TODO: this is stub from Clang project, replace with smaller but dumber version later.
+  ("__powisf2", None, None, "extern \"C\" float __powisf2(float, int);",
+"""float __powisf2(float a, int b)
+{
+    const int recip = b < 0;
+    float r = 1;
+    while (1)
+    {
+        if (b & 1)
+            r *= a;
+        b /= 2;
+        if (b == 0)
+            break;
+        a *= a;
+    }
+    return recip ? 1/r : r;
+}"""),
   ))
 
 g_template_extra_source = Template("""[[HEADERS]]\n
