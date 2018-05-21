@@ -590,6 +590,15 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
       fname = additional_sources[ii]
       additional_asm = AssemblerFile(fname)
       asm.incorporate(additional_asm)
+  # Assemble content without headers to check for missing symbols.
+  if asm.write(output_file + ".S", assembler):
+    assembler.assemble(output_file + ".S", output_file + ".o")
+    extra_symbols = readelf_list_und_symbols(output_file + ".o")
+    additional_file = g_symbol_sources.compile_asm(compiler, assembler, extra_symbols, output_file + ".extra")
+    # If additional code was needed, add it to our asm source.
+    if additional_file:
+      additional_asm = AssemblerFile(additional_file)
+      asm.incorporate(additional_asm, re.sub(r'[\/\.]', '_', output_file + "_extra"))
   # Sort sections after generation.
   asm.sort_sections(assembler)
   # May be necessary to have two PT_LOAD headers as opposed to one.
@@ -627,19 +636,6 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
   if asm.hasSectionAlignment():
     asm.getSectionAlignment().create_content(assembler)
   bss_section.create_content(assembler, "end")
-# TODO: Re-enable this block later after reworking it.
-# TODO: How this needs to work - must incorporate and sort extra symbols like normal extra sources.
-# TODO: Must detect .global names and preserve those, then rename others to prevent name clash.
-#  # Assemble content without headers to check for missing symbols.
-#  fname = output_file + ".content"
-#  if asm.write(fname + ".S", assembler):
-#    assembler.assemble(fname + ".S", fname + ".o")
-#    und_symbols = readelf_list_und_symbols(fname + ".o")
-#    additional_file = g_symbol_sources.compile_asm(compiler, assembler, und_symbols, output_file + ".extra")
-#    # If additional code was needed, add it to link.
-#    if additional_file:
-#      link_files += [additional_file]
-#    link_files += [fname + ".o"]
   # Write headers out first.
   fname = output_file + ".final"
   fd = open(fname + ".S", "w")

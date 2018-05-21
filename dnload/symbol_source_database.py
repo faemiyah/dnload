@@ -1,3 +1,4 @@
+from dnload.common import is_verbose
 from dnload.symbol_source import SymbolSource
 from dnload.template import Template
 
@@ -19,9 +20,22 @@ class SymbolSourceDatabase:
 
   def compile_asm(self, compiler, assembler, required_symbols, fname):
     """Compile given symbols into assembly and return it."""
+    source = self.generate_source(required_symbols)
+    if not source:
+      return None
+    fd = open(fname + ".cpp", "w")
+    fd.write(source)
+    fd.close()
+    output_fname = fname + ".S"
+    compiler.compile_asm(fname + ".cpp", output_fname)
+    return output_fname
+
+  def generate_source(self, required_symbols):
+    """Generate C source that contains definitions for given symbols."""
     headers = set()
     prototypes = []
     source = []
+    compiled_symbol_names = []
     ii = 0
     while ii < len(required_symbols):
       name = required_symbols[ii]
@@ -35,19 +49,17 @@ class SymbolSourceDatabase:
         headers = headers.union(sym.get_headers())
         prototypes += sym.get_prototypes()
         source += [sym.get_source()]
+        compiled_symbol_names += [name]
       ii += 1
     if not source:
       return None
+    if is_verbose():
+      print("Extra symbols required: %s" % (str(compiled_symbol_names)))
     subst = { "HEADERS" : "\n".join(map(lambda x: "#include <%s>" % (x), headers)),
         "PROTOTYPES" : "\n\n".join(prototypes),
         "SOURCE" : "\n\n".join(source)
         }
-    fd = open(fname + ".cpp", "w")
-    fd.write(g_template_extra_source.format(subst))
-    fd.close()
-    compiler.compile_asm(fname + ".cpp", fname + ".S")
-    assembler.assemble(fname + ".S", fname + ".o")
-    return fname + ".o"
+    return g_template_extra_source.format(subst)
 
 ########################################
 # Globals ##############################

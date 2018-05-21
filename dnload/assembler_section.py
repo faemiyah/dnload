@@ -252,16 +252,29 @@ class AssemblerSection:
       return (name, bss_size)
     return None
 
-  def gather_labels(self):
-    """Gathers all labels."""
+  def gather_globals(self):
+    """Gathers a list of .globl definitions."""
+    ret = set()
+    for ii in self.__content:
+      match = re.match(r'\s*\.globl\s+([\.\w]+).*', ii)
+      if match:
+        ret = ret.union(set([match.group(1)]))
+    return ret
+
+  def gather_labels(self, forbidden_labels = []):
+    """Gathers all labels, if forbidden labels are specified, they are excluded."""
     ret = []
     for ii in self.__content:
       match = re.match(r'((\.L|_ZL)[^:,\s\(]+)', ii)
       if match:
-        ret += [match.group(1)]
+        label = match.group(1)
+        if not (label in forbidden_labels):
+          ret += [label]
       match = re.match(r'^([^\.:,\s\(]+):', ii)
       if match:
-        ret += [match.group(1)]
+        label = match.group(1)
+        if not (label in forbidden_labels):
+          ret += [label]
     return ret
 
   def generate_file_output(self):

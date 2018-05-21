@@ -116,15 +116,18 @@ class AssemblerFile:
 
   def incorporate(self, other, label_name = None, jump_point_name = None):
     """Incorporate another assembler file into this, rename entry points."""
+    globls = set()
     labels = []
+    # Gather global names that cannot be renamed.
+    for ii in other.__sections:
+      globls = globls.union(ii.gather_globals())
+    print("globals: %s" % (str(globls)))
     # Gather all labels.
     for ii in other.__sections:
       if jump_point_name:
         ii.replace_entry_point(jump_point_name)
-      labels += ii.gather_labels()
-    # Gather global names that cannot be renamed.
-    #for ii in other.__sections:
-    # TODO: do the fucking rename for non-global labels only
+      labels += ii.gather_labels(globls)
+    # Remove jump point if asked to.
     if jump_point_name:
       labels.remove(jump_point_name)
     elif other.hasEntryPoint():
