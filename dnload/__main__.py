@@ -420,6 +420,16 @@ g_template_include_png = Template("""
 g_template_include_rand = Template("""
 #if defined([[DEFINITION_LD]])
 #include \"[[HEADER_RAND]]\"
+#else
+#define DNLOAD_RAND_IMPLEMENTATION_BSD [[RAND_TYPE_BSD]]
+#define DNLOAD_RAND_IMPLEMENTATION_GNU [[RAND_TYPE_GNU]]
+#if defined(__FreeBSD__) && !DNLOAD_RAND_IMPLEMENTATION_BSD
+#include \"[[HEADER_RAND]]\"
+#include \"[[SOURCE_RAND]]\"
+#elif defined(__linux__) && !DNLOAD_RAND_IMPLEMENTATION_GNU
+#include \"[[HEADER_RAND]]\"
+#include \"[[SOURCE_RAND]]\"
+#endif
 #endif
 """)
 
@@ -470,7 +480,11 @@ def collect_libraries(libraries, symbols, compilation_mode):
     if ii in libraries:
       libraries.remove(ii)
       front += [ii]
-  ret = map(lambda x: collect_libraries_rename(x), front + sorted(libraries))
+  # Only use renamed library names if constructing the header manually.
+  if "maximum" == compilation_mode:
+    ret = map(lambda x: collect_libraries_rename(x), front + sorted(libraries))
+  else:
+    ret = front + sorted(libraries)
   if is_verbose():
     print("%s%s" % (output_message, str(ret)))
   return ret
@@ -728,6 +742,26 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, ren
   if filenames:
     glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames, simplifys)
     glsl_db.write()
+
+def generate_include_rand(implementation_rand, target_search_path, definition_ld):
+  """Generates the rand()/srand() include."""
+  regex_rand_header = re.compile(r'%s[-_\s]+rand\.h(h|pp|xx)?' % (implementation_rand))
+  regex_rand_source = re.compile(r'%s[-_\s]+rand\.c(c|pp|xx)?' % (implementation_rand))
+  header_rand = locate(target_search_path, regex_rand_header)
+  source_rand = locate(target_search_path, regex_rand_source)
+  if (not header_rand) or (not source_rand):
+    raise RuntimeError("could not find rand implementation for '%s'" % (implementation_rand))
+  header_rand_path, header_rand = os.path.split(header_rand)
+  source_rand_path, source_rand = os.path.split(source_rand)
+  if is_verbose:
+    print("Using rand() implementation: '%s'" % (header_rand))
+  replace_platform_variable("function_rand", "%s_rand" % (implementation_rand))
+  replace_platform_variable("function_srand", "%s_srand" % (implementation_rand))
+  rand_type_bsd = str(int(implementation_rand == "bsd"))
+  rand_type_gnu = str(int(implementation_rand == "gnu"))
+  return g_template_include_rand.format({ "DEFINITION_LD" : definition_ld,
+    "RAND_TYPE_BSD" : rand_type_bsd, "RAND_TYPE_GNU" : rand_type_gnu,
+    "HEADER_RAND" : header_rand, "SOURCE_RAND" : source_rand })
 
 def get_platform_und_symbols():
   """Get the UND symbols required for this platform."""
@@ -1039,6 +1073,10 @@ def main():
   preprocessor = Preprocessor(executable_find(preprocessor, preprocessor_list, "preprocessor"))
   preprocessor.set_definitions(definitions)
   preprocessor.set_include_dirs(include_directories)
+  # Find linker.
+  linker = Linker(executable_find(linker, default_linker_list, "linker"))
+  if extra_linker_flags:
+    linker.addExtraFlags(extra_linker_flags)
 
   # Process GLSL source if given.
   if source_files_glsl:
@@ -1179,17 +1217,7 @@ def main():
     subst["INCLUDE_SNDFILE"] = g_template_include_sndfile.format()
   # Workarounds for specific symbol implementations - must be done before symbol definitions.
   if symbols_has_symbol(symbols, "rand"):
-    regex_rand = re.compile(r'%s[-_\s]+rand\.h(h|pp|xx)?' % (implementation_rand))
-    header_rand = locate(target_search_path, regex_rand)
-    if not header_rand:
-      raise RuntimeError("could not find rand implementation for '%s'" % (implementation_rand))
-    header_rand_path, header_rand = os.path.split(header_rand)
-    if is_verbose:
-      print("Using rand() implementation: '%s'" % (header_rand))
-    replace_platform_variable("function_rand", "%s_rand" % (implementation_rand))
-    replace_platform_variable("function_srand", "%s_srand" % (implementation_rand))
-    subst["INCLUDE_RAND"] = g_template_include_rand.format({ "DEFINITION_LD" : definition_ld,
-      "HEADER_RAND" : header_rand })
+    subst["INCLUDE_RAND"] = generate_include_rand(implementation_rand, target_search_path, definition_ld)
   # Symbol definitions.
   symbol_definitions_direct = generate_symbol_definitions_direct(symbols, symbol_prefix)
   subst["SYMBOL_DEFINITIONS_DIRECT"] = symbol_definitions_direct
@@ -1248,10 +1276,6 @@ def main():
   assembler = Assembler(executable_find(assembler, default_assembler_list, "assembler"))
   if extra_assembler_flags:
     assembler.addExtraFlags(extra_assembler_flags)
-  # Find linker.
-  linker = Linker(executable_find(linker, default_linker_list, "linker"))
-  if extra_linker_flags:
-    linker.addExtraFlags(extra_linker_flags)
 
   # Determine abstraction layer if it's not been set.
   if not abstraction_layer:
