@@ -205,6 +205,8 @@ g_library_definition_freetype = LibraryDefinition("freetype", (
 g_library_definition_m = LibraryDefinition("m", (
   ("double", "acos", "double"),
   ("float", "acosf", "float"),
+  ("double", "asin", "double"),
+  ("float", "asinf", "float"),
   ("float", "atan2f", "float", "float"),
   ("float", "atanf", "float"),
   ("float", ("ceilf", None), "float"),
