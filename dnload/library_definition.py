@@ -46,6 +46,7 @@ g_library_definition_c = LibraryDefinition("c", (
   ("void*", "malloc", "size_t"),
   ("void*", "memset", "void*", "int", "size_t"),
   ("int", "printf", "const char* __restrict", "..."),
+  ("int", "putc", "int", "FILE*"),
   ("int", "puts", "const char*"),
   ("void", "qsort", "void*", "size_t", "size_t", "int (*)(const void*, const void*)"),
   ("void*", "realloc", "void*", "size_t"),
