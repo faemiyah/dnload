@@ -423,12 +423,22 @@ g_template_include_rand = Template("""
 #else
 #define DNLOAD_RAND_IMPLEMENTATION_BSD [[RAND_TYPE_BSD]]
 #define DNLOAD_RAND_IMPLEMENTATION_GNU [[RAND_TYPE_GNU]]
-#if defined(__FreeBSD__) && !DNLOAD_RAND_IMPLEMENTATION_BSD
+#if defined(__FreeBSD__)
+#if !DNLOAD_RAND_IMPLEMENTATION_BSD
 #include \"[[HEADER_RAND]]\"
 #include \"[[SOURCE_RAND]]\"
-#elif defined(__linux__) && !DNLOAD_RAND_IMPLEMENTATION_GNU
+#else
+#define bsd_rand rand
+#define bsd_srand srand
+#endif
+#elif defined(__linux__)
+#if !DNLOAD_RAND_IMPLEMENTATION_GNU
 #include \"[[HEADER_RAND]]\"
 #include \"[[SOURCE_RAND]]\"
+#else
+#define gnu_rand rand
+#define gnu_srand srand
+#endif
 #endif
 #endif
 """)
