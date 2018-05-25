@@ -46,7 +46,7 @@ class AssemblerFile:
       self.add_sections(current_section)
     if is_verbose():
       section_names = map(lambda x: x.get_name(), self.__sections)
-      print("Read %i sections in '%s': %s" % (len(self.__sections), fname, ", ".join(section_names)))
+      print("%i sections in '%s': %s" % (len(self.__sections), fname, str(section_names)))
 
   def generate_fake_bss(self, assembler, und_symbols = None, elfling = None):
     """Remove local labels that would seem to generate .bss, make a fake .bss section."""
@@ -121,7 +121,6 @@ class AssemblerFile:
     # Gather global names that cannot be renamed.
     for ii in other.__sections:
       globls = globls.union(ii.gather_globals())
-    print("globals: %s" % (str(globls)))
     # Gather all labels.
     for ii in other.__sections:
       if jump_point_name:

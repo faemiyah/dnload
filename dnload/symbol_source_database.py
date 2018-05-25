@@ -54,7 +54,7 @@ class SymbolSourceDatabase:
     if not source:
       return None
     if is_verbose():
-      print("Extra symbols required: %s" % (str(compiled_symbol_names)))
+      print("%i extra symbols required: %s" % (len(compiled_symbol_names), str(compiled_symbol_names)))
     subst = { "HEADERS" : "\n".join(map(lambda x: "#include <%s>" % (x), headers)),
         "PROTOTYPES" : "\n\n".join(prototypes),
         "SOURCE" : "\n\n".join(source)

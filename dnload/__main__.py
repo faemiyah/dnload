@@ -1206,7 +1206,7 @@ def main():
   real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
   if is_verbose():
     symbol_strings = map(lambda x: str(x), symbols)
-    print("Symbols found: %s" % (str(symbol_strings)))
+    print("%i symbols found: %s" % (len(symbol_strings), str(symbol_strings)))
     verbatim_symbols = list(set(symbols) - set(real_symbols))
     if verbatim_symbols and output_file:
       verbatim_symbol_strings = []
