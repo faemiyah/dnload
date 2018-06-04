@@ -223,18 +223,6 @@ class Glsl:
     # Return merged list.
     return merged
 
-  def inventName(self, counted):
-    """Invent a new name when existing names have run out."""
-    for ii in range(ord("a"), ord("z") + 1):
-      cc = chr(ii)
-      if not cc in counted:
-        return cc
-    for ii in range(ord("A"), ord("Z") + 1):
-      cc = chr(ii)
-      if not cc in counted:
-        return cc
-    raise RuntimeError("no free names in single character ascii alphabet")
-
   def parse(self):
     """Parse all source files."""
     for ii in self.__sources:
@@ -255,7 +243,7 @@ class Glsl:
           break
       # If all names conflicted, invent new one.
       if not target_name:
-        target_name = self.inventName(counted)
+        target_name = invent_name(counted)
     # Listing case.
     if is_listing(block):
       for ii in block:
@@ -289,7 +277,7 @@ class Glsl:
           ii.lock(letter)
         return
     # None of the letters was free, invent new one.
-    target_name = self.inventName(counted)
+    target_name = invent_name(counted)
     for ii in names:
       ii.lock(target_name)
 
@@ -510,6 +498,28 @@ def find_parent_scope(block):
     if is_glsl_block_control(parent) or is_glsl_block_function(parent):
       return parent
     block = parent
+
+def single_character_alphabet():
+  """Returns an alphabet of single characters, lower and upper case."""
+  ret = []
+  for ii in range(ord("a"), ord("z") + 1):
+    ret += [chr(ii)]
+  for ii in range(ord("A"), ord("Z") + 1):
+    ret += [chr(ii)]
+  return ret
+
+def invent_name(counted):
+  """Invent a new name when existing names have run out."""
+  for ii in single_character_alphabet():
+    if not ii in counted:
+      return ii
+  # Letter followed by a number.
+  ii = 0
+  while True:
+    for jj in single_character_alphabet():
+      name = jj + str(ii)
+      if not name in counted:
+        return name
 
 def simplify_pass(block, max_simplifys):
   """Run simplify pass starting from given root block."""
