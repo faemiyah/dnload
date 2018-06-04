@@ -140,10 +140,6 @@ g_locked = (
     "sqrt",
     "step",
     "tan",
-    "texture",
-    "texture2D",
-    "textureCube",
-    "textureGrad",
     "transpose",
     "true",
     "uniform",
@@ -164,6 +160,11 @@ g_vec2 = (
 g_vec4 = (
     "gl_FragColor",
     "gl_Position",
+    "texture",
+    "texture2D",
+    "texture3D",
+    "textureCube",
+    "textureGrad",
     )
 
 ########################################

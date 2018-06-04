@@ -410,7 +410,7 @@ static void* dnload_find_symbol(uint32_t hash)
               const uint32_t* hashval = chain_zero + bkt;
               do {
                 ++dynsymcount;
-              } while(0 == (*hashval++ & 1u));              
+              } while(0 == (*hashval++ & 1u));
             }
           }
         }

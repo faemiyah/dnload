@@ -58,8 +58,12 @@ class GlslAccess:
       return name_type
     return self.getSourceType()
 
+  def getSource(self):
+    """Accessor."""
+    return self.__source
+
   def getSourceType(self):
-    """Access type from source if present."""
+    """Gets the type from the source of this access if present."""
     if self.__source:
       return self.__source.getType()
     return None
@@ -105,8 +109,8 @@ class GlslAccess:
       if is_glsl_paren(vv):
         if vv.isCurlyBrace():
           raise RuntimeError("curly brace found while looking for source of member")
-        vv.updateParen(paren_count)
-        vv.updateBracket(bracket_count)
+        paren_count = vv.updateParen(paren_count)
+        bracket_count = vv.updateBracket(bracket_count)
       if (is_glsl_name(vv) or is_glsl_access(vv)) and (0 == bracket_count) and (0 == paren_count):
         self.__source = vv
         vv.setAccess(self)
