@@ -230,7 +230,7 @@ g_library_definition_m = LibraryDefinition("m", (
   ("float", "tanhf", "float"),
   ))
 
-g_library_definition_freetype = LibraryDefinition("png", (
+g_library_definition_png = LibraryDefinition("png", (
   ("png_infop", "png_create_info_struct", "png_const_structrp"),
   ("png_structp", "png_create_read_struct", "png_const_charp", "png_voidp", "png_error_ptr", "png_error_ptr"),
   ("png_uint_32", "png_get_IHDR", "png_const_structrp", "png_const_inforp", "png_uint_32*", "png_uint_32*", "int*", "int*", "int*", "int*", "int*"),
@@ -292,6 +292,7 @@ g_library_definitions = (
     g_library_definition_glu,
     g_library_definition_freetype,
     g_library_definition_m,
+    g_library_definition_png,
     g_library_definition_sdl,
     g_library_definition_sdl2,
     g_library_definition_sndfile,
