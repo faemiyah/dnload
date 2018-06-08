@@ -1083,10 +1083,6 @@ def main():
   preprocessor = Preprocessor(executable_find(preprocessor, preprocessor_list, "preprocessor"))
   preprocessor.set_definitions(definitions)
   preprocessor.set_include_dirs(include_directories)
-  # Find linker.
-  linker = Linker(executable_find(linker, default_linker_list, "linker"))
-  if extra_linker_flags:
-    linker.addExtraFlags(extra_linker_flags)
 
   # Process GLSL source if given.
   if source_files_glsl:
@@ -1174,6 +1170,11 @@ def main():
       raise RuntimeError("no information where to put header file '%s' - not found in path(s) %s" % (target, str(target_search_path)))
   # Erase contents of the header after it has been found.
   touch(target)
+
+  # Find linker.
+  linker = Linker(executable_find(linker, default_linker_list, "linker"))
+  if extra_linker_flags:
+    linker.addExtraFlags(extra_linker_flags)
 
   # Clear target header before parsing to avoid problems.
   fd = open(target, "w")
