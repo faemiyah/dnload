@@ -292,6 +292,15 @@ class Glsl:
       rgba += counted["b"]
     if "a" in counted:
       rgba += counted["a"]
+    stpq = 0
+    if "s" in counted:
+      stpq += counted["s"]
+    if "t" in counted:
+      stpq += counted["t"]
+    if "p" in counted:
+      stpq += counted["p"]
+    if "q" in counted:
+      stpq += counted["q"]
     xyzw = 0
     if "x" in counted:
       xyzw += counted["x"]
@@ -301,16 +310,20 @@ class Glsl:
       xyzw += counted["z"]
     if "w" in counted:
       xyzw += counted["w"]
-    if xyzw >= rgba:
+    if (xyzw >= rgba) and (xyzw >= stpq):
       ret = ("x", "y", "z", "w")
       selected_for = xyzw
-      selected_against = rgba
+      selected_against = "rgba: %i, stpq: %i" % (rgba, stpq)
+    elif (stpq >= xyzw) and (stpq >= rgba):
+      ret = ("s", "t", "p", "q")
+      selected_for = stpq
+      selected_against = "rgba: %i, xyzw: %i" % (rgba, xyzw)
     else:
       ret = ("r", "g", "b", "a")
       selected_for = rgba
-      selected_against = xyzw
+      selected_against = "stpq: %i, xyzw: %i" % (stpq, xyzw)
     if is_verbose():
-      print("Selected GLSL swizzle: %s (%i vs. %i)" % (str(ret), selected_for, selected_against))
+      print("Selected GLSL swizzle: %s (%i vs. %s)" % (str(ret), selected_for, selected_against))
     return ret
 
   def write(self):

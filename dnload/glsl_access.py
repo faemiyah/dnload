@@ -73,13 +73,13 @@ class GlslAccess:
     self.__swizzle = []
     self.__swizzle_export = None
     for ii in list(self.__name.getName()):
-      if ii in ("r", "x"):
+      if ii in ("r", "s", "x"):
         self.__swizzle += [0]
-      elif ii in ("g", "y"):
+      elif ii in ("g", "t", "y"):
         self.__swizzle += [1]
-      elif ii in ("b", "z"):
+      elif ii in ("b", "p", "z"):
         self.__swizzle += [2]
-      elif ii in ("a", "w"):
+      elif ii in ("a", "q", "w"):
         self.__swizzle += [3]
       else: # Not a swizzle.
         self.__swizzle = None
@@ -90,7 +90,7 @@ class GlslAccess:
 
   def selectSwizzle(self, op):
     """Select swizzle mode  for exporting."""
-    if op not in (("r", "g", "b", "a"), ("x", "y", "z", "w")):
+    if op not in (("r", "g", "b", "a"), ("s", "t", "p", "q"), ("x", "y", "z", "w")):
       raise RuntimeError("cannot select swizzle '%s'" % (str(op)))
     self.__swizzle_export = op
 
