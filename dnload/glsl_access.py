@@ -68,6 +68,10 @@ class GlslAccess:
       return self.__source.getType()
     return None
 
+  def getSwizzleLength(self):
+    """Get length of the swizzle."""
+    return len(self.__swizzle)
+
   def interpretSwizzle(self):
     """Interpret potential swizzle."""
     self.__swizzle = []
