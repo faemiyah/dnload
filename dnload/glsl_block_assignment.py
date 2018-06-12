@@ -63,9 +63,9 @@ class GlslBlockAssignment(GlslBlock):
  
 def glsl_parse_assignment(source):
   """Parse assignment block."""
-  # Must have name.
+  # Must have name. Name must not be just 'return'.
   (name, content) = extract_tokens(source, ("?n",))
-  if not name:
+  if (not name) or (name == "return"):
     return (None, source)
   # Empty assignment.
   (terminator, intermediate) = extract_tokens(content, ("?,|;",))

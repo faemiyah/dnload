@@ -23,6 +23,10 @@ class GlslBlockReturn(GlslBlock):
       return "return" + ret
     return "return " + ret
 
+  def isEmptyReturn(self):
+    """Tell if this return statement is empty."""
+    return (not self._children[0].getTokens())
+
   def __str__(self):
     """String representation."""
     return "Return()"

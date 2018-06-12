@@ -131,6 +131,7 @@ g_locked = (
     "max_vertices",
     "min",
     "mix",
+    "mod",
     "normalize",
     "pow",
     "reflect",
