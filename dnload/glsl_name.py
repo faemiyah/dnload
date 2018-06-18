@@ -55,7 +55,7 @@ class GlslName:
   def lock(self, op):
     """Lock rename into given name."""
     if self.__rename:
-      raise RuntimeError("attempting to lock already locked rename '%s'" % (self.__rename))
+      raise RuntimeError("attempting to lock already locked rename '%s' -> '%s'" % (self.__name, self.__rename))
     if not isinstance(op, str):
       raise RuntimeError("rename must be string, '%s' given" % (str(op)))
     self.__rename = op
@@ -117,6 +117,7 @@ g_locked = (
     "dot",
     "EmitVertex",
     "EndPrimitive",
+    "exp",
     "false",
     "floor",
     "fract",

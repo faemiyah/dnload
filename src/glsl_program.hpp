@@ -28,6 +28,11 @@ class GlslProgram
     void cleanup();
 
   public:
+    /// Gets the name by combining names of shaders.
+    ///
+    /// \return Combined name.
+    std::string getName() const;
+
     /// Get pipeline program ID.
     ///
     /// \param op Program type.

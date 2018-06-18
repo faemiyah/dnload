@@ -1,6 +1,7 @@
 #include "glsl_program.hpp"
 
 #include <iostream>
+#include <sstream>
 
 //######################################
 // Local ###############################
@@ -100,6 +101,24 @@ void GlslProgram::cleanup()
     glDeleteProgramPipelines(1, &m_pipeline_id);
     m_pipeline_id = 0;
   }
+}
+
+std::string GlslProgram::getName() const
+{
+  std::ostringstream sstr;
+  sstr << "'";
+
+  for(size_t ii = 0; (ii < m_shaders.size()); ++ii)
+  {
+    if(ii)
+    {
+      sstr << ";";
+    }
+    sstr << m_shaders[ii]->getName();
+  }
+
+  sstr << "'";
+  return sstr.str();
 }
 
 GLuint GlslProgram::getPipelineId(GLenum op) const

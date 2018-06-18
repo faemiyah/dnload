@@ -61,6 +61,11 @@ class GlslShader
     /// \return True if compilation successful, false otherwise.
     bool compile(bool pipeline = false);
 
+    /// Gets the name by combining names of files.
+    ///
+    /// \return Combined name.
+    std::string getName() const;
+
     /// Get stage for pipeline ID.
     ///
     /// \return Attachment stage.

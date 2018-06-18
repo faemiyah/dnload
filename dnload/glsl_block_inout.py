@@ -135,7 +135,7 @@ class GlslBlockInOutTyped(GlslBlockInOut):
 
   def __str__(self):
     """String representation."""
-    return "InOutTyped('%s')" % (self.__typeid.format(False))
+    return "InOutTyped('%s %s')" % (self.__typeid.format(False), self.__name.getName())
 
 ########################################
 # Functions ############################

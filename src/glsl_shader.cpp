@@ -228,6 +228,24 @@ bool GlslShader::compile(bool pipeline)
   return true;
 }
 
+std::string GlslShader::getName() const
+{
+  std::ostringstream sstr;
+  sstr << "'";
+
+  for(size_t ii = 0; (ii < m_files.size()); ++ii)
+  {
+    if(ii)
+    {
+      sstr << ";";
+    }
+    sstr << m_files[ii];
+  }
+
+  sstr << "'";
+  return sstr.str();
+}
+
 GLuint GlslShader::getStage() const
 {
   switch(m_type)
