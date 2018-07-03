@@ -79,7 +79,7 @@ class GlslBlockStatement(GlslBlock):
     """Run simplification pass on the statement."""
     ret = 0
     while True:
-      if (max_simplifys <= 0) or (max_simplifys <= ret):
+      if (max_simplifys >= 0) and (max_simplifys <= ret):
         break
       content = simplify_pass(self.__content)
       if not content and self.__content:
