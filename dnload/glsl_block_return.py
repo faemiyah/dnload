@@ -25,7 +25,8 @@ class GlslBlockReturn(GlslBlock):
 
   def isEmptyReturn(self):
     """Tell if this return statement is empty."""
-    return (not self._children[0].getTokens())
+    # Return statement is only empty if it only has one child that has no tokens.
+    return (len(self._children) == 1) and (not self._children[0].getTokens())
 
   def __str__(self):
     """String representation."""

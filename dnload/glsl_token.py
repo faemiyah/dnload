@@ -213,33 +213,6 @@ class GlslToken:
     # Replace parent in its parent with the remaining element.
     parent.replaceInParent(remaining)
 
-  def flatten(self):
-    """Flatten this token into a list."""
-    ret = []
-    # Left
-    for ii in self.__left:
-      ret += ii.flatten()
-    # Middle may be a token or an element.
-    for ii in self.__middle:
-      if is_glsl_token(ii):
-        ret += ii.flatten()
-      elif ii:
-        ret += [ii]
-      else:
-        raise RuntimeError("empty element found during flatten")
-    # Right.
-    for ii in self.__right:
-      ret += ii.flatten()
-    return ret
-
-  def flattenString(self):
-    """Flatten this token into a string."""
-    ret = ""
-    tokens = self.flatten()
-    for ii in tokens:
-      ret += ii.format(False)
-    return ret
-
   def findEqualToken(self, orig):
     """Find a token or a number that has equal priority to given token."""
     mid = self.getSingleChildMiddleNonToken()
@@ -305,6 +278,56 @@ class GlslToken:
     if self.__parent.getSingleChildRight() != self:
       return mid
     return self.__parent.findSiblingOperatorRight()
+
+  def findRightSiblingElementFromParentTree(self, elem):
+    """Find element next to given element from parent tree of this."""
+    lst = self.flattenParentTree()
+    for ii in range(len(lst)):
+      if lst[ii] is elem:
+        if ii < (len(lst) - 1):
+          return lst[ii + 1]
+    return None
+
+  def flatten(self):
+    """Flatten this token into a list."""
+    ret = []
+    # Left
+    for ii in self.__left:
+      ret += ii.flatten()
+    # Middle.
+    ret += self.flattenMiddle()
+    # Right.
+    for ii in self.__right:
+      ret += ii.flatten()
+    return ret
+
+  def flattenMiddle(self):
+    """Flatten middle elements into a list."""
+    ret = []
+    for ii in self.__middle:
+      # Middle may be token or element.
+      if is_glsl_token(ii):
+        ret += ii.flatten()
+      elif ii:
+        ret += [ii]
+      else:
+        raise RuntimeError("empty element found during flatten")
+    return ret
+
+  def flattenParentTree(self):
+    """Flatten complete parent tree this node is contained in."""
+    parent = self
+    while parent.__parent:
+      parent = parent.__parent
+    return parent.flatten()
+
+  def flattenString(self):
+    """Flatten this token into a string."""
+    ret = ""
+    tokens = self.flatten()
+    for ii in tokens:
+      ret += ii.format(False)
+    return ret
 
   def getPrecedenceIfOperator(self):
     """Return precedence if middle element is a single child that is an operator."""
@@ -440,12 +463,7 @@ class GlslToken:
     """Perform any simple simplification and stop."""
     # Remove parens.
     if self.isSurroundedByParens():
-      middle_lst = []
-      for ii in self.__middle:
-        if is_glsl_token(ii):
-          middle_lst += ii.flatten()
-        else:
-          middle_lst += [ii]
+      middle_lst = self.flattenMiddle()
       #debug_str = " ".join(map(lambda x: str(x), middle_lst))
       #if debug_str.find("normalize") > -1:
       #  print(debug_str)
@@ -476,8 +494,11 @@ class GlslToken:
             if self.removeParens():
               return True
       # Only contains lower-priority operators compared to outside.
+      paren_rt = self.__right[0].getSingleChild()
+      elem_rt = self.findRightSiblingElementFromParentTree(paren_rt)
       prio = self.findHighestPrioOperatorMiddle()
-      if prio >= 0:
+      # Right element cannot be access or bracket.
+      if (prio >= 0) and (not is_glsl_access(elem_rt)) and (elem_rt != "["):
         left = self.findSiblingOperatorLeft()
         right = self.findSiblingOperatorRight()
         if left:
@@ -486,8 +507,9 @@ class GlslToken:
               if right.getPrecedence() >= prio:
                 if self.removeParens():
                   return True
-            elif self.removeParens():
-              return True
+            else:
+              if self.removeParens():
+                return True
         elif right:
           if right.getPrecedence() >= prio:
             if self.removeParens():

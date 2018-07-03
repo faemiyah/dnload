@@ -1,6 +1,8 @@
 from dnload.common import is_listing
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
+from dnload.glsl_block_assignment import glsl_parse_assignment
+from dnload.glsl_paren import is_glsl_paren
 
 ########################################
 # GlslBlockParameter ###################
@@ -9,27 +11,30 @@ from dnload.glsl_block import extract_tokens
 class GlslBlockParameter(GlslBlock):
   """Parameter block."""
 
-  def __init__(self, typeid, name, inout = None):
+  def __init__(self, inout, typeid, assignment):
     """Constructor."""
     GlslBlock.__init__(self)
-    self.__typeid = typeid
-    self.__name = name
     self.__inout = inout
-    # Hierarchy.
+    self.__typeid = typeid
+    self.__assignment = assignment
+    # Set type of name.
+    name = assignment.getName()
     name.setType(typeid)
+    # Hierarchy.
     self.addNamesDeclared(name)
-    self.addNamesUsed(name)
+    #self.addNamesUsed(name)
+    self.addChildren(assignment)
 
   def format(self, force):
     """Return formatted output."""
     ret = ""
     if self.__inout:
       ret += "%s " % (self.__inout.format(force))
-    return ret + "%s %s" % (self.__typeid.format(force), self.__name.format(force))
+    return ret + "%s %s" % (self.__typeid.format(force), self.__assignment.format(force))
 
   def __str__(self):
     """String representation."""
-    return "Parameter('%s')" % (self.__name.format(False))
+    return "Parameter('%s')" % (self.__assignment.getName().format(False))
 
 ########################################
 # Functions ############################
@@ -37,24 +42,33 @@ class GlslBlockParameter(GlslBlock):
 
 def glsl_parse_parameter(source):
   """Parse parameter block."""
-  (typeid, name, remaining) = extract_tokens(source, ("?t", "?n"))
-  if name:
-    return (GlslBlockParameter(typeid, name), remaining)
-  (inout, typeid, name, remaining) = extract_tokens(source, ("?o", "?t", "?n"))
-  if inout:
-    # Not all inout directives are acceptable.
-    if not (inout.format(False) in ("in", "inout", "out")):
-      raise RuntimeError("invalid inout directive for parameter: '%s'" % (inout.format(False)))
-    return (GlslBlockParameter(typeid, name, inout), remaining)
-  # Not a valid parameter.
-  return (None, source)
+  (inout, typeid, content) = extract_tokens(source, ("?o", "?t"))
+  if not inout:
+    (typeid, content) = extract_tokens(source, ("?t"))
+    if not typeid:
+      return (None, source)
+  (assignment, remaining) = glsl_parse_assignment(content, False)
+  if not assignment:
+    raise RuntimeError("could not parse assignment from '%s'" % (str(map(str, content))))
+  if inout and (not inout.format(False) in ("in", "inout", "out")):
+    raise RuntimeError("invalid inout directive for parameter: '%s'" % (inout.format(False)))
+  return (GlslBlockParameter(inout, typeid, assignment), remaining)
 
 def glsl_split_parameter_list(source):
   """Splits parameter list on commas."""
+  paren_count = 0
   ret = []
   current_parameter = []
   for ii in source:
-    if "," == ii:
+    # Count parens.
+    if is_glsl_paren(ii):
+      paren_count = elem.updateParen(paren_count)
+      if paren_count < 0:
+        raise RuntimeError("negative paren parity")
+      if elem.isCurlyBrace():
+        raise RuntimeError("scope declaration within parameter")
+    # Split to next param if paren count is 0.
+    if ("," == ii) and (paren_count == 0):
       ret += [current_parameter]
       current_parameter = []
     else:

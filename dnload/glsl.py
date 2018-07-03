@@ -223,6 +223,20 @@ class Glsl:
     # Return merged list.
     return merged
 
+  def inventName(self, block, counted):
+    """Invent a new name when existing names have run out."""
+    for ii in single_character_alphabet():
+      if not self.hasNameConflict(block, ii):
+        return ii
+    # Letter followed by a number. Try more frequent names first.
+    ii = 0
+    while True:
+      for jj in counted:
+        name = jj + str(ii)
+        if not self.hasNameConflict(block, name):
+          return name
+      ii += 1
+
   def parse(self):
     """Parse all source files."""
     for ii in self.__sources:
@@ -237,13 +251,14 @@ class Glsl:
     # Select name to rename to.
     if not target_name:
       counted = self.countSorted()
+      # Single-character names first.
       for letter in counted:
         if not self.hasNameConflict(block, letter):
           target_name = letter
           break
-      # If all names conflicted, invent new one.
+      # None of the letters was free, invent new one.
       if not target_name:
-        target_name = invent_name(counted)
+        target_name = self.inventName(block, counted)
     # Listing case.
     if is_listing(block):
       for ii in block:
@@ -277,7 +292,7 @@ class Glsl:
           ii.lock(letter)
         return
     # None of the letters was free, invent new one.
-    target_name = invent_name(counted)
+    target_name = self.inventName(block, counted)
     for ii in names:
       ii.lock(target_name)
 
@@ -562,19 +577,6 @@ def single_character_alphabet():
   for ii in range(ord("A"), ord("Z") + 1):
     ret += [chr(ii)]
   return ret
-
-def invent_name(counted):
-  """Invent a new name when existing names have run out."""
-  for ii in single_character_alphabet():
-    if not ii in counted:
-      return ii
-  # Letter followed by a number.
-  ii = 0
-  while True:
-    for jj in single_character_alphabet():
-      name = jj + str(ii)
-      if not name in counted:
-        return name
 
 def simplify_pass(block, max_simplifys):
   """Run simplify pass starting from given root block."""

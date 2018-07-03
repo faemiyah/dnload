@@ -21,7 +21,8 @@ class GlslBlockAssignment(GlslBlock):
     # Hierarchy.
     self.addNamesUsed(name)
     self.addAccesses(lst)
-    self.addChildren(statement)
+    if statement:
+      self.addChildren(statement)
 
   def format(self, force):
     """Return formatted output."""
@@ -61,12 +62,15 @@ class GlslBlockAssignment(GlslBlock):
 # Functions ############################
 ########################################
  
-def glsl_parse_assignment(source):
+def glsl_parse_assignment(source, explicit = True):
   """Parse assignment block."""
   # Must have name. Name must not be just 'return'.
   (name, content) = extract_tokens(source, ("?n",))
   if (not name) or (name == "return"):
     return (None, source)
+  # Completely empty assignment. Acceptable if not in explicit mode.
+  if (not content) and (not explicit):
+    return (GlslBlockAssignment(name, None, None, None), content)
   # Empty assignment.
   (terminator, intermediate) = extract_tokens(content, ("?,|;",))
   if terminator:
@@ -92,7 +96,7 @@ def glsl_parse_assignment(source):
     # Can't be an assignment.
     return (None, source)
   # Gather statement.
-  (statement, remaining) = glsl_parse_statement(content)
+  (statement, remaining) = glsl_parse_statement(content, explicit)
   if not statement:
     return (None, source)
   return (GlslBlockAssignment(name, lst, operator, statement), remaining)
