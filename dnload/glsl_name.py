@@ -108,6 +108,7 @@ g_locked = (
     "asin",
     "atan",
     "break",
+    "ceil",
     "clamp",
     "continue",
     "cos",
