@@ -1,3 +1,14 @@
+r15 (2018-08-01)
+  * Correct typo in LICENSE filename
+  * Add dnload wrapper script
+  * Convert Python source code to Python 3
+  * Format all Python source code with AutoPEP8
+  * Rename "src" to "examples"
+  * Add "setup.py" for easy installation of the python module
+  * Fix exit syscall on Linux
+  * Fix shell decompression header (now works on Arch Linux
+  * Modifiy defaults to not cause errors on Linux (tested on Arch)
+
 r14 (2017-10-17)
   * Add GLSL minifier (first public release).
 
