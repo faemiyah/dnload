@@ -19,7 +19,7 @@ class GlslBlockDefault(GlslBlock):
       if isinstance(ii, str):
         ret += [ii]
       else:
-        ret += [ii.format()]
+        ret += [ii.format(force)]
     return " ".join(ret)
 
   def __str__(self):

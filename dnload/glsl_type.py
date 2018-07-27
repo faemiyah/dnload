@@ -20,7 +20,7 @@ class GlslType:
 
   def isVectorType(self):
     """Tell if this is a vector type (eglible for swizzling)."""
-    if re.match(r'^(ivec\d|vec\d)$', self.__type):
+    if re.match(r'^(uvec\d|ivec\d|vec\d)$', self.__type):
       return True
     return False
 
@@ -53,7 +53,7 @@ g_type_modifiers = (
 
 def match_type_id(op):
   """Tell if given string matches a type."""
-  if re.match(r'^(bool|float|int|ivec\d|mat\d|sampler\dD|samplerCube|vec\d|void)$', op):
+  if re.match(r'^(bool|float|int|uint|uvec\d|ivec\d|mat\d|[iu]?sampler\dD|samplerCube|vec\d|void)$', op):
     return True
   return False
 
