@@ -546,6 +546,8 @@ def merge_collected_names(lst):
       found_type = jj.getType()
       if found_type:
         if typeid and (typeid != found_type):
+          if is_listing(ii[0]):
+            raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0][0]), str([str(typeid), str(found_type)])))
           raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0]), str([str(typeid), str(found_type)])))
         typeid = found_type
     for jj in ii[1:]:
