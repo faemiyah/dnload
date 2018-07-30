@@ -586,11 +586,11 @@ class GlslToken:
             return True
     # Operations are done. Allow simplification of remaining constans, if possible.
     mid = self.getSingleChildMiddleNonToken()
-    if mid and is_glsl_float(mid) and (not mid.isIntegrifyAllowed()):
+    if mid and is_glsl_float(mid) and (abs(mid.getFloat()) <= 2147483647.0) and (not mid.isIntegrifyAllowed()):
       # No operators, left or right.
       left = self.findSiblingOperatorLeft()
       right = self.findSiblingOperatorRight()
-      if not left and not right:
+      if (not left) and (not right):
         mid.setAllowIntegrify(True)
         return True
       # Alone in vecN() directive.
