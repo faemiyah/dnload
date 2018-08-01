@@ -31,7 +31,7 @@ endif()
 output_flags("DEBUG" on)
 
 add_definitions(-DUSE_LD)
-add_definitions(-DVERSION="r14")
+add_definitions(-DVERSION="r15")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
