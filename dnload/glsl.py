@@ -566,7 +566,6 @@ def merge_collected_names(lst):
             jj.setType(typeid)
     return ret
 
-
 def find_parent_scope(block):
     """Find parent scope block for given block."""
     while True:

@@ -286,6 +286,7 @@ g_library_definition_sdl2 = LibraryDefinition("SDL2", (
     ("int", "SDL_UnlockMutex", "SDL_mutex*"),
 ))
 
+# The beginnings of Vulkan support
 g_library_definition_vulkan = LibraryDefinition("Vulkan", (
     ("VkResult", "vkDeviceWaitIdle", "VkDevice"),
 ))
