@@ -5,106 +5,108 @@ from dnload.template import Template
 # Symbol ###############################
 ########################################
 
+
 class Symbol:
-  """Represents one (function) symbol."""
+    """Represents one (function) symbol."""
 
-  def __init__(self, lst, lib):
-    """Constructor."""
-    self.__returntype = lst[0]
-    if isinstance(lst[1], (list, tuple)):
-      self.__name = lst[1][0]
-      self.__rename = lst[1][1]
-    else:
-      self.__name = lst[1]
-      self.__rename = lst[1]
-    self.__hash = sdbm_hash(self.__name)
-    self.__parameters = None
-    if 2 < len(lst):
-      self.__parameters = lst[2:]
-    self.__library = lib
+    def __init__(self, lst, lib):
+        """Constructor."""
+        self.__returntype = lst[0]
+        if isinstance(lst[1], (list, tuple)):
+            self.__name = lst[1][0]
+            self.__rename = lst[1][1]
+        else:
+            self.__name = lst[1]
+            self.__rename = lst[1]
+        self.__hash = sdbm_hash(self.__name)
+        self.__parameters = None
+        if 2 < len(lst):
+            self.__parameters = lst[2:]
+        self.__library = lib
 
-  def create_replacement(self, lib):
-    """Create replacement symbol for another library."""
-    lst = [self.__returntype, (self.__name, self.__rename)]
-    if self.__parameters:
-      lst += self.__parameters
-    return Symbol(lst, lib)
+    def create_replacement(self, lib):
+        """Create replacement symbol for another library."""
+        lst = [self.__returntype, (self.__name, self.__rename)]
+        if self.__parameters:
+            lst += self.__parameters
+        return Symbol(lst, lib)
 
-  def generate_definition(self):
-    """Get function definition for given symbol."""
-    apientry = ""
-    if self.__name[:2] == "gl":
-      apientry = "DNLOAD_APIENTRY "
-    params = "void"
-    if self.__parameters:
-      params = ", ".join(self.__parameters)
-    return "%s (%s*%s)(%s)" % (self.__returntype, apientry, self.__name, params)
+    def generate_definition(self):
+        """Get function definition for given symbol."""
+        apientry = ""
+        if self.__name[:2] == "gl":
+            apientry = "DNLOAD_APIENTRY "
+        params = "void"
+        if self.__parameters:
+            params = ", ".join(self.__parameters)
+        return "%s (%s*%s)(%s)" % (self.__returntype, apientry, self.__name, params)
 
-  def generate_prototype(self):
-    """Get function prototype for given symbol."""
-    apientry = ""
-    if self.__name[:2] == "gl":
-      apientry = "DNLOAD_APIENTRY "
-    params = "void"
-    if self.__parameters:
-      params = ", ".join(self.__parameters)
-    return "(%s (%s*)(%s))" % (self.__returntype, apientry, params)
+    def generate_prototype(self):
+        """Get function prototype for given symbol."""
+        apientry = ""
+        if self.__name[:2] == "gl":
+            apientry = "DNLOAD_APIENTRY "
+        params = "void"
+        if self.__parameters:
+            params = ", ".join(self.__parameters)
+        return "(%s (%s*)(%s))" % (self.__returntype, apientry, params)
 
-  def generate_rename_direct(self, prefix):
-    """Generate definition to use without a symbol table."""
-    if self.is_verbatim():
-      return self.generate_rename_verbatim(prefix)
-    return "#define %s%s %s" % (prefix, self.__name, self.__rename)
+    def generate_rename_direct(self, prefix):
+        """Generate definition to use without a symbol table."""
+        if self.is_verbatim():
+            return self.generate_rename_verbatim(prefix)
+        return "#define %s%s %s" % (prefix, self.__name, self.__rename)
 
-  def generate_rename_tabled(self, prefix):
-    """Generate definition to use with a symbol table."""
-    if self.is_verbatim():
-      return self.generate_rename_verbatim(prefix)
-    return "#define %s%s g_symbol_table.%s" % (prefix, self.__name, self.__name)
+    def generate_rename_tabled(self, prefix):
+        """Generate definition to use with a symbol table."""
+        if self.is_verbatim():
+            return self.generate_rename_verbatim(prefix)
+        return "#define %s%s g_symbol_table.%s" % (prefix, self.__name, self.__name)
 
-  def generate_rename_verbatim(self, prefix):
-    """Generate 'rename' into itself. Used for functions that are inlined by linker."""
-    return "#define %s%s %s" % (prefix, self.__name, self.__name)
+    def generate_rename_verbatim(self, prefix):
+        """Generate 'rename' into itself. Used for functions that are inlined by linker."""
+        return "#define %s%s %s" % (prefix, self.__name, self.__name)
 
-  def get_hash(self):
-    """Get the hash of symbol name."""
-    return self.__hash
+    def get_hash(self):
+        """Get the hash of symbol name."""
+        return self.__hash
 
-  def get_library(self):
-    """Access library reference."""
-    return self.__library
+    def get_library(self):
+        """Access library reference."""
+        return self.__library
 
-  def get_library_name(self, linker):
-    """Get linkable library object name."""
-    return linker.get_library_name(self.__library.get_name())
+    def get_library_name(self, linker):
+        """Get linkable library object name."""
+        return linker.get_library_name(self.__library.get_name())
 
-  def get_name(self):
-    """Accessor."""
-    return self.__name
+    def get_name(self):
+        """Accessor."""
+        return self.__name
 
-  def is_verbatim(self):
-    """Tell if this symbol should never be scoured but instead used verbatim."""
-    return (None == self.__rename)
+    def is_verbatim(self):
+        """Tell if this symbol should never be scoured but instead used verbatim."""
+        return (None == self.__rename)
 
-  def set_library(self, lib):
-    """Replace library with given library."""
-    self.__library = lib
+    def set_library(self, lib):
+        """Replace library with given library."""
+        self.__library = lib
 
-  def __lt__(self, rhs):
-    """Sorting operator."""
-    if self.__library.get_name() < rhs.__library.get_name():
-      return True
-    elif self.__library.get_name() > rhs.__library.get_name():
-      return False
-    return self.__name < rhs.__name
+    def __lt__(self, rhs):
+        """Sorting operator."""
+        if self.__library.get_name() < rhs.__library.get_name():
+            return True
+        elif self.__library.get_name() > rhs.__library.get_name():
+            return False
+        return self.__name < rhs.__name
 
-  def __str__(self):
-    """String representation."""
-    return self.__name
+    def __str__(self):
+        """String representation."""
+        return self.__name
 
 ########################################
 # Globals ##############################
 ########################################
+
 
 g_template_loader_dlfcn = Template("""#include <dlfcn.h>
 static const char g_dynstr[] = \"\"
@@ -398,62 +400,69 @@ static struct SymbolTableStruct
 # Functions ############################
 ########################################
 
+
 def generate_loader_vanilla():
-  """Generate vanilla loader."""
-  return g_template_loader_vanilla.format()
+    """Generate vanilla loader."""
+    return g_template_loader_vanilla.format()
+
 
 def generate_loader_dlfcn(symbols, linker):
-  """Generate dlopen/dlsym loader code."""
-  dlfcn_string = ""
-  current_lib = None
-  for ii in symbols:
-    symbol_lib = ii.get_library().get_name()
-    if current_lib != symbol_lib:
-      if current_lib:
-        dlfcn_string += "\"\\0%s\\0\"\n" % (ii.get_library_name(linker))
-      else:
-        dlfcn_string += "\"%s\\0\"\n" % (ii.get_library_name(linker))
-      current_lib = symbol_lib
-    dlfcn_string += "\"%s\\0\"\n" % (ii)
-  subst = { "DLFCN_STRING" : dlfcn_string + "\"\\0\"" }
-  return g_template_loader_dlfcn.format(subst)
+    """Generate dlopen/dlsym loader code."""
+    dlfcn_string = ""
+    current_lib = None
+    for ii in symbols:
+        symbol_lib = ii.get_library().get_name()
+        if current_lib != symbol_lib:
+            if current_lib:
+                dlfcn_string += "\"\\0%s\\0\"\n" % (ii.get_library_name(linker))
+            else:
+                dlfcn_string += "\"%s\\0\"\n" % (ii.get_library_name(linker))
+            current_lib = symbol_lib
+        dlfcn_string += "\"%s\\0\"\n" % (ii)
+    subst = {"DLFCN_STRING": dlfcn_string + "\"\\0\""}
+    return g_template_loader_dlfcn.format(subst)
+
 
 def generate_loader_hash(symbols):
-  """Generate import by hash loader code."""
-  subst = { "BASE_ADDRESS" : str(PlatformVar("entry")), "SYMBOL_COUNT" : str(len(symbols)) }
-  return g_template_loader_hash.format(subst)
+    """Generate import by hash loader code."""
+    subst = {"BASE_ADDRESS": str(PlatformVar("entry")), "SYMBOL_COUNT": str(len(symbols))}
+    return g_template_loader_hash.format(subst)
+
 
 def generate_symbol_definitions_direct(symbols, prefix):
-  """Generate a listing of definitions to point to real symbols."""
-  ret = []
-  for ii in symbols:
-    ret += [ii.generate_rename_direct(prefix)]
-  return "\n".join(ret)
+    """Generate a listing of definitions to point to real symbols."""
+    ret = []
+    for ii in symbols:
+        ret += [ii.generate_rename_direct(prefix)]
+    return "\n".join(ret)
+
 
 def generate_symbol_definitions_table(symbols, prefix):
-  """Generate a listing of symbol definitions for symbol table."""
-  ret = []
-  for ii in symbols:
-    ret += [ii.generate_rename_tabled(prefix)]
-  return "\n".join(ret)
+    """Generate a listing of symbol definitions for symbol table."""
+    ret = []
+    for ii in symbols:
+        ret += [ii.generate_rename_tabled(prefix)]
+    return "\n".join(ret)
+
 
 def generate_symbol_table(mode, symbols):
-  """Generate the symbol struct definition."""
-  definitions = []
-  hashes = []
-  subst = {}
-  symbol_table_content = ""
-  for ii in symbols:
-    definitions += ["  %s;" % (ii.generate_definition())]
-    hashes += ["  %s%s," % (ii.generate_prototype(), ii.get_hash())]
-  if "dlfcn" != mode:
-    subst["SYMBOL_TABLE_INITIALIZATION"] = " =\n{\n%s\n}" % ("\n".join(hashes))
-  subst["SYMBOL_TABLE_DEFINITION"] = "\n".join(definitions)
-  return g_template_symbol_table.format(subst)
+    """Generate the symbol struct definition."""
+    definitions = []
+    hashes = []
+    subst = {}
+    symbol_table_content = ""
+    for ii in symbols:
+        definitions += ["  %s;" % (ii.generate_definition())]
+        hashes += ["  %s%s," % (ii.generate_prototype(), ii.get_hash())]
+    if "dlfcn" != mode:
+        subst["SYMBOL_TABLE_INITIALIZATION"] = " =\n{\n%s\n}" % ("\n".join(hashes))
+    subst["SYMBOL_TABLE_DEFINITION"] = "\n".join(definitions)
+    return g_template_symbol_table.format(subst)
+
 
 def sdbm_hash(name):
-  """Calculate SDBM hash over a string."""
-  ret = 0
-  for ii in name:
-    ret = (ret * 65599 + ord(ii)) & 0xFFFFFFFF
-  return "0x%x" % (ret)
+    """Calculate SDBM hash over a string."""
+    ret = 0
+    for ii in name:
+        ret = (ret * 65599 + ord(ii)) & 0xFFFFFFFF
+    return "0x%x" % (ret)
