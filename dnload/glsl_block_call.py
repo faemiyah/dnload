@@ -5,7 +5,7 @@ from dnload.glsl_block_statement import glsl_parse_statements
 ########################################
 # GlslBlockCall ########################
 ########################################
- 
+
 class GlslBlockCall(GlslBlock):
   """Function call."""
 

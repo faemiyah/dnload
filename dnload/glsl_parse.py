@@ -11,7 +11,7 @@ from dnload.glsl_block_uniform import glsl_parse_uniform
 ########################################
 # Functions ############################
 ########################################
- 
+
 def glsl_parse(source):
   """Parse given source."""
   content = tokenize(source)

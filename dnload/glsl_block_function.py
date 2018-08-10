@@ -7,7 +7,7 @@ from dnload.glsl_block_scope import glsl_parse_scope
 ########################################
 # GlslBlockFunction ####################
 ########################################
- 
+
 class GlslBlockFunction(GlslBlock):
   """Function block."""
 

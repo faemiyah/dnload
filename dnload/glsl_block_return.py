@@ -35,7 +35,7 @@ class GlslBlockReturn(GlslBlock):
 ########################################
 # Functions ############################
 ########################################
- 
+
 def glsl_parse_return(source):
   """Parse return block."""
   (ret, content) = extract_tokens(source, "?|return")

@@ -7,7 +7,7 @@ from dnload.glsl_block_statement import glsl_parse_statements
 ########################################
 # GlslBlockControl #####################
 ########################################
- 
+
 class GlslBlockControl(GlslBlock):
   """Control block."""
 

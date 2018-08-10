@@ -271,7 +271,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #include <stdlib.h>
 #endif
 [[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
-#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
+#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__)
 #define DNLOAD_MAIN SDL_main
 #else
 #define DNLOAD_MAIN main
@@ -1004,7 +1004,7 @@ def main():
   parser.add_argument("-v", "--verbose", action = "store_true", help = "Print more info about what is being done.")
   parser.add_argument("-V", "--version", action = "store_true", help = "Print version and exit.")
   parser.add_argument("source", default = [], nargs = "*", help = "Source file(s) to preprocess and/or compile.")
- 
+
   args = parser.parse_args()
 
   # Early exit.

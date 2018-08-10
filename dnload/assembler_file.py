@@ -154,7 +154,7 @@ class AssemblerFile:
       else:
         other_sections += [ii]
     text_section_str = []
-    rodata_section_str = []    
+    rodata_section_str = []
     data_section_str = []
     other_section_str = []
     if text_sections:

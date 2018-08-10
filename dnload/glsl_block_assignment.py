@@ -6,7 +6,7 @@ from dnload.glsl_paren import GlslParen
 ########################################
 # GlslBlockAssignment ##################
 ########################################
- 
+
 class GlslBlockAssignment(GlslBlock):
   """Assignment block."""
 
@@ -61,7 +61,7 @@ class GlslBlockAssignment(GlslBlock):
 ########################################
 # Functions ############################
 ########################################
- 
+
 def glsl_parse_assignment(source, explicit = True):
   """Parse assignment block."""
   # Must have name. Name must not be just 'return'.

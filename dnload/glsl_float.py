@@ -35,7 +35,7 @@ class GlslFloat:
   def getFloat(self):
     """Accessor."""
     return self.__number
-  
+
   def getPrecision(self):
     """Get precision - number of numbers to express."""
     return self.__integer1.getPrecision() + self.__integer2.getPrecision()
@@ -64,7 +64,7 @@ class GlslFloat:
   def __str__(self):
     """String representation."""
     return "GlslFloat('%s')" % (self.format(False))
-    
+
 ########################################
 # Functions ############################
 ########################################

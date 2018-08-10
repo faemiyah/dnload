@@ -128,7 +128,7 @@ class GlslAccess:
 ########################################
 # Functions ############################
 ########################################
- 
+
 def interpret_access(source):
   """Try to interpret swizzle element."""
   name = interpret_name(source)

@@ -7,7 +7,7 @@ from dnload.glsl_paren import is_glsl_paren
 ########################################
 # GlslBlockParameter ###################
 ########################################
- 
+
 class GlslBlockParameter(GlslBlock):
   """Parameter block."""
 

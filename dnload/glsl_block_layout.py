@@ -5,7 +5,7 @@ from dnload.glsl_name import get_list_primitives
 ########################################
 # GlslBlockLayout ######################
 ########################################
- 
+
 class GlslBlockLayout(GlslBlock):
   """Uniform declaration."""
 

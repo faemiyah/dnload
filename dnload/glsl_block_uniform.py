@@ -5,7 +5,7 @@ from dnload.glsl_block_layout import glsl_parse_layout
 ########################################
 # GlslBlockUniform #####################
 ########################################
- 
+
 class GlslBlockUniform(GlslBlock):
   """Uniform declaration."""
 

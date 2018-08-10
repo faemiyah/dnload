@@ -11,7 +11,7 @@ class GlslBlockDefault(GlslBlock):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__content = content
- 
+
   def format(self, force):
     """Return formatted output."""
     ret = []
@@ -33,4 +33,4 @@ class GlslBlockDefault(GlslBlock):
 def glsl_parse_default(source):
   """Parse default block, will be output as-is, should never happen."""
   print("WARNING: returning default GLSL block: '%s'" % (str(map(str, source))))
-  return [GlslBlockDefault(source)] 
+  return [GlslBlockDefault(source)]

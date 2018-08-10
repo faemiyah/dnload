@@ -22,7 +22,7 @@ class GlslBlockPreprocessor(GlslBlock):
   def __str__(self):
     """String representation."""
     return "Preprocessor('%s')" % (self.__content)
-    
+
 ########################################
 # Globals ##############################
 ########################################

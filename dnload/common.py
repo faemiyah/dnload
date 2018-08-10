@@ -139,7 +139,7 @@ def locate(pth, fn, previous_paths = None):
   if not previous_paths:
     previous_paths = [os.path.realpath(pth)]
   # Some specific directory trees would take too much time to traverse.
-  if pth in IGNORE_PATHS: 
+  if pth in IGNORE_PATHS:
     return None
   # Recurse, expect filesystem errors.
   try:

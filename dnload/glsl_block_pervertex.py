@@ -4,7 +4,7 @@ from dnload.glsl_block import extract_tokens
 ########################################
 # GlslBlockPerVertex ###################
 ########################################
- 
+
 class GlslBlockPerVertex(GlslBlock):
   """gl_PerVertex block."""
 

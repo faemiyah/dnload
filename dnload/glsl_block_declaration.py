@@ -6,7 +6,7 @@ import re
 ########################################
 # GlslBlockDeclaration #################
 ########################################
- 
+
 class GlslBlockDeclaration(GlslBlock):
   """Variable declaration block."""
 

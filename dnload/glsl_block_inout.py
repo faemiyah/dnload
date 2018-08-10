@@ -6,7 +6,7 @@ from dnload.glsl_block_member import glsl_parse_member_list
 ########################################
 # GlslBlockInOut #######################
 ########################################
- 
+
 class GlslBlockInOut(GlslBlock):
   """Input (attribute / varying) declaration block."""
 
@@ -100,7 +100,7 @@ class GlslBlockInOutStruct(GlslBlockInOut):
 ########################################
 # GlslBlockInOutTyped ##################
 ########################################
- 
+
 class GlslBlockInOutTyped(GlslBlockInOut):
   """Input (attribute / varying) struct declaration block."""
 

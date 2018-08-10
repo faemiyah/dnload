@@ -105,7 +105,7 @@ class Assembler:
     ret = ""
     if is_listing(op):
       for ii in op:
-        ret += format_label(ii) 
+        ret += format_label(ii)
     else:
       ret += ".globl %s\n%s:\n" % (op, op)
     return ret

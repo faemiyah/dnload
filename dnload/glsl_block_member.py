@@ -5,7 +5,7 @@ from dnload.glsl_block import extract_tokens
 ########################################
 # GlslBlockMember ######################
 ########################################
- 
+
 class GlslBlockMember(GlslBlock):
   """Member block."""
 

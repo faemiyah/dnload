@@ -12,7 +12,7 @@ from dnload.glsl_operator import is_glsl_operator
 ########################################
 # GlslBlockStatement ###################
 ########################################
- 
+
 class GlslBlockStatement(GlslBlock):
   """Statement block."""
 

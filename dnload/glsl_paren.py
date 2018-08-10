@@ -100,7 +100,7 @@ class GlslParen:
 ########################################
 # Functions ############################
 ########################################
- 
+
 def interpret_paren(source):
   """Try to interpret paren element."""
   if source in ("(", "[", "{", ")", "]", "}"):

@@ -20,7 +20,7 @@ from dnload.glsl_block_unary import is_glsl_block_unary
 ########################################
 # GlslBlockScope #######################
 ########################################
- 
+
 class GlslBlockScope(GlslBlock):
   """Scope block."""
 
