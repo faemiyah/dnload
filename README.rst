@@ -8,10 +8,10 @@
 .. contents::
     :depth: 3
 
-dnload.py
-====
+dnload
+======
 
-``dnload.py`` is a script for generating minimal ELF binaries from C code. It serves no practical real-world use case, but can be utilized to aid in the creation of size-limited demoscene productions.
+``dnload`` is a python module for generating minimal ELF binaries from C code. It serves no practical real-world use case, but can be utilized to aid in the creation of size-limited demoscene productions.
 
 System requirements
 ====
@@ -92,7 +92,7 @@ Use this command to clone the repository::
 
     git clone https://github.com/faemiyah/dnload.git
 
-The checked out repository will have the ``dnload.py`` script in the root folder. The minimal example is included in the ``src/`` folder and called ``hello_world.cpp``. The example looks like this (removing non-essential comments)::
+The checked out repository will have the ``dnload.sh`` script in the root folder. The minimal example is included in the ``src/`` folder and called ``hello_world.cpp``. The example looks like this (removing non-essential comments)::
 
     #include "dnload.h"
 
@@ -113,7 +113,11 @@ The checked out repository will have the ``dnload.py`` script in the root folder
 
 When beginning to work with a project, the first thing needed is to ensure that our header is up to date. To do this, run::
 
-    python dnload.py -v -E src/hello_world.cpp
+    python -m dnload -v -E src/hello_world.cpp
+
+Or if dnload is installed to your system::
+
+    dnload -v -E src/hello_work.cpp
 
 This should produce output somewhat akin to this::
 
@@ -145,7 +149,11 @@ Compiling the example as a size-optimized binary
 
 To invoke the script and perform full compilation, use::
 
-    python dnload.py -v src/hello_world.cpp -o src/hello_world
+    python -m dnload -v src/hello_world.cpp -o src/hello_world
+
+Or if dnload is installed to your system, use::
+
+    dnload -v src/hello_world.cpp -o src/hello_world
 
 You might notice the flags are similar to the conventions used in other binary utilities. This is intentional. The command should produce output somewhat similar to this::
 
@@ -260,7 +268,14 @@ Advanced examples
 
 The ``src/`` folder contains two other examples: ``quad.cpp`` and ``intro.cpp``. The quad example will simply open a coder-colored window, whereas the intro example performs (extremely primitive) raycasting and outputs 8-bit music (from very short programs) for a couple of seconds. The intro example can also be compiled with CMake for a interactive program with a 'debug mode'. To compile this, run (you will need Boost, GLEW, libPNG, OpenGL and SDL)::
 
-    > python dnload.py -E src/intro.cpp
+    > python -m dnload -E src/intro.cpp
+    > cmake .
+    > make clean all
+    > ./intro -d -w
+
+Or if dnload is installed to your system::
+
+    > dnload -E src/intro.cpp
     > cmake .
     > make clean all
     > ./intro -d -w
@@ -269,7 +284,12 @@ This should open a window allowing mouse pan and WASD movement.
 
 You can size-optimize the program with::
 
-    > python dnload.py -v src/intro.cpp -lGL -lSDL
+    > python -m dnload -v src/intro.cpp -lGL -lSDL
+    > ./src/intro
+
+Or if dnload is installed to your system::
+
+    > dnload -v src/intro.cpp -lGL -lSDL
     > ./src/intro
 
 Have fun!
