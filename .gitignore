@@ -2,8 +2,8 @@ cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
 Debug/
-dnload/*.pyc
-dnload/__pycache__/
+*.pyc
+__pycache__
 fcmp
 Makefile
 intro
@@ -27,3 +27,7 @@ src/*.glsl.preprocessed
 *.suo
 *.unprocessed
 *.vcxproj*
+arch/dnload
+arch/src
+arch/pkg
+arch/*.pkg.tar.xz

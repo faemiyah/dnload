@@ -67,13 +67,13 @@ def main():
   """Main function."""
   default_preprocessor_list = ["cpp", "clang-cpp"]
   preprocessor = None
-  
+
   parser = argparse.ArgumentParser(usage = "GLSL minifying test.", formatter_class = CustomHelpFormatter, add_help = False)
   parser.add_argument("-h", "--help", action = "store_true", help = "Print this help string and exit.")
   parser.add_argument("--preprocessor", default = None, help = "Try to use given preprocessor executable as opposed to autodetect.")
   parser.add_argument("-v", "--verbose", action = "store_true", help = "Print more info about what is being done.")
   parser.add_argument("source", default = [], nargs = "*", help = "Source file(s) to process.")
- 
+
   args = parser.parse_args()
 
   preprocessor = args.preprocessor
@@ -96,7 +96,7 @@ def main():
     else:
       raise RuntimeError("unknown source file: '%s'" % (ii))
 
-  dl = find_executable("dnload.py", "dnload")
+  dl = find_executable("dnload.sh", "dnload")
   if is_verbose():
     print("found dnload: '%s'" % (dl))
   sm = find_executable("shader_minifier.exe", "Shader_Minifier")
