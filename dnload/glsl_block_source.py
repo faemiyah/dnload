@@ -64,19 +64,19 @@ class GlslBlockSource(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    return "".join(map(lambda x: x.format(force), self._children))
+    return "".join([x.format(force) for x in self._children])
 
   def generateHeaderOutput(self):
     """Generate output to be written into a file."""
     ret = self.format(True)
-    ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
+    ret = "\n".join(["\"%s\"" % (x) for x in glsl_cstr_readable(ret)])
     subst = { "DEFINITION_LD" : self.__definition_ld, "FILE_NAME" : os.path.basename(self.__filename), "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
     return g_template_glsl_header.format(subst)
 
   def generatePrintOutput(self):
     """Generate output to be written to output."""
     ret = self.format(True)
-    ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
+    ret = "\n".join(["\"%s\"" % (x) for x in glsl_cstr_readable(ret)])
     subst = { "SOURCE" : ret, "VARIABLE_NAME" : self.__variable_name }
     return g_template_glsl_print.format(subst)
 

@@ -20,7 +20,7 @@ class GlslBlockCall(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    lst = "".join(map(lambda x: x.format(force), self._children))
+    lst = "".join([x.format(force) for x in self._children])
     return "%s(%s)%s" % (self.__name.format(force), lst, self.__terminator.format(force))
 
   def replaceTerminator(self, op):

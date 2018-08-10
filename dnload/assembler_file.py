@@ -45,7 +45,7 @@ class AssemblerFile:
     if not current_section.empty():
       self.add_sections(current_section)
     if is_verbose():
-      section_names = map(lambda x: x.get_name(), self.__sections)
+      section_names = [x.get_name() for x in self.__sections]
       print("%i sections in '%s': %s" % (len(self.__sections), fname, str(section_names)))
 
   def generate_fake_bss(self, assembler, und_symbols = None, elfling = None):
@@ -164,7 +164,7 @@ class AssemblerFile:
     if data_sections:
       data_section_str += ["%i data" % (len(data_sections))]
     if other_sections:
-      other_section_str = [", ".join(map(lambda x: x.get_name(), other_sections))]
+      other_section_str = [", ".join([x.get_name() for x in other_sections])]
     # Sort data either in front or in the back.
     if data_in_front:
       section_str = rodata_section_str + data_section_str + text_section_str + other_section_str
@@ -173,7 +173,7 @@ class AssemblerFile:
       section_str = text_section_str + rodata_section_str + data_section_str + other_section_str
       self.__sections = text_sections + rodata_sections + data_sections + other_sections
     if is_verbose():
-      print("Sorted sections: " + ", ".join(filter(lambda x: x, section_str)))
+      print("Sorted sections: " + ", ".join([x for x in section_str if x]))
 
   def remove_rodata(self):
     """Remove .rodata sections by merging them into the previous/next .text section."""

@@ -492,7 +492,7 @@ def collect_libraries(libraries, symbols, compilation_mode):
       front += [ii]
   # Only use renamed library names if constructing the header manually.
   if "maximum" == compilation_mode:
-    ret = map(lambda x: collect_libraries_rename(x), front + sorted(libraries))
+    ret = [collect_libraries_rename(x) for x in front + sorted(libraries)]
   else:
     ret = front + sorted(libraries)
   if is_verbose():
@@ -1204,9 +1204,9 @@ def main():
   # Some libraries cannot co-exist, but have some symbols with identical names.
   symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
   # Filter real symbols (as separate from implicit).
-  real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
+  real_symbols = list([x for x in symbols if not x.is_verbatim()])
   if is_verbose():
-    symbol_strings = map(lambda x: str(x), symbols)
+    symbol_strings = [str(x) for x in symbols]
     print("%i symbols found: %s" % (len(symbol_strings), str(symbol_strings)))
     verbatim_symbols = list(set(symbols) - set(real_symbols))
     if verbatim_symbols and output_file:

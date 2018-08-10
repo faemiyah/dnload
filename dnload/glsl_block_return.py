@@ -17,7 +17,7 @@ class GlslBlockReturn(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    ret = "".join(map(lambda x: x.format(force), self._children))
+    ret = "".join([x.format(force) for x in self._children])
     # Statement starting with paren does not need the space.
     if ret[:1] == "(":
       return "return" + ret

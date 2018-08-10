@@ -23,7 +23,7 @@ class GlslBlockDeclaration(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    return "%s %s" % (self.__typeid.format(force), "".join(map(lambda x: x.format(force), self._children)))
+    return "%s %s" % (self.__typeid.format(force), "".join([x.format(force) for x in self._children]))
 
   def collapse(self, other, mode):
     """Collapse another declaration."""

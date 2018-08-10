@@ -32,5 +32,5 @@ class GlslBlockDefault(GlslBlock):
 
 def glsl_parse_default(source):
   """Parse default block, will be output as-is, should never happen."""
-  print("WARNING: returning default GLSL block: '%s'" % (str(map(str, source))))
+  print("WARNING: returning default GLSL block: '%s'" % (str(list(map(str, source)))))
   return [GlslBlockDefault(source)]

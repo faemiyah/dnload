@@ -16,7 +16,7 @@ class GlslBlockPerVertex(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    lst = "".join(map(lambda x: "%s %s;" % (x[0].format(force), x[1].format(force)), self.__scope))
+    lst = "".join(["%s %s;" % (x[0].format(force), x[1].format(force)) for x in self.__scope])
     return "%s gl_PerVertex{%s};" % (self.__inout.format(force), lst)
 
   def __str__(self):

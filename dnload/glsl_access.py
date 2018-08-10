@@ -108,7 +108,7 @@ class GlslAccess:
     """Set source name for access."""
     bracket_count = 0
     paren_count = 0
-    for ii in reversed(range(len(lst))):
+    for ii in reversed(list(range(len(lst)))):
       vv = lst[ii]
       if is_glsl_paren(vv):
         if vv.isCurlyBrace():

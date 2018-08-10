@@ -28,7 +28,7 @@ class Glsl:
 
   def count(self):
     """Count instances of alpha letters within the code."""
-    source = "".join(map(lambda x: x.format(False), self.__sources))
+    source = "".join([x.format(False) for x in self.__sources])
     ret = {}
     for ii in source:
       if ii.isalpha():
@@ -43,10 +43,10 @@ class Glsl:
     counted = self.count()
     lst = []
     # Sort by instance count, length of name, string comparison.
-    for kk in counted.keys():
+    for kk in list(counted.keys()):
       lst += [(counted[kk], -len(kk), kk)]
     ret = sorted(lst, reverse=True)
-    return list(map(lambda x: x[2], ret))
+    return list([x[2] for x in ret])
 
   def crunch(self, mode = "full", max_inlines = -1, max_renames = -1, max_simplifys = -1):
     """Crunch the source code to smaller state."""
@@ -86,7 +86,7 @@ class Glsl:
           if is_listing(block):
             inout_merges += [block[0]]
         if inout_merges:
-          print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
+          print("GLSL inout connections found: %s" % (str(list(map(str, inout_merges)))))
       # Run rename passes until done.
       renames = 0
       for ii in merged:
@@ -348,7 +348,7 @@ class Glsl:
 
   def __str__(self):
     """String representation."""
-    return "\n".join(map(lambda x: str(x), self.__sources))
+    return "\n".join([str(x) for x in self.__sources])
 
 ########################################
 # Functions ############################
@@ -390,7 +390,7 @@ def collect_member_accesses(block, names):
     uses[name_string] += [name_object]
   # Expand uses, set types and sort.
   lst = []
-  for kk in uses.keys():
+  for kk in list(uses.keys()):
     name_list = uses[kk]
     if 1 >= len(name_list):
       print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))

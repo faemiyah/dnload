@@ -18,7 +18,7 @@ class GlslBlockLayout(GlslBlock):
     """Return formatted output."""
     ret = []
     for ii in self.__elements:
-      ret += ["".join(map(lambda x: x.format(force), ii))]
+      ret += ["".join([x.format(force) for x in ii])]
     return "layout(%s)" % (",".join(ret))
 
   def __str__(self):
@@ -56,5 +56,5 @@ def glsl_parse_layout(source):
     if comma:
       scope = intermediate
       continue
-    raise RuntimeError("unknown layout directive %s" % (str(map(str, scope))))
+    raise RuntimeError("unknown layout directive %s" % (str(list(map(str, scope)))))
   return (GlslBlockLayout(lst), remaining)

@@ -41,7 +41,7 @@ class GlslBlockControl(GlslBlock):
     ret += "("
     if self.__declaration:
       ret += self.__declaration.format(force)
-    return ret + ("%s)%s" % ("".join(map(lambda x: x.format(force), self.__statements)), target))
+    return ret + ("%s)%s" % ("".join([x.format(force) for x in self.__statements]), target))
 
   def getTarget(self):
     """Accessor."""

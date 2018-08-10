@@ -19,7 +19,7 @@ class GlslBlockFlow(GlslBlock):
     """Return formatted output."""
     if len(self._children) != 1:
       raise RuntimeError("GlslBlockFlow::format(), length of children != 1")
-    return "".join(map(lambda x: x.format(force), self._children))
+    return "".join([x.format(force) for x in self._children])
 
 ########################################
 # Functions ############################

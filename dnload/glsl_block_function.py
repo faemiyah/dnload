@@ -31,7 +31,7 @@ class GlslBlockFunction(GlslBlock):
     """Return formatted output."""
     lst = ""
     if 0 < len(self.__parameters):
-      lst = ",".join(map(lambda x: x.format(force), self.__parameters))
+      lst = ",".join([x.format(force) for x in self.__parameters])
     return "%s %s(%s)%s" % (self.__typeid.format(force), self.__name.format(force), lst, self.__scope.format(force))
 
   def getName(self):

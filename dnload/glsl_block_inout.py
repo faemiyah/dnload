@@ -54,7 +54,7 @@ class GlslBlockInOutStruct(GlslBlockInOut):
   def format(self, force):
     """Return formatted output."""
     ret = self.formatBase(force)
-    lst = "".join(map(lambda x: x.format(force), self.__members))
+    lst = "".join([x.format(force) for x in self.__members])
     ret += (" %s{%s}%s" % (self.__type_name.format(force), lst, self.__name.format(force)))
     if self.__size:
       ret += "[%s]" % (self.__size.format(force))

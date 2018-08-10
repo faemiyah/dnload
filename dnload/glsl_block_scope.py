@@ -82,7 +82,7 @@ class GlslBlockScope(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    ret = "".join(map(lambda x: x.format(force), self._children))
+    ret = "".join([x.format(force) for x in self._children])
     if (len(self._children) > 1) or (self.__explicit and (not self.__squashable)):
       return "{%s}" % (ret)
     # Empty scope squashing may or may not be allowed.
@@ -146,7 +146,7 @@ def glsl_parse_content(source):
       ret += [block]
       source = remaining
       continue
-    raise RuntimeError("cannot parse content: %s" % (str(map(str, source))))
+    raise RuntimeError("cannot parse content: %s" % (str(list(map(str, source)))))
   # Merge control blocks with following blocks.
   while True:
     if not merge_control_pass(ret):

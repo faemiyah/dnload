@@ -60,7 +60,7 @@ class GlslInt:
         break
     # Preserve zeroes in back. Also not counted.
     zeroes_back = ""
-    for ii in reversed(range(len(rest))):
+    for ii in reversed(list(range(len(rest)))):
       if rest[ii] != "0":
         if ii < (len(rest) - 1):
           zeroes_back = rest[ii + 1:]

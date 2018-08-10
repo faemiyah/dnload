@@ -49,7 +49,7 @@ def glsl_parse_parameter(source):
       return (None, source)
   (assignment, remaining) = glsl_parse_assignment(content, False)
   if not assignment:
-    raise RuntimeError("could not parse assignment from '%s'" % (str(map(str, content))))
+    raise RuntimeError("could not parse assignment from '%s'" % (str(list(map(str, content)))))
   if inout and (not inout.format(False) in ("in", "inout", "out")):
     raise RuntimeError("invalid inout directive for parameter: '%s'" % (inout.format(False)))
   return (GlslBlockParameter(inout, typeid, assignment), remaining)
@@ -87,8 +87,8 @@ def glsl_parse_parameter_list(source):
   for ii in parameters:
     (parameter, remaining) = glsl_parse_parameter(ii)
     if not parameter:
-      raise RuntimeError("could not parse parameter from '%s'" % (str(map(str, ii))))
+      raise RuntimeError("could not parse parameter from '%s'" % (str(list(map(str, ii)))))
     if remaining:
-      raise RuntimeError("extra content after parameter: '%s'" % (str(map(str, remaining))))
+      raise RuntimeError("extra content after parameter: '%s'" % (str(list(map(str, remaining)))))
     ret += [parameter]
   return ret

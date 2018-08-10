@@ -31,7 +31,7 @@ class GlslBlockStatement(GlslBlock):
     """Return formatted output."""
     lst = ""
     if 0 < len(self.__content):
-      lst = "".join(map(lambda x: x.format(force), self.__content))
+      lst = "".join([x.format(force) for x in self.__content])
     return lst + self.__terminator.format(force)
 
   def getTerminator(self):
@@ -83,7 +83,7 @@ class GlslBlockStatement(GlslBlock):
         break
       content = simplify_pass(self.__content)
       if not content and self.__content:
-        raise RuntimeError("content '%s' simplified to '%s'" % (str(map(str, self.__content)), str(content)))
+        raise RuntimeError("content '%s' simplified to '%s'" % (str(list(map(str, self.__content))), str(content)))
       if content == self.__content:
         break
       self.__content = content
@@ -151,7 +151,7 @@ def simplify_pass(lst):
   if lst:
     tree = token_tree_build(lst)
     if not tree:
-      raise RuntimeError("could not build tree from '%s'" % (str(map(str, lst))))
+      raise RuntimeError("could not build tree from '%s'" % (str(list(map(str, lst)))))
     if token_tree_simplify(tree):
       return tree.flatten()
   # Nothign to simplify, just return original tree.

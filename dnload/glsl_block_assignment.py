@@ -28,8 +28,8 @@ class GlslBlockAssignment(GlslBlock):
     """Return formatted output."""
     ret = self.__name.format(force)
     if self.__modifiers:
-      ret += "".join(map(lambda x: x.format(force), self.__modifiers))
-    statements = "".join(map(lambda x: x.format(force), self._children))
+      ret += "".join([x.format(force) for x in self.__modifiers])
+    statements = "".join([x.format(force) for x in self._children])
     if not self.__assign:
       return ret + statements
     return ret + ("%s%s" % (self.__assign.format(force), statements))

@@ -17,7 +17,7 @@ class GlslBlockGroup(GlslBlock):
 
   def format(self, force):
     """Return formatted output."""
-    return "".join(map(lambda x: x.format(force), self._children))
+    return "".join([x.format(force) for x in self._children])
 
 ########################################
 # Functions ############################
