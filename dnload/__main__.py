@@ -1,6 +1,7 @@
 import argparse
 import copy
 import os
+import platform
 import re
 import shutil
 import stat
@@ -306,7 +307,7 @@ static void asm_exit(void)
 #if defined(__FreeBSD__)
   asm_exit() asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
 #elif defined(__linux__)
-  asm_exit() asm("syscall" : /* no output */ : "a"(60) : /* no clobber */);
+  asm("syscall" : /* no output */ : "a"(60) : /* no clobber */);
 #else
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
@@ -509,20 +510,20 @@ def collect_libraries_rename(op):
 
 def compress_file(compression, pretty, src, dst):
   """Compress a file to be a self-extracting file-dumping executable."""
-  str_tail = "sed 1d"
+  str_tail = "sed 1,2d"
   str_cleanup = ";exit"
   if pretty:
-    str_tail = "tail -n+2"
+    str_tail = "tail -n+3"
     str_cleanup = ";rm ~;exit"
   if "lzma" == compression:
     command = ["xz", "--format=lzma", "--lzma1=preset=9,lc=1,lp=0,nice=273,pb=0", "--stdout"]
-    header = "HOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
+    header = "#!/bin/sh\nHOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   elif "raw" == compression:
     command = ["xz", "-9", "--extreme", "--format=raw", "--stdout"]
-    header = "HOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
+    header = "#!/bin/sh\nHOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   elif "xz" == compression:
     command = ["xz", "--format=xz", "--lzma2=preset=9,lc=1,nice=273,pb=0", "--stdout"]
-    header = "HOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
+    header = "#!/bin/sh\nHOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
   else:
     raise RuntimeError("unknown compression format '%s'" % compression)
   (compressed, se) = run_command(command + [src], False)
@@ -982,14 +983,14 @@ def main():
   parser.add_argument("-L", "--library-directory", default = [], action = "append", help = "Add a library directory to be searched for libraries when linking.")
   parser.add_argument("-m", "--method", default = "maximum", choices = ("vanilla", "dlfcn", "hash", "maximum"), help = "Method to use for decreasing output file size:\n\tvanilla:\n\t\tProduce binary normally, use no tricks except unpack header.\n\tdlfcn:\n\t\tUse dlopen/dlsym to decrease size without dependencies to any specific object format.\n\thash:\n\t\tUse knowledge of object file format to perform 'import by hash' loading, but do not break any specifications.\n\tmaximum:\n\t\tUse all available techniques to decrease output file size. Resulting file may violate object file specification.\n(default: %(default)s)")
   parser.add_argument("--march", type = str, help = "When compiling code, use given architecture as opposed to autodetect.")
-  parser.add_argument("--nice-exit", action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
+  parser.add_argument("--nice-exit", default = True, action = "store_true", help = "Do not use debugger trap, exit with proper system call.")
   parser.add_argument("--nice-filedump", action = "store_true", help = "Do not use dirty tricks in compression header, also remove filedumped binary when done.")
   parser.add_argument("--no-glesv2", action = "store_true", help = "Do not probe for OpenGL ES 2.0, always assume regular GL.")
   parser.add_argument("--glsl-mode", default = "full", choices = ("none", "nosquash", "full"), help = "GLSL crunching mode.\n(default: %(default)s)")
   parser.add_argument("--glsl-inlines", default = -1, type = int, help = "Maximum number of inline operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--glsl-renames", default = -1, type = int, help = "Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
   parser.add_argument("--glsl-simplifys", default = -1, type = int, help = "Maximum number of simplify operations to do for GLSL.\n(default: unlimited)")
-  parser.add_argument("--linux", action = "store_true", help = "Try to target Linux if not in Linux. Equal to '-O linux'.")
+  parser.add_argument("--linux", default=platform.system()=='Linux', action = "store_true", help = "Try to target Linux if not in Linux. Equal to '-O linux'.")
   parser.add_argument("-o", "--output-file", default = None, help = "Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
   parser.add_argument("-O", "--operating-system", help = "Try to target given operating system insofar cross-compilation is possible.")
   parser.add_argument("-P", "--call-prefix", default = "dnload_", help = "Call prefix to identify desired calls.\n(default: %(default)s)")
