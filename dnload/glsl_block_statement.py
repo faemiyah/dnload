@@ -118,7 +118,7 @@ def glsl_parse_statement(source, explicit = True):
       if paren_count < 0:
         raise RuntimeError("negative paren parity")
       if elem.isCurlyBrace():
-        raise RuntimeError("scope declaration within statement")
+        raise RuntimeError("scope declaration within statement: %s", (str(map(lambda x: str(x), source))))
     # Statement end.
     elif (elem.format(False) in (",", ";")) and (paren_count == 0) and (bracket_count == 0):
       return (GlslBlockStatement(lst, elem), source[ii + 1:])

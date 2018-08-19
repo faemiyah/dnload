@@ -1,6 +1,7 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_block_statement import glsl_parse_statement
+from dnload.glsl_block_statement import glsl_parse_statements
 from dnload.glsl_paren import GlslParen
 
 ########################################
@@ -10,19 +11,21 @@ from dnload.glsl_paren import GlslParen
 class GlslBlockAssignment(GlslBlock):
   """Assignment block."""
 
-  def __init__(self, name, lst, assign, statement):
+  def __init__(self, name, lst, assign, children, terminator):
     """Constructor."""
     GlslBlock.__init__(self)
     self.__name = name
     self.__modifiers = lst
     self.__assign = assign
-    if self.__assign and (not statement):
-      raise RuntimeError("if assigning, must have a statement")
+    self.__terminator = terminator
+    # Error cases.
+    if self.__assign and (not children):
+      raise RuntimeError("if assigning, must have child statements")
     # Hierarchy.
     self.addNamesUsed(name)
     self.addAccesses(lst)
-    if statement:
-      self.addChildren(statement)
+    if children:
+      self.addChildren(children)
 
   def format(self, force):
     """Return formatted output."""
@@ -30,9 +33,12 @@ class GlslBlockAssignment(GlslBlock):
     if self.__modifiers:
       ret += "".join(map(lambda x: x.format(force), self.__modifiers))
     statements = "".join(map(lambda x: x.format(force), self._children))
-    if not self.__assign:
-      return ret + statements
-    return ret + ("%s%s" % (self.__assign.format(force), statements))
+    if self.__assign:
+      # Having an explicit terminator means there was a listing scope.
+      if self.__terminator:
+        return ret + ("%s{%s}%s" % (self.__assign.format(force), statements, self.__terminator.format(force)))
+      return ret + ("%s%s" % (self.__assign.format(force), statements))
+    return ret + statements
 
   def getName(self):
     """Accessor."""
@@ -46,6 +52,8 @@ class GlslBlockAssignment(GlslBlock):
 
   def getTerminator(self):
     """Accessor."""
+    if self.__terminator:
+      return self.__terminator
     if len(self._children) != 1:
       raise RuntimeError("GlslBlockAssignment::getTerminator(), child count not 1")
     return self._children[0].getTerminator()
@@ -70,23 +78,23 @@ def glsl_parse_assignment(source, explicit = True):
     return (None, source)
   # Completely empty assignment. Acceptable if not in explicit mode.
   if (not content) and (not explicit):
-    return (GlslBlockAssignment(name, None, None, None), content)
+    return (GlslBlockAssignment(name, None, None, None, None), content)
   # Empty assignment.
   (terminator, intermediate) = extract_tokens(content, ("?,|;",))
   if terminator:
     (statement, remaining) = glsl_parse_statement([terminator] + intermediate)
-    return (GlslBlockAssignment(name, None, None, statement), remaining)
+    return (GlslBlockAssignment(name, None, None, statement, None), remaining)
   # Non-empty assignment. Gather index and swizzle.
-  lst = []
+  modifiers = []
   while True:
     (index_scope, remaining) = extract_tokens(content, ("?[",))
     if index_scope:
-      lst += [GlslParen("[")] + index_scope + [GlslParen("]")]
+      modifiers += [GlslParen("[")] + index_scope + [GlslParen("]")]
       content = remaining
       continue
     (access, remaining) = extract_tokens(content, ("?a",))
     if access:
-      lst += [access]
+      modifiers += [access]
       content = remaining
       continue
     (operator, remaining) = extract_tokens(content, ("?=",))
@@ -95,11 +103,21 @@ def glsl_parse_assignment(source, explicit = True):
       break
     # Can't be an assignment.
     return (None, source)
-  # Gather statement.
+  # Try scope assignment.
+  (scope, intermediate) = extract_tokens(content, ("?{",))
+  if scope:
+    (statements, discard) = glsl_parse_statements(scope)
+    if (not statements) or discard:
+      raise RuntimeError("error parsing statements from assignment scope")
+    (terminator, remaining) = extract_tokens(intermediate, ("?,|;",))
+    if terminator:
+      return (GlslBlockAssignment(name, modifiers, operator, statements, terminator), remaining)
+  # Try statement assignment.
   (statement, remaining) = glsl_parse_statement(content, explicit)
-  if not statement:
-    return (None, source)
-  return (GlslBlockAssignment(name, lst, operator, statement), remaining)
+  if statement:
+    return (GlslBlockAssignment(name, modifiers, operator, statement, None), remaining)
+  # Not a valid assignment.
+  return (None, source)
 
 def is_glsl_block_assignment(op):
   """Tell if given object is GlslBlockAssignment."""
