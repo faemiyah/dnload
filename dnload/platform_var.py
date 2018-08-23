@@ -1,4 +1,5 @@
 import platform
+import re
 
 from dnload.common import is_verbose
 
@@ -46,10 +47,21 @@ class PlatformVar:
 # Globals ##############################
 ########################################
 
-(g_osname, g_osignore1, g_osignore2, g_osignore3, g_osarch, g_osignore4) = platform.uname()
+def determine_platform():
+  """Determines the current platform."""
+  (osname, osignore1, osignore2, osversion, osarch, osignore3) = platform.uname()
+  # Linux distributions may have more accurate rules than just being Linux.
+  if re.search(r'[-\s^]arch[-\s$]', osversion, re.I):
+    osname = "Arch"
+  return (osname, osarch)
+
+# Get actual platform names.
+(g_osname, g_osarch) = determine_platform()
 
 g_platform_mapping = {
   "amd64" : "64-bit",
+  "arch" : "Arch",
+  "Arch" : "Linux",
   "arm32l" : "32-bit",
   "armv6l" : "arm32l",
   "armv7l" : "arm32l",
@@ -79,6 +91,8 @@ g_platform_variables = {
   "memory_page" : { "32-bit" : 0x1000, "64-bit" : 0x200000 },
   "mpreferred-stack-boundary" : { "arm32l" : 0, "ia32" : 2, "64-bit" : 4 },
   "phdr_count" : { "default" : 3 },
+  "shelldrop_header" : { "Arch" : "!/bin/sh\n", "default" : "" },
+  "shelldrop_tail" : { "Arch" : "sed 1,2d", "default" : "sed 1d" },
   "start" : { "default" : "_start" },
   }
 
@@ -88,15 +102,24 @@ g_platform_variables = {
 
 def get_platform_combinations():
   """Get listing of all possible platform combinations matching current platform."""
-  mapped_osname = platform_map(g_osname.lower())
-  mapped_osarch = g_osarch.lower()
-  ret = [mapped_osname]
-  while True:
-    ret += [mapped_osarch, mapped_osname + "-" + mapped_osarch]
+  # Gather operating system name path.
+  mapped_osname = platform_map_iterate(g_osname.lower())
+  osnames = []
+  while mapped_osname:
+    osnames += [mapped_osname]
+    mapped_osname = platform_map_iterate(mapped_osname)
+  # Gather operating system architecture path.
+  mapped_osarch = g_osarch
+  osarchs = []
+  while mapped_osarch:
+    osarchs += [mapped_osarch]
     mapped_osarch = platform_map_iterate(mapped_osarch)
-    if not mapped_osarch:
-      break
-  return sorted(ret, reverse=True) + ["default"]
+  # Get permutations.
+  ret = []
+  for ii in osnames:
+    for jj in osarchs:
+      ret += ["%s-%s" % (ii, jj)]
+  return ret + osnames + osarchs + ["default"]
 
 def osarch_is_32_bit():
   """Check if the architecture is 32-bit."""

@@ -106,9 +106,9 @@ static void asm_exit(void)
   asm("int $0x3" : /* no output */ : /* no input */ : /* no clobber */);
 #elif defined(__x86_64__)
 #if defined(__FreeBSD__)
-  asm_exit() asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
+  asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
 #elif defined(__linux__)
-  asm_exit() asm("syscall" : /* no output */ : "a"(60) : /* no clobber */);
+  asm("syscall" : /* no output */ : "a"(60) : /* no clobber */);
 #else
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error

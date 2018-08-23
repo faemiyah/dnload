@@ -304,9 +304,9 @@ static void asm_exit(void)
   asm("int $0x3" : /* no output */ : /* no input */ : /* no clobber */);
 #elif defined(__x86_64__)
 #if defined(__FreeBSD__)
-  asm_exit() asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
+  asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
 #elif defined(__linux__)
-  asm_exit() asm("syscall" : /* no output */ : "a"(60) : /* no clobber */);
+  asm("syscall" : /* no output */ : "a"(60) : /* no clobber */);
 #else
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
@@ -509,20 +509,21 @@ def collect_libraries_rename(op):
 
 def compress_file(compression, pretty, src, dst):
   """Compress a file to be a self-extracting file-dumping executable."""
-  str_tail = "sed 1d"
+  str_header = PlatformVar("shelldrop_header").get()
+  str_tail = PlatformVar("shelldrop_tail").get()
   str_cleanup = ";exit"
   if pretty:
     str_tail = "tail -n+2"
     str_cleanup = ";rm ~;exit"
   if "lzma" == compression:
     command = ["xz", "--format=lzma", "--lzma1=preset=9,lc=1,lp=0,nice=273,pb=0", "--stdout"]
-    header = "HOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
+    header = "%sHOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_header, str_tail, str_cleanup)
   elif "raw" == compression:
     command = ["xz", "-9", "--extreme", "--format=raw", "--stdout"]
-    header = "HOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
+    header = "%sHOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_header, str_tail, str_cleanup)
   elif "xz" == compression:
     command = ["xz", "--format=xz", "--lzma2=preset=9,lc=1,nice=273,pb=0", "--stdout"]
-    header = "HOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_tail, str_cleanup)
+    header = "%sHOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_header, str_tail, str_cleanup)
   else:
     raise RuntimeError("unknown compression format '%s'" % compression)
   (compressed, se) = run_command(command + [src], False)
