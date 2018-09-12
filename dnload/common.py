@@ -6,6 +6,7 @@ import subprocess
 # Globals ##############################
 ########################################
 
+g_temporary_directory = None
 g_verbose = False
 
 IGNORE_PATHS = ("/lib/modules",)
@@ -146,8 +147,7 @@ def locate(pth, fn, previous_paths = None):
     for ii in os.listdir(pth):
       ret = os.path.normpath(pth + "/" + ii)
       if (isinstance(fn, str) and (ii == fn)) or ((not isinstance(fn, str)) and fn.match(ii)):
-        if os.path.isfile(ret):
-          return ret
+        return ret
       elif os.path.isdir(ret):
         real_path = os.path.realpath(ret)
         if not real_path in previous_paths:
@@ -159,6 +159,12 @@ def locate(pth, fn, previous_paths = None):
       return None
     raise ee
   return None
+
+def generate_temporary_filename(fname):
+  """Generates a temporary filename for given filename."""
+  if g_temporary_directory:
+    return g_temporary_directory + "/" + os.path.basename(fname)
+  return fname
 
 def run_command(lst, decode_output = True):
   """Run program identified by list of command line parameters."""
@@ -174,6 +180,14 @@ def run_command(lst, decode_output = True):
   if 0 != proc.returncode:
     raise RuntimeError("command failed: %i, stderr output:\n%s" % (proc.returncode, proc_stderr))
   return (proc_stdout, proc_stderr)
+
+def set_temporary_directory(op):
+  """Sets temporary directory."""
+  global g_temporary_directory
+  if (not op) or (not os.path.isdir(op)):
+    return False
+  g_temporary_directory = os.path.normpath(op)
+  return True
 
 def set_verbose(op):
   """Set verbosity status."""

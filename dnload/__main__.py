@@ -12,12 +12,14 @@ from dnload.assembler_file import AssemblerFile
 from dnload.assembler_segment import AssemblerSegment
 from dnload.common import executable_find
 from dnload.common import executable_search
+from dnload.common import generate_temporary_filename
 from dnload.common import get_indent
 from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.common import listify
 from dnload.common import locate
 from dnload.common import run_command
+from dnload.common import set_temporary_directory
 from dnload.common import set_verbose
 from dnload.compiler import Compiler
 from dnload.custom_help_formatter import CustomHelpFormatter
@@ -570,8 +572,9 @@ def find_symbols(lst):
 def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
     additional_sources = []):
   """Generate a binary using all possible tricks. Return whether or not reprocess is necessary."""
+  output_file_s = generate_temporary_filename(output_file + ".S")
   if source_file:
-    compiler.compile_asm(source_file, output_file + ".S", True)
+    compiler.compile_asm(source_file, output_file_s, True)
   segment_ehdr = AssemblerSegment(g_assembler_ehdr)
   if osarch_is_32_bit():
     segment_phdr_dynamic = AssemblerSegment(g_assembler_phdr32_dynamic)
@@ -605,10 +608,12 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     segment_dynamic.add_dt_needed(library_name)
     segment_strtab.add_strtab(library_name)
   # Assembler file generation is more complex when elfling is enabled.
+  output_file_final_s = generate_temporary_filename(output_file + ".final.S")
+  output_file_final_o = generate_temporary_filename(output_file + ".final.o")
   if elfling:
     asm = generate_elfling(output_file, compiler, elfling, definition_ld)
   else:
-    asm = AssemblerFile(output_file + ".S")
+    asm = AssemblerFile(output_file_s)
   # Additional sources may have been specified, add them.
   if additional_sources:
     for ii in range(len(additional_sources)):
@@ -616,10 +621,11 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
       additional_asm = AssemblerFile(fname)
       asm.incorporate(additional_asm)
   # Assemble content without headers to check for missing symbols.
-  if asm.write(output_file + ".S", assembler):
-    assembler.assemble(output_file + ".S", output_file + ".o")
-    extra_symbols = readelf_list_und_symbols(output_file + ".o")
-    additional_file = g_symbol_sources.compile_asm(compiler, assembler, extra_symbols, output_file + ".extra")
+  if asm.write(output_file_final_s, assembler):
+    assembler.assemble(output_file_final_s, output_file_final_o)
+    extra_symbols = readelf_list_und_symbols(output_file_final_o)
+    output_file_extra = generate_temporary_filename(output_file + ".extra")
+    additional_file = g_symbol_sources.compile_asm(compiler, assembler, extra_symbols, output_file_extra)
     # If additional code was needed, add it to our asm source.
     if additional_file:
       additional_asm = AssemblerFile(additional_file)
@@ -662,8 +668,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     asm.getSectionAlignment().create_content(assembler)
   bss_section.create_content(assembler, "end")
   # Write headers out first.
-  fname = output_file + ".final"
-  fd = open(fname + ".S", "w")
+  fd = open(output_file_final_s, "w")
   header_sizes = 0
   for ii in segments:
     ii.write(fd, assembler)
@@ -674,26 +679,33 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
   asm.write(fd, assembler)
   fd.close()
   if is_verbose():
-    print("Wrote assembler source: '%s'" % (fname + ".S"))
+    print("Wrote assembler source: '%s'" % (output_file_final_s))
   # Assemble headers
-  assembler.assemble(fname + ".S", fname + ".o")
-  link_files = [fname + ".o"]
+  assembler.assemble(output_file_final_s, output_file_final_o)
+  link_files = [output_file_final_o]
   # Link all generated files.
-  linker.generate_linker_script(output_file + ".ld", True)
-  linker.set_linker_script(output_file + ".ld")
-  linker.link_binary(link_files, output_file + ".bin")
-  run_command([objcopy, "--output-target=binary", output_file + ".bin", output_file + ".unprocessed"])
+  output_file_ld = generate_temporary_filename(output_file + ".ld")
+  output_file_bin = generate_temporary_filename(output_file + ".bin")
+  output_file_unprocessed = generate_temporary_filename(output_file + ".unprocessed")
+  output_file_stripped = generate_temporary_filename(output_file + ".stripped")
+  linker.generate_linker_script(output_file_ld, True)
+  linker.set_linker_script(output_file_ld)
+  linker.link_binary(link_files, output_file_bin)
+  run_command([objcopy, "--output-target=binary", output_file_bin, output_file_unprocessed])
   if bss_section.get_alignment():
-    readelf_zero(output_file + ".unprocessed", output_file + ".stripped")
+    readelf_zero(output_file_unprocessed, output_file_stripped)
   else:
-    readelf_truncate(output_file + ".unprocessed", output_file + ".stripped")
+    readelf_truncate(output_file_unprocessed, output_file_stripped)
 
 def generate_elfling(output_file, compiler, elfling, definition_ld):
   """Generate elfling stub."""
-  elfling.write_c_source(output_file + ".elfling.cpp", definition_ld)
-  compiler.compile_asm(output_file + ".elfling.cpp", output_file + ".elfling.S")
-  asm = AssemblerFile(output_file + ".elfling.S")
-  additional_asm = AssemblerFile(output_file + ".S")
+  output_file_s = generate_temporary_filename(output_file + ".S")
+  output_file_elfling_cpp = generate_temporary_filename(output_file + ".elfling.cpp")
+  output_file_elfling_s = generate_temporary_filename(output_file + ".elfling.S")
+  elfling.write_c_source(output_file_elfling_cpp, definition_ld)
+  compiler.compile_asm(output_file_elfling.cpp, output_file_elfling_s)
+  asm = AssemblerFile(output_file_elfling_s)
+  additional_asm = AssemblerFile(output_file_s)
   # Entry point is used as compression start information.
   elfling_align = int(PlatformVar("memory_page"))
   if elfling.has_data():
@@ -870,7 +882,7 @@ def readelf_truncate(src, dst):
   wfd.close()
 
 def readelf_zero(src, dst):
-  """Zero bytes in ELF file startiong from first PT_LOAD size."""
+  """Zero bytes in ELF file starting from first PT_LOAD size."""
   size = os.path.getsize(src)
   truncate_size = readelf_probe(src, dst, size)
   if truncate_size is None:
@@ -1001,6 +1013,7 @@ def main():
   parser.add_argument("-s", "--search-path", default = [], action = "append", help = "Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
   parser.add_argument("-S", "--strip-binary", default = None, help = "Try to use given strip executable as opposed to autodetect.")
   parser.add_argument("-t", "--target", default = "dnload.h", help = "Target header file to look for.\n(default: %(default)s)")
+  parser.add_argument("-T", "--temporary-directory", default = None, help = "Directory to store temporary files in.\n(default: autodetect)")
   parser.add_argument("-u", "--unpack-header", choices = ("lzma", "xz"), default = compression, help = "Unpack header to use.\n(default: %(default)s)")
   parser.add_argument("-v", "--verbose", action = "store_true", help = "Print more info about what is being done.")
   parser.add_argument("-V", "--version", action = "store_true", help = "Print version and exit.")
@@ -1076,6 +1089,15 @@ def main():
       source_files_glsl += [ii]
     else:
       raise RuntimeError("unknown source file: '%s'" % (ii))
+
+  # Temporary directory.
+  if not set_temporary_directory(args.temporary_directory):
+    if args.temporary_directory:
+      print("WARNING: supplied temporary directory '%s' not usable, autodetecting" % (args.temporary_directory))
+    regex_tmpdir = re.compile(r'(build|cmakefiles)', re.I)
+    found_tmpdir = locate(None, regex_tmpdir)
+    if set_temporary_directory(found_tmpdir) and is_verbose():
+      print("Using temporary directory '%s/'." % (found_tmpdir))
 
   # Find preprocessor.
   preprocessor_list = default_preprocessor_list
@@ -1335,28 +1357,38 @@ def main():
         source_files_additional)
     # Now have complete binary, may need to reprocess.
     if elfling:
-      elfling.compress(output_file + ".stripped", output_file + ".extracted")
+      output_file_stripped = generate_temporary_filename(output_file + ".stripped")
+      output_file_extracted = generate_temporary_filename(output_file + ".extracted")
+      elfling.compress(output_file_stripped, output_file_extracted)
       generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
           source_files_additional)
   elif "hash" == compilation_mode:
-    compiler.compile_asm(source_file, output_file + ".S")
-    asm = AssemblerFile(output_file + ".S")
+    output_file_s = generate_temporary_filename(output_file + ".S")
+    output_file_final_s = generate_temporary_filename(output_file + ".final.S")
+    output_file_o = generate_temporary_filename(output_file + ".o")
+    output_file_ld = generate_temporary_filename(output_file + ".ld")
+    output_file_unprocessed = generate_temporary_filename(output_file + ".unprocessed")
+    compiler.compile_asm(source_file, output_file_s)
+    asm = AssemblerFile(output_file_s)
     #asm.sort_sections()
     #asm.remove_rodata()
-    asm.write(output_file + ".final.S", assembler)
-    assembler.assemble(output_file + ".final.S", output_file + ".o")
-    linker.generate_linker_script(output_file + ".ld")
-    linker.set_linker_script(output_file + ".ld")
-    linker.link(output_file + ".o", output_file + ".unprocessed")
+    asm.write(output_file_final_s, assembler)
+    assembler.assemble(output_file_final_s, output_file_o)
+    linker.generate_linker_script(output_file_ld)
+    linker.set_linker_script(output_file_ld)
+    linker.link(output_file_o, output_file_unprocessed)
   elif "dlfcn" == compilation_mode or "vanilla" == compilation_mode:
-    compiler.compile_and_link(source_file, output_file + ".unprocessed")
+    output_file_unprocessed = generate_temporary_filename(output_file + ".unprocessed")
+    compiler.compile_and_link(source_file, output_file_unprocessed)
   else:
     raise RuntimeError("unknown compilation mode: %s" % str(compilation_mode))
+  # Potentially perform last strip, then compress.
+  output_file_stripped = generate_temporary_filename(output_file + ".stripped")
   if compilation_mode in ("vanilla", "dlfcn", "hash"):
     strip = executable_find(strip, default_strip_list, "strip")
-    shutil.copy(output_file + ".unprocessed", output_file + ".stripped")
-    run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file + ".stripped"])
-  compress_file(compression, nice_filedump, output_file + ".stripped", output_file)
+    shutil.copy(output_file_unprocessed, output_file_stripped)
+    run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file_stripped])
+  compress_file(compression, nice_filedump, output_file_stripped, output_file)
 
   return 0
 

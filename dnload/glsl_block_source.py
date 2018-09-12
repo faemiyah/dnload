@@ -1,6 +1,7 @@
 import re
 import os
 
+from dnload.common import generate_temporary_filename
 from dnload.common import is_verbose
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block_preprocessor import glsl_parse_preprocessor
@@ -107,7 +108,7 @@ class GlslBlockSource(GlslBlock):
       else:
         content += [ii]
     # Removed known preprocessor directives, write result into intermediate file.
-    fname = self.__filename + ".preprocessed"
+    fname = generate_temporary_filename(self.__filename + ".preprocessed")
     fd = open(fname, "w")
     fd.write(("\n".join(content)).strip())
     fd.close()
