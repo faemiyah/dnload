@@ -232,8 +232,22 @@ g_library_definition_m = LibraryDefinition("m", (
   ))
 
 g_library_definition_ncurses = LibraryDefinition("ncurses", (
+  ("NCURSES_EXPORT(int)", "addch", "const chtype"),
+  ("NCURSES_EXPORT(int)", "chgat", "int", "attr_t", "NCURSES_PAIRS_T", "const void*"),
+  ("NCURSES_EXPORT(int)", "curs_set", "int"),
+  ("NCURSES_EXPORT(int)", "getch"),
+  ("NCURSES_EXPORT(int)", "getmaxx", "const WINDOW*"),
+  ("NCURSES_EXPORT(int)", "getmaxy", "const WINDOW*"),
+  ("NCURSES_EXPORT(int)", "init_pair", "NCURSES_PAIRS_T", "NCURSES_COLOR_T", "NCURSES_COLOR_T"),
   ("NCURSES_EXPORT(WINDOW*)", "initscr"),
   ("NCURSES_EXPORT(int)", "endwin"),
+  ("NCURSES_EXPORT(int)", "move", "int", "int"),
+  ("NCURSES_EXPORT(int)", "mvaddch", "int", "int", "const chtype"),
+  ("NCURSES_EXPORT(int)", "mvchgat", "int", "int", "int", "attr_t", "NCURSES_PAIRS_T", "const void*"),
+  ("NCURSES_EXPORT(int)", "mvwaddch", "WINDOW*", "int", "int", "const chtype"),
+  ("NCURSES_EXPORT(int)", "refresh"),
+  ("NCURSES_EXPORT(int)", "start_color"),
+  ("NCURSES_EXPORT(int)", "wmove", "WINDOW*", "int", "int"),
   ))
 
 g_library_definition_png = LibraryDefinition("png", (
