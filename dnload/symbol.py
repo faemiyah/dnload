@@ -17,6 +17,7 @@ class Symbol:
     else:
       self.__name = lst[1]
       self.__rename = lst[1]
+    self.__symbol_table_name = "df_" + self.__name
     self.__hash = sdbm_hash(self.__name)
     self.__parameters = None
     if 2 < len(lst):
@@ -38,7 +39,7 @@ class Symbol:
     params = "void"
     if self.__parameters:
       params = ", ".join(self.__parameters)
-    return "%s (%s*%s)(%s)" % (self.__returntype, apientry, self.__name, params)
+    return "%s (%s*%s)(%s)" % (self.__returntype, apientry, self.__symbol_table_name, params)
 
   def generate_prototype(self):
     """Get function prototype for given symbol."""
@@ -60,7 +61,7 @@ class Symbol:
     """Generate definition to use with a symbol table."""
     if self.is_verbatim():
       return self.generate_rename_verbatim(prefix)
-    return "#define %s%s g_symbol_table.%s" % (prefix, self.__name, self.__name)
+    return "#define %s%s g_symbol_table.%s" % (prefix, self.__name, self.__symbol_table_name)
 
   def generate_rename_verbatim(self, prefix):
     """Generate 'rename' into itself. Used for functions that are inlined by linker."""
