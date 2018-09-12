@@ -272,12 +272,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #include <stdio.h>
 #include <stdlib.h>
 #endif
-[[INCLUDE_FREETYPE]][[INCLUDE_OPENGL]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
-#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__) 
-#define DNLOAD_MAIN SDL_main
-#else
-#define DNLOAD_MAIN main
-#endif\n
+[[INCLUDE_FREETYPE]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
 /** Macro stringification helper (adds indirection). */
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /** Macro stringification. */
@@ -359,7 +354,8 @@ static void asm_exit(void)
 #endif\n
 #if !defined([[DEFINITION_LD]])
 #if defined(__cplusplus)
-extern "C" {
+extern "C"
+{
 #endif
 /** Program entry point. */
 void _start() DNLOAD_VISIBILITY;[[UND_SYMBOLS]]
@@ -373,6 +369,10 @@ void _start() DNLOAD_VISIBILITY;[[UND_SYMBOLS]]
 g_template_include_freetype = Template("""
 #include \"ft2build.h\"
 #include FT_FREETYPE_H
+""")
+
+g_template_include_ncurses = Template("""
+#include \"ncurses.h\"
 """)
 
 g_template_include_opengl = Template("""
@@ -447,6 +447,11 @@ g_template_include_rand = Template("""
 
 g_template_include_sdl = Template("""
 #include \"SDL.h\"
+#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__)
+#define DNLOAD_MAIN SDL_main
+#else
+#define DNLOAD_MAIN main
+#endif
 """)
 
 g_template_include_sndfile = Template("""
@@ -604,9 +609,9 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     segment_dynamic.add_dt_symtab(0)
   # Add libraries.
   for ii in reversed(libraries):
-    library_name = linker.get_library_name(ii)
-    segment_dynamic.add_dt_needed(library_name)
-    segment_strtab.add_strtab(library_name)
+    for jj in listify(linker.get_library_name(ii)):
+      segment_dynamic.add_dt_needed(jj)
+      segment_strtab.add_strtab(jj)
   # Assembler file generation is more complex when elfling is enabled.
   output_file_final_s = generate_temporary_filename(output_file + ".final.S")
   output_file_final_o = generate_temporary_filename(output_file + ".final.o")
@@ -1241,6 +1246,8 @@ def main():
   subst = {}
   if symbols_has_library(symbols, "freetype"):
     subst["INCLUDE_FREETYPE"] = g_template_include_freetype.format()
+  if symbols_has_library(symbols, "ncurses"):
+    subst["INCLUDE_NCURSES"] = g_template_include_ncurses.format()
   if symbols_has_library(symbols, ("GL", "GLESv2")):
     subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({ "DEFINITION_LD" : definition_ld })
   if symbols_has_library(symbols, "png"):

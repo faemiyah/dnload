@@ -76,7 +76,10 @@ class Symbol:
 
   def get_library_name(self, linker):
     """Get linkable library object name."""
-    return linker.get_library_name(self.__library.get_name())
+    libname = linker.get_library_name(self.__library.get_name())
+    if libname != self.__library.get_name() and is_verbose():
+      print("Using shared library '%s' instead of '%s'." % (str(libname), self.__library.get_name()))
+    return libname
 
   def get_name(self):
     """Accessor."""

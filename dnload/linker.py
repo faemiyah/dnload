@@ -103,12 +103,16 @@ class Linker:
       # Check if the supposed shared library is a linker script.
       if file_is_ascii_text(current_libname):
         fd = open(current_libname, "r")
-        match = re.search(r'GROUP\s*\(\s*(\S+)\s+', fd.read(), re.MULTILINE)
+        contents = fd.read()
+        match = re.search(r'GROUP\s*\(\s*(\S+)\s+', contents, re.MULTILINE)
         fd.close()
         if match:
+          return os.path.basename(match.group(1))
+        match = re.search(r'INPUT\(\s*(\S+)(\s*-l(\S+))?\)', contents, re.MULTILINE)
+        if match:
           ret = os.path.basename(match.group(1))
-          if is_verbose():
-            print("Using shared library '%s' instead of '%s'." % (ret, libname))
+          #if match.group(2):
+          #  return [ret, "lib%s.so" % (match.group(3))]
           return ret
       # Stop at first match.
       break
