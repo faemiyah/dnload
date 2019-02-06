@@ -358,7 +358,8 @@ static const void* elf_transform_dynamic_address(const struct link_map *lmap, co
  */
 static const void* elf_get_library_dynamic_section(const struct link_map *lmap, dnload_elf_tag_t tag)
 {
-    return elf_transform_dynamic_address(lmap, elf_get_dynamic_address_by_tag(lmap->l_ld, tag));
+    const void* ptr = elf_get_dynamic_address_by_tag((const dnload_elf_dyn_t*)(lmap->l_ld), tag);
+    return elf_transform_dynamic_address(lmap, ptr);
 }
 #endif
 /** \brief Find a symbol in any of the link maps.
@@ -382,69 +383,30 @@ static void* dnload_find_symbol(uint32_t hash)
         lmap = lmap->l_next;
         {
 #if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
-            // Find symbol from link map. We need the string table and a corresponding symbol table.
-            const char* strtab = (const char*)elf_get_library_dynamic_section(lmap, DT_STRTAB);
-            const dnload_elf_sym_t *symtab = (const dnload_elf_sym_t*)elf_get_library_dynamic_section(lmap, DT_SYMTAB);
-            const uint32_t* hashtable = (const uint32_t*)elf_get_library_dynamic_section(lmap, DT_HASH);
-            unsigned dynsymcount;
-            unsigned ii;
-#if defined(__linux__)
-            if(NULL == hashtable)
+            const dnload_elf_sym_t* symtab = (const dnload_elf_sym_t*)elf_get_library_dynamic_section(lmap, DT_SYMTAB);
+            const char* strtab = (char*)elf_get_library_dynamic_section(lmap, DT_STRTAB);
+            const dnload_elf_sym_t* symtab_end = (const dnload_elf_sym_t*)strtab;
+            // If the section immediately following SYMTAB is not STRTAB, it may be something else.
             {
-                hashtable = (const uint32_t*)elf_get_library_dynamic_section(lmap, DT_GNU_HASH);
-                // DT_GNU_HASH symbol counter borrows from FreeBSD rtld-elf implementation.
-                dynsymcount = 0;
+                const dnload_elf_sym_t *potential_end = (const dnload_elf_sym_t*)elf_get_library_dynamic_section(lmap, DT_VERSYM);
+                if(potential_end < symtab_end)
                 {
-                    unsigned bucket_count = hashtable[0];
-                    const uint32_t* buckets = hashtable + 4 + ((sizeof(void*) / 4) * hashtable[2]);
-                    const uint32_t* chain_zero = buckets + bucket_count + hashtable[1];
-                    for(ii = 0; (ii < bucket_count); ++ii)
-                    {
-                        unsigned bkt = buckets[ii];
-                        if(bkt == 0)
-                        {
-                            continue;
-                        }
-                        {
-                            const uint32_t* hashval = chain_zero + bkt;
-                            do {
-                                ++dynsymcount;
-                            } while(0 == (*hashval++ & 1u));
-                        }
-                    }
+                    symtab_end = potential_end;
                 }
             }
-            else
-#endif
-            {
-                dynsymcount = hashtable[1];
-            }
-            for(ii = 0; (ii < dynsymcount); ++ii)
-            {
-                const dnload_elf_sym_t *sym = &symtab[ii];
 #else
             // Assume DT_SYMTAB dynamic entry immediately follows DT_STRTAB dynamic entry.
             // Assume DT_STRTAB memory block immediately follows DT_SYMTAB dynamic entry.
             const dnload_elf_dyn_t *dynamic = elf_get_dynamic_element_by_tag(lmap->l_ld, DT_STRTAB);
             const char* strtab = (const char*)elf_transform_dynamic_address(lmap, (const void*)(dynamic->d_un.d_ptr));
-            const dnload_elf_sym_t *sym = (const dnload_elf_sym_t*)elf_transform_dynamic_address(lmap, (const void*)((dynamic + 1)->d_un.d_ptr));
-            for(; ((void*)sym < (void*)strtab); ++sym)
+            const dnload_elf_sym_t *symtab = (const dnload_elf_sym_t*)elf_transform_dynamic_address(lmap, (const void*)((dynamic + 1)->d_un.d_ptr));
+            const dnload_elf_sym_t *symtab_end = (const dnload_elf_sym_t*)strtab;
+#endif
+            for(const dnload_elf_sym_t *sym = symtab; (sym < symtab_end); ++sym)
             {
-#endif
                 const char *name = strtab + sym->st_name;
-#if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
-                // UND symbols have valid names but no value.
-                if(!sym->st_value)
-                {
-                    continue;
-                }
-#endif
                 if(sdbm_hash((const uint8_t*)name) == hash)
                 {
-                    //if(!sym->st_value)
-                    //{
-                    //    printf("incorrect symbol in library '%s': '%s'\n", lmap->l_name, name);
-                    //}
                     return (void*)((const uint8_t*)sym->st_value + (size_t)lmap->l_addr);
                 }
             }
