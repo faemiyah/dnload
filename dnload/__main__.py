@@ -1193,7 +1193,7 @@ def main():
             target = os.path.normpath(target_file)
             target_path, target_file = os.path.split(target)
             if is_verbose():
-                print("Found header file: '%s/%s'" % (target_path, target_file))
+                print("Found header file: '%s'" % (target))
         else:
             raise RuntimeError("no information where to put header file '%s' - not found in path(s) %s" % (target, str(target_search_path)))
     # Erase contents of the header after it has been found.
