@@ -760,7 +760,7 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, ren
             glsl_path, glsl_base_filename = os.path.split(match.group(1))
             # Try with base path of source file first to limit location.
             glsl_filename = locate(src_path + glsl_path, glsl_base_filename)
-            if not glsl_filename and src_base_path:
+            if not glsl_filename:
                 glsl_filename = locate(glsl_path, glsl_base_filename)
             if not glsl_filename:
                 raise RuntimeError("could not locate GLSL source '%s'" % (glsl_base_filename))
