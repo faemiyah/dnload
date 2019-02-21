@@ -154,12 +154,30 @@ class Linker:
             print(se)
         return so
 
-    def link_binary(self, src, dst):
+    def link_binary(self, objcopy, src, dst):
         """Link a binary file with no bells and whistles."""
-        cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))] + listify(src) + ["-o", dst] + self.__linker_script + self.__linker_flags_extra
+        ld_target = dst
+        cmd = [self.__command, "--entry=" + str(PlatformVar("entry"))] + listify(src) + self.__linker_script + self.__linker_flags_extra
+        # Use objcopy if it was given.
+        if objcopy:
+            (dst_base, dst_ext) = os.path.splitext(dst)
+            dst_bin = dst_base + ".out"
+            objcopy_cmd = [objcopy, "--output-target=binary", dst_bin, dst]
+            ld_target = dst_bin
+        # Otherwise link directly into binary.
+        else:
+            cmd += ["--oformat=binary"]
+        cmd += ["-o", ld_target]
+        # Run linker command.
         (so, se) = run_command(cmd)
         if 0 < len(se) and is_verbose():
             print(se)
+        # Only run objcopy commad if it was required.
+        if objcopy:
+            (so_add, se) = run_command(objcopy_cmd)
+            if 0 < len(se) and is_verbose():
+                print(se)
+            so += so_add
         return so
 
     def set_libraries(self, lst):

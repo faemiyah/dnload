@@ -690,13 +690,14 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     link_files = [output_file_final_o]
     # Link all generated files.
     output_file_ld = generate_temporary_filename(output_file + ".ld")
-    output_file_bin = generate_temporary_filename(output_file + ".bin")
     output_file_unprocessed = generate_temporary_filename(output_file + ".unprocessed")
     output_file_stripped = generate_temporary_filename(output_file + ".stripped")
     linker.generate_linker_script(output_file_ld, True)
     linker.set_linker_script(output_file_ld)
-    linker.link_binary(link_files, output_file_bin)
-    run_command([objcopy, "--output-target=binary", output_file_bin, output_file_unprocessed])
+    # TODO: when is objcopy exactly required?
+    if True:
+        objcopy = None
+    linker.link_binary(objcopy, link_files, output_file_unprocessed)
     if bss_section.get_alignment():
         readelf_zero(output_file_unprocessed, output_file_stripped)
     else:
