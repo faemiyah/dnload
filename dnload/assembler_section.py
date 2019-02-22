@@ -31,51 +31,36 @@ class AssemblerSection:
 
     def crunch(self):
         """Remove all offending content."""
-        while True:
-            # lst = self.want_line(r'\s*\.file\s+(.*)')
-            # if lst:
-            #     self.erase(lst[0])
-            #     continue
-            # lst = self.want_line(r'\s*\.globl\s+(.*)')
-            # if lst:
-            #     self.erase(lst[0])
-            #     continue
-            # lst = self.want_line(r'\s*\.ident\s+(.*)')
-            # if lst:
-            #     self.erase(lst[0])
-            #     continue
-            # lst = self.want_line(r'\s*\.type\s+(.*)')
-            # if lst:
-            #     self.erase(lst[0])
-            #     continue
-            # lst = self.want_line(r'\s*\.size\s+(.*)')
-            # if lst:
-            #     self.erase(lst[0])
-            #    continue
-            lst = self.want_line(r'\s*\.section\s+(.*)')
-            if lst:
-                self.erase(lst[0])
-                continue
-            lst = self.want_line(r'\s*\.(bss)\s+')
-            if lst:
-                self.erase(lst[0])
-                continue
-            lst = self.want_line(r'\s*\.(data)\s+')
-            if lst:
-                self.erase(lst[0])
-                continue
-            lst = self.want_line(r'\s*\.(text)\s+')
-            if lst:
-                self.erase(lst[0])
-                continue
-            break
+        #self.crunch_align()
+        #self.crunch_redundant()
         if osarch_is_amd64():
-            self.crunch_amd64(lst)
+            self.crunch_amd64()
         elif osarch_is_ia32():
-            self.crunch_ia32(lst)
+            self.crunch_ia32()
         self.__tag = None
 
-    def crunch_amd64(self, lst):
+    def crunch_align(self):
+        """Replace all .align declarations with minimal byte alignment."""
+        desired = int(PlatformVar("align"))
+        adjustments = []
+        for ii in range(len(self.__content)):
+            line = self.__content[ii]
+            match = re.match(r'(\s*)\.align\s+(\d+).*', line)
+            if not match:
+                continue
+            # Get actual align byte count.
+            align = get_align_bytes(int(match.group(2)))
+            if align == desired:
+                continue
+            # Some alignment directives are necessary due to data access.
+            if not can_minimize_align(align):
+                continue
+            self.__content[ii] = "%s.balign %i\n" % (match.group(1), desired)
+            adjustments += ["%i -> %i" % (align, desired)]
+        if is_verbose() and adjustments:
+            print("Alignment adjustment(%s): %s" % (self.get_name(), ", ".join(adjustments)))
+
+    def crunch_amd64(self):
         """Perform platform-dependent crunching."""
         self.crunch_entry_push("_start")
         self.crunch_entry_push(ELFLING_UNCOMPRESSED)
@@ -141,7 +126,7 @@ class AssemblerSection:
         self.erase(ii, jj)
         self.__content[ii:ii] = reinstated_lines
 
-    def crunch_ia32(self, lst):
+    def crunch_ia32(self):
         """Perform platform-dependent crunching."""
         self.crunch_entry_push("_start")
         self.crunch_entry_push(ELFLING_UNCOMPRESSED)
@@ -173,6 +158,50 @@ class AssemblerSection:
                 break
             jj -= 1
 
+    def crunch_redundant(self):
+        """Remove lines that could potentially alter code generation, but are redundant."""
+        removed_lines = -1
+        while True:
+            removed_lines += 1
+            # lst = self.want_line(r'\s*\.file\s+(.*)')
+            # if lst:
+            #     self.erase(lst[0])
+            #     continue
+            # lst = self.want_line(r'\s*\.globl\s+(.*)')
+            # if lst:
+            #     self.erase(lst[0])
+            #     continue
+            # lst = self.want_line(r'\s*\.ident\s+(.*)')
+            # if lst:
+            #     self.erase(lst[0])
+            #     continue
+            # lst = self.want_line(r'\s*\.type\s+(.*)')
+            # if lst:
+            #     self.erase(lst[0])
+            #     continue
+            # lst = self.want_line(r'\s*\.size\s+(.*)')
+            # if lst:
+            #     self.erase(lst[0])
+            #    continue
+            lst = self.want_line(r'\s*\.section\s+(.*)')
+            if lst:
+                self.erase(lst[0])
+                continue
+            lst = self.want_line(r'\s*\.(bss)\s+')
+            if lst:
+                self.erase(lst[0])
+                continue
+            lst = self.want_line(r'\s*\.(data)\s+')
+            if lst:
+                self.erase(lst[0])
+                continue
+            lst = self.want_line(r'\s*\.(text)\s+')
+            if lst:
+                self.erase(lst[0])
+                continue
+            break
+        return removed_lines
+
     def empty(self):
         """Tell if this section is empty."""
         if not self.__content:
@@ -196,8 +225,6 @@ class AssemblerSection:
         found = self.extract_comm_object()
         if found:
             return AssemblerBssElement(found[0], found[1], und_symbols)
-        self.minimal_align()
-        self.crunch()
         return None
 
     def extract_comm_object(self):
@@ -293,27 +320,6 @@ class AssemblerSection:
     def merge_content(self, other):
         """Merge content with another section."""
         self.__content += other.__content
-
-    def minimal_align(self):
-        """Remove all .align declarations, replace with desired alignment."""
-        desired = int(PlatformVar("align"))
-        adjustments = []
-        for ii in range(len(self.__content)):
-            line = self.__content[ii]
-            match = re.match(r'(\s*)\.align\s+(\d+).*', line)
-            if not match:
-                continue
-            # Get actual align byte count.
-            align = get_align_bytes(int(match.group(2)))
-            if align == desired:
-                continue
-            # Some alignment directives are necessary due to data access.
-            if not can_minimize_align(align):
-                continue
-            self.__content[ii] = "%s.balign %i\n" % (match.group(1), desired)
-            adjustments += ["%i -> %i" % (align, desired)]
-        if is_verbose() and adjustments:
-            print("Alignment adjustment(%s): %s" % (self.get_name(), ", ".join(adjustments)))
 
     def replace_content(self, op):
         """Replace content of this section with content of given section."""

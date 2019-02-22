@@ -635,8 +635,9 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
         if additional_file:
             additional_asm = AssemblerFile(additional_file)
             asm.incorporate(additional_asm, re.sub(r'[\/\.]', '_', output_file + "_extra"))
-    # Sort sections after generation.
+    # Sort sections after generation, then crunch the source.
     asm.sort_sections(assembler)
+    asm.crunch()
     # May be necessary to have two PT_LOAD headers as opposed to one.
     bss_section = asm.generate_fake_bss(assembler, und_symbols, elfling)
     if 0 < bss_section.get_alignment():

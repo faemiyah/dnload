@@ -48,6 +48,11 @@ class AssemblerFile:
             section_names = map(lambda x: x.get_name(), self.__sections)
             print("%i sections in '%s': %s" % (len(self.__sections), fname, str(section_names)))
 
+    def crunch(self):
+        """Crunch sections, potentially removing dead code."""
+        for ii in self.__sections:
+            ii.crunch()
+
     def generate_fake_bss(self, assembler, und_symbols=None, elfling=None):
         """Remove local labels that would seem to generate .bss, make a fake .bss section."""
         bss = AssemblerSectionBss()
