@@ -53,6 +53,10 @@ def determine_platform():
     # Linux distributions may have more accurate rules than just being Linux.
     if re.search(r'[-\s^]arch[-\s$]', osversion, re.I):
         osname = "Arch"
+    # Extract proper FreeBSD major version from the OS version.
+    match = re.search(r'FreeBSD\s+(\d+)\.\d+', osversion)
+    if match:
+        osversion = int(match.group(1))
     return (osname, osarch, osversion)
 
 # Get actual platform names.
