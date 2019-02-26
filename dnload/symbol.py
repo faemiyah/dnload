@@ -197,12 +197,6 @@ static const dnload_elf_dyn_t* elf_get_dynamic_element_by_tag(const void *dyn, d
     const dnload_elf_dyn_t *dynamic = (const dnload_elf_dyn_t*)dyn;
     do {
         ++dynamic; // First entry in PT_DYNAMIC is probably nothing important.
-#if defined(__linux__) && defined(DNLOAD_SAFE_SYMTAB_HANDLING)
-        if(0 == dynamic->d_tag)
-        {
-            return NULL;
-        }
-#endif
     } while(dynamic->d_tag != tag);
     return dynamic;
 }
@@ -216,12 +210,6 @@ static const dnload_elf_dyn_t* elf_get_dynamic_element_by_tag(const void *dyn, d
 static const void* elf_get_dynamic_address_by_tag(const void *dyn, dnload_elf_tag_t tag)
 {
     const dnload_elf_dyn_t *dynamic = elf_get_dynamic_element_by_tag(dyn, tag);
-#if defined(__linux__) && defined(DNLOAD_SAFE_SYMTAB_HANDLING)
-    if(NULL == dynamic)
-    {
-        return NULL;
-    }
-#endif
     return (const void*)dynamic->d_un.d_ptr;
 }
 #endif
