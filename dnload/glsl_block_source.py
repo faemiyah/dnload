@@ -90,7 +90,7 @@ class GlslBlockSource(GlslBlock):
         return self.__type
 
     def hasOutputName(self):
-        return None is self.__output_name
+        return not (self.__output_name is None)
 
     def parse(self):
         """Parse code into blocks and statements."""

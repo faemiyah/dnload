@@ -88,7 +88,7 @@ class Symbol:
 
     def is_verbatim(self):
         """Tell if this symbol should never be scoured but instead used verbatim."""
-        return (None is self.__rename)
+        return (self.__rename is None)
 
     def set_library(self, lib):
         """Replace library with given library."""
