@@ -55,14 +55,14 @@ class Compiler(Linker):
         # clang and gcc have some flags in common.
         common_clang_gcc = ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-exceptions", "-fno-rtti", "-fno-threadsafe-statics", "-fomit-frame-pointer", "-funsafe-math-optimizations", "-fvisibility=hidden", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
         # Select flags based on compiler.
-        if self.command_basename_startswith("g++") or self.command_basename_startswith("gcc"):
+        if self.is_gcc():
             self.__compiler_flags += common_clang_gcc + ["-fno-enforce-eh-specs", "-fno-implicit-templates", "-fno-stack-protector", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt"]
             self.__compiler_flags_generate_asm += ["-fno-pic", "-fwhole-program"]
             # Some flags are platform-specific.
             stack_boundary = int(PlatformVar("mpreferred-stack-boundary"))
             if 0 < stack_boundary:
                 self.__compiler_flags += ["-mpreferred-stack-boundary=%i" % (stack_boundary)]
-        elif self.command_basename_startswith("clang"):
+        elif self.is_clang():
             self.__compiler_flags += common_clang_gcc
         else:
             raise RuntimeError("compilation not supported with compiler '%s'" % (self.get_command_basename()))

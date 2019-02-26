@@ -28,6 +28,7 @@ from dnload.library_definition import g_library_definitions
 from dnload.linker import Linker
 from dnload.platform_var import g_osarch
 from dnload.platform_var import g_osname
+from dnload.platform_var import g_osversion
 from dnload.platform_var import osarch_is_amd64
 from dnload.platform_var import osarch_is_32_bit
 from dnload.platform_var import osarch_is_64_bit
@@ -509,9 +510,12 @@ def collect_libraries(libraries, symbols, compilation_mode):
 def collect_libraries_rename(op):
     """Find replacement name for a library if it's problematic."""
     # TODO: Remove when FreeBSD/Linux handles libGL.so correctly.
-    if ("FreeBSD" == g_osname) or ("Linux" == g_osname):
+    if (("FreeBSD" == g_osname) and (g_osversion < 12)) or ("Linux" == g_osname):
         if "GL" == op:
             return "libGL.so.1"
+    # If there's an explicit '.so.' without a 'lib', add the 'lib'.
+    if re.search(r'\.so\.', op, re.I) and (not re.match(r'^lib', op, re.I)):
+        return "lib%s" % (op)
     return op
 
 def compress_file(compression, pretty, src, dst):

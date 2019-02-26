@@ -53,10 +53,10 @@ def determine_platform():
     # Linux distributions may have more accurate rules than just being Linux.
     if re.search(r'[-\s^]arch[-\s$]', osversion, re.I):
         osname = "Arch"
-    return (osname, osarch)
+    return (osname, osarch, osversion)
 
 # Get actual platform names.
-(g_osname, g_osarch) = determine_platform()
+(g_osname, g_osarch, g_osversion) = determine_platform()
 
 g_platform_mapping = {
     "amd64": "64-bit",

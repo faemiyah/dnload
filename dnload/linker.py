@@ -43,11 +43,11 @@ class Linker:
     def generate_linker_flags(self):
         """Generate linker command for given mode."""
         self.__linker_flags = []
-        if self.__command_basename.startswith("g++") or self.__command_basename.startswith("gcc"):
+        if self.is_gcc():
             self.__linker_flags += ["-nostartfiles", "-nostdlib", "-Xlinker", "--strip-all"]
-        elif self.__command_basename.startswith("clang"):
+        elif self.is_clang():
             self.__linker_flags += ["-nostdlib", "-Xlinker", "--strip-all"]
-        elif self.__command_basename.startswith("ld"):
+        elif self.is_ld():
             dynamic_linker = str(PlatformVar("interp"))
             if dynamic_linker.startswith("\"") and dynamic_linker.endswith("\""):
                 dynamic_linker = dynamic_linker[1:-1]
@@ -145,6 +145,24 @@ class Linker:
         if is_verbose():
             print("Wrote linker script '%s'." % (dst))
         return ld_script
+
+    def is_clang(self):
+        """Tells if the linker is considered to be clang."""
+        if self.__command_basename.startswith("clang"):
+            return True
+        return False
+
+    def is_gcc(self):
+        """Tells if the linker is considered to be gcc."""
+        if self.__command_basename.startswith("g++") or self.__command_basename.startswith("gcc"):
+            return True
+        return False
+
+    def is_ld(self):
+        """Tells if the linker is considered to be ld."""
+        if self.__command_basename.startswith("ld"):
+            return True
+        return False
 
     def link(self, src, dst, extra_args=[]):
         """Link a file."""

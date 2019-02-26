@@ -103,7 +103,7 @@ def is_verbose():
 
 def labelify(op):
     """Take string as input. Convert into string that passes as label."""
-    return re.sub(r'[\/\.]', '_', op)
+    return re.sub(r'[\/\.\-]', '_', op)
 
 def listify(lhs, rhs=None):
     """Make a list of one or two elements if reasonable."""

@@ -31,8 +31,8 @@ class AssemblerSection:
 
     def crunch(self):
         """Remove all offending content."""
-        #self.crunch_align()
-        #self.crunch_redundant()
+        self.crunch_align()
+        self.crunch_redundant()
         if osarch_is_amd64():
             self.crunch_amd64()
         elif osarch_is_ia32():
@@ -85,16 +85,12 @@ class AssemblerSection:
         ii = lst[0] + 1
         jj = ii
         stack_decrement = 0
-        stack_save_decrement = 0
         reinstated_lines = []
         while True:
             current_line = self.__content[jj]
             match = re.match(r'\s*(push\w).*%(\w+)', current_line, re.IGNORECASE)
             if match:
-                if is_stack_save_register(match.group(2)):
-                    stack_save_decrement += get_push_size(match.group(1))
-                else:
-                    stack_decrement += get_push_size(match.group(1))
+                stack_decrement += get_push_size(match.group(1))
                 jj += 1
                 continue
             # Preserve comment lines as they are.
@@ -103,11 +99,11 @@ class AssemblerSection:
                 reinstated_lines += [current_line]
                 jj += 1
                 continue
-            # Saving stack pointer or sometimes initializing edx seem to be within pushing.
-            match = re.match(r'\s*mov\w\s+%\w+,\s*%(rbp|ebp|edx).*', current_line, re.IGNORECASE)
+            # Saving stack pointer or sometimes initializing ebx/edx seem to be within pushing.
+            # For an unknown reason, this must reset the stack decrement.
+            match = re.match(r'\s*(lea|mov)\w\s+\S+\S+,\s*%(rbp|rbx|ebp|edx).*', current_line, re.IGNORECASE)
             if match:
-                if is_stack_save_register(match.group(1)):
-                    stack_save_decrement = 0
+                stack_decrement = 0
                 reinstated_lines += [current_line]
                 jj += 1
                 continue
@@ -116,15 +112,19 @@ class AssemblerSection:
                 reinstated_lines += [current_line]
                 jj += 1
                 continue
+            # Stop at stack decrement.
             match = re.match(r'\s*sub.*\s+[^\d]*(\d+),\s*%(rsp|esp)', current_line, re.IGNORECASE)
             if match:
-                total_decrement = int(match.group(1)) + stack_decrement + stack_save_decrement
+                total_decrement = int(match.group(1)) + stack_decrement
                 self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
+                break
+            # Do nothing if suspicious instruction is found.
+            if is_verbose():
+                print("Unknown header instruction found, aborting erase: '%s'" % (current_line.strip()))
             break
         if is_verbose():
             print("Erasing function header from '%s': %i lines" % (op, jj - ii - len(reinstated_lines)))
-        self.erase(ii, jj)
-        self.__content[ii:ii] = reinstated_lines
+        self.__content[ii:jj] = reinstated_lines
 
     def crunch_ia32(self):
         """Perform platform-dependent crunching."""
@@ -394,8 +394,8 @@ def is_reinstate_line(op):
     match = re.match(r'\s*xor.*\s+%(\S+)\s?,.*', op, re.IGNORECASE)
     if match:
         return True
-    # Moving labels into registers.
-    match = re.match(r'\s*mov\w\s+\$[a-zA-Z_]\S*,\s+%\w+$', op, re.IGNORECASE)
+    # Moving labels (possibly with offsets) into registers.
+    match = re.match(r'\s*(lea|mov)\w\s+[\$]?[a-zA-Z_]\S+,\s+%\w+$', op, re.IGNORECASE)
     if match:
         return True
     return False
