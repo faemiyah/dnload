@@ -90,20 +90,14 @@ class AssemblerSection:
             current_line = self.__content[jj]
             match = re.match(r'\s*(push\w).*%(\w+)', current_line, re.IGNORECASE)
             if match:
-                stack_decrement += get_push_size(match.group(1))
+                # For an unknown reason, some registers should not be counted.
+                if not is_stack_save_register(match.group(2)):
+                    stack_decrement += get_push_size(match.group(1))
                 jj += 1
                 continue
             # Preserve comment lines as they are.
             match = re.match(r'^\s*[#;].*', current_line, re.IGNORECASE)
             if match:
-                reinstated_lines += [current_line]
-                jj += 1
-                continue
-            # Saving stack pointer or sometimes initializing ebx/edx seem to be within pushing.
-            # For an unknown reason, this must reset the stack decrement.
-            match = re.match(r'\s*(lea|mov)\w\s+\S+\S+,\s*%(rbp|rbx|ebp|edx).*', current_line, re.IGNORECASE)
-            if match:
-                stack_decrement = 0
                 reinstated_lines += [current_line]
                 jj += 1
                 continue
