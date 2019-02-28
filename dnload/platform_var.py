@@ -51,7 +51,7 @@ def determine_platform():
     """Determines the current platform."""
     (osname, _, osrelease, osversion, osarch, _) = platform.uname()
     # Linux distributions may have more accurate rules than just being Linux.
-    if re.search(r'(arch|manjaro|antergos)', osversion + osarch, re.I):
+    if re.search(r'(arch|manjaro|antergos|parabola)', osversion + osarch, re.I):
         osname = "Arch"
     # Extract proper FreeBSD major version from the OS version.
     match = re.search(r'FreeBSD\s+(\d+)\.\d+', osversion)

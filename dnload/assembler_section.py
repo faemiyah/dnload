@@ -110,6 +110,9 @@ class AssemblerSection:
             match = re.match(r'\s*sub.*\s+[^\d]*(\d+),\s*%(rsp|esp)', current_line, re.IGNORECASE)
             if match:
                 total_decrement = int(match.group(1)) + stack_decrement
+                # align the stack
+                if (total_decrement & 0xF) != 0:
+                    total_decrement += 0x10 - (total_decrement & 0xF)
                 self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
                 break
             # Do nothing if suspicious instruction is found.
