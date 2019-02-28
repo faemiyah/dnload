@@ -474,19 +474,18 @@ void *__progname DNLOAD_VISIBILITY;
 
 def collect_libraries(libraries, symbols, compilation_mode):
     """Collect libraries to link against from symbols given."""
+    # Collect suggested set of libraries.
+    library_set = set()
+    for ii in symbols:
+        library_set = library_set.union(set([ii.get_library().get_name()]))
+    # If nothing was provided, use suggested set of libraries.
     if not libraries:
         if "dlfcn" == compilation_mode:
             raise RuntimeError("cannot autodetect libraries for compilation mode '%s'" % compilation_mode)
-        library_set = set()
-        for ii in symbols:
-            library_set = library_set.union(set([ii.get_library().get_name()]))
         libraries = list(library_set)
         output_message = "Autodetected libraries to link against: "
+    # If libraries were given, warn if something seems to be missing.
     else:
-        # Warn if libraries seem to be missing something.
-        library_set = set()
-        for ii in symbols:
-            library_set = library_set.union(set([ii.get_library().get_name()]))
         missing_libraries = library_set.difference(set(libraries))
         if missing_libraries:
             print("WARNING: found symbols suggest libraries: %s" % (str(list(missing_libraries))))
@@ -500,7 +499,7 @@ def collect_libraries(libraries, symbols, compilation_mode):
             front += [ii]
     # Only use renamed library names if constructing the header manually.
     if "maximum" == compilation_mode:
-        ret = map(lambda x: collect_libraries_rename(x), front + sorted(libraries))
+        ret = list(map(lambda x: collect_libraries_rename(x), front + sorted(libraries)))
     else:
         ret = front + sorted(libraries)
     if is_verbose():
@@ -1354,7 +1353,7 @@ def main():
             print("Using output file '%s' after source file '%s'." % (output_file, source_file))
 
     source_file = source_files[0]
-    libraries = list(collect_libraries(libraries, real_symbols, compilation_mode))
+    libraries = collect_libraries(libraries, real_symbols, compilation_mode)
     compiler.generate_compiler_flags()
     compiler.generate_linker_flags()
     compiler.set_libraries(libraries)

@@ -3,6 +3,7 @@ import re
 from dnload.assembler_bss_element import AssemblerBssElement
 from dnload.common import is_verbose
 from dnload.elfling import ELFLING_UNCOMPRESSED
+from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osarch_is_ia32
 from dnload.platform_var import osarch_is_amd64
 from dnload.platform_var import PlatformVar
@@ -90,9 +91,7 @@ class AssemblerSection:
             current_line = self.__content[jj]
             match = re.match(r'\s*(push\w).*%(\w+)', current_line, re.IGNORECASE)
             if match:
-                # For an unknown reason, some registers should not be counted.
-                if not is_stack_save_register(match.group(2)):
-                    stack_decrement += get_push_size(match.group(1))
+                stack_decrement += get_push_size(match.group(1))
                 jj += 1
                 continue
             # Preserve comment lines as they are.
@@ -110,8 +109,8 @@ class AssemblerSection:
             match = re.match(r'\s*sub.*\s+[^\d]*(\d+),\s*%(rsp|esp)', current_line, re.IGNORECASE)
             if match:
                 total_decrement = int(match.group(1)) + stack_decrement
-                # align the stack
-                if (total_decrement & 0xF) != 0:
+                # As per gcc ABI, align to 16 bytes on 64-bit architectures.
+                if osarch_is_64_bit() and ((total_decrement & 0xF) != 0):
                     total_decrement += 0x10 - (total_decrement & 0xF)
                 self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
                 break

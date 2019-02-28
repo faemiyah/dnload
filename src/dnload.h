@@ -387,8 +387,9 @@ static void* dnload_find_symbol(uint32_t hash)
             // Assume DT_STRTAB memory block immediately follows DT_SYMTAB dynamic entry.
             const dnload_elf_dyn_t *dynamic = elf_get_dynamic_element_by_tag(lmap->l_ld, DT_STRTAB);
             const char* strtab = (const char*)elf_transform_dynamic_address(lmap, (const void*)(dynamic->d_un.d_ptr));
-            const dnload_elf_sym_t *symtab = (const dnload_elf_sym_t*)elf_transform_dynamic_address(lmap, (const void*)((dynamic + 1)->d_un.d_ptr));
             const dnload_elf_sym_t *symtab_end = (const dnload_elf_sym_t*)strtab;
+            ++dynamic;
+            const dnload_elf_sym_t *symtab = (const dnload_elf_sym_t*)elf_transform_dynamic_address(lmap, (const void*)(dynamic->d_un.d_ptr));
 #endif
             for(const dnload_elf_sym_t *sym = symtab; (sym < symtab_end); ++sym)
             {
