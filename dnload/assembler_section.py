@@ -71,7 +71,7 @@ class AssemblerSection:
             ii = lst[0] + 1
             jj = ii
             while True:
-                if len(self.__content) <= jj or re.match(r'\s*\S+\:\s*', self.__content[jj]):
+                if (jj >= len(self.__content)) or (not can_erase_footer(self.__content[jj])):
                     if is_verbose():
                         print("Erasing function footer after '%s': %i lines" % (lst[1], jj - ii))
                     self.erase(ii, jj)
@@ -360,6 +360,17 @@ class AssemblerSection:
 ########################################
 # Functions ############################
 ########################################
+
+def can_erase_footer(op):
+    """Check if a line in footer can be erased."""
+    # Label.
+    if re.match(r'\s*\S+\:\s*', op):
+        return False
+    # Local variable block for .bss.
+    if re.match(r'\s*\.(comm|local)\s+\S+', op, re.I):
+        return False
+    # Accept everything else.
+    return True
 
 def can_minimize_align(op):
     """Check if alignment directive can be minimized."""
