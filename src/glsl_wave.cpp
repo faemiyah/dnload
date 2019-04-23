@@ -102,6 +102,7 @@ std::string glsl_wave_preprocess(const std::string &op)
   // Preprocess with wave.
   std::ostringstream preprocessed;
   wave_context ctx(source.cbegin(), source.cend(), "Boost::Wave GLSL;");
+  ctx.add_macro_definition("USE_LD");
   for(wave_context::iterator_type ii = ctx.begin(), ee = ctx.end(); (ii != ee); ++ii)
   {
     preprocessed << ii->get_value();

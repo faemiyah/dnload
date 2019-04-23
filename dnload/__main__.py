@@ -1341,10 +1341,6 @@ def main():
     # Determine output file.
     if output_file:
         output_file = os.path.normpath(output_file)
-        output_path, output_basename = os.path.split(output_file)
-        if output_basename == output_file:
-            output_path = target_path
-        output_file = os.path.normpath(os.path.join(output_path, output_basename))
     else:
         output_path, output_basename = os.path.split(source_files[0])
         output_basename, source_extension = os.path.splitext(output_basename)
