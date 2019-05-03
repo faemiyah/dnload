@@ -131,6 +131,7 @@ static void asm_exit(void)
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
 #endif
+    __builtin_unreachable();
 }
 #endif
 
