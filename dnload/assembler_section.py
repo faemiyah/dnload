@@ -3,6 +3,7 @@ import re
 from dnload.assembler_bss_element import AssemblerBssElement
 from dnload.common import is_verbose
 from dnload.elfling import ELFLING_UNCOMPRESSED
+from dnload.platform_var import g_osarch
 from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osarch_is_ia32
 from dnload.platform_var import osarch_is_amd64
@@ -34,10 +35,10 @@ class AssemblerSection:
         """Remove all offending content."""
         self.crunch_align()
         self.crunch_redundant()
-        if osarch_is_amd64():
-            self.crunch_amd64()
-        elif osarch_is_ia32():
-            self.crunch_ia32()
+        if osarch_is_amd64() or osarch_is_ia32():
+            self.crunch_amd64_ia32()
+        elif is_verbose():
+            print("WARNING: no platform-dependent crunch for architecture '%s'" % g_osarch)
         self.__tag = None
 
     def crunch_align(self):
@@ -61,12 +62,12 @@ class AssemblerSection:
         if is_verbose() and adjustments:
             print("Alignment adjustment(%s): %s" % (self.get_name(), ", ".join(adjustments)))
 
-    def crunch_amd64(self):
+    def crunch_amd64_ia32(self):
         """Perform platform-dependent crunching."""
         self.crunch_entry_push("_start")
         self.crunch_entry_push(ELFLING_UNCOMPRESSED)
         self.crunch_jump_pop(ELFLING_UNCOMPRESSED)
-        lst = self.want_line(r'\s*(int\s+\$0x3|syscall)\s+.*')
+        lst = self.want_line(r'\s*(int\s+\$(0x3|0x80)|syscall)\s+.*')
         if lst:
             ii = lst[0] + 1
             jj = ii
@@ -121,23 +122,6 @@ class AssemblerSection:
         if is_verbose():
             print("Erasing function header from '%s': %i lines" % (op, jj - ii - len(reinstated_lines)))
         self.__content[ii:jj] = reinstated_lines
-
-    def crunch_ia32(self):
-        """Perform platform-dependent crunching."""
-        self.crunch_entry_push("_start")
-        self.crunch_entry_push(ELFLING_UNCOMPRESSED)
-        self.crunch_jump_pop(ELFLING_UNCOMPRESSED)
-        lst = self.want_line(r'\s*int\s+\$(0x3|0x80)\s+.*')
-        if lst:
-            ii = lst[0] + 1
-            jj = ii
-            while True:
-                if len(self.__content) <= jj or re.match(r'\s*\S+\:\s*', self.__content[jj]):
-                    if is_verbose():
-                        print("Erasing function footer after interrupt '%s': %i lines" % (lst[1], jj - ii))
-                    self.erase(ii, jj)
-                    break
-                jj += 1
 
     def crunch_jump_pop(self, op):
         """Crunch popping before a jump."""
