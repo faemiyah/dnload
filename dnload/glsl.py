@@ -14,6 +14,7 @@ from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
 from dnload.glsl_block_uniform import is_glsl_block_uniform
 from dnload.glsl_name import is_glsl_name
+from dnload.glsl_source_chain import GlslSourceChain
 
 ########################################
 # Glsl #################################
@@ -24,6 +25,7 @@ class Glsl:
 
     def __init__(self):
         """Constructor."""
+        self.__chains = []
         self.__sources = []
 
     def count(self):
@@ -239,12 +241,35 @@ class Glsl:
 
     def parse(self):
         """Parse all source files."""
+        # First, assemble glsl chains.
+        common_chains = ("all", "common")
+        source_dict = {}
+        for ii in self.__sources:
+            chain_name = ii.getChainName()
+            if (not chain_name) or (chain_name in common_chains):
+                continue
+            if chain_name in source_dict:
+                source_dict[chain_name].addSource(ii)
+            else:
+                source_dict[chain_name] = GlslSourceChain(ii)
+        for ii in self.__sources:
+            chain_name = ii.getChainName()
+            if not chain_name:
+                continue
+            if chain_name in common_chains:
+                for jj in source_dict.keys():
+                    source_dict[jj].addSource(ii)
+        self.__chains = source_dict.values()
+        if is_verbose():
+            print("GLSL source chains: %s" % (" ; ".join(map(lambda x: str(x), self.__chains))))
+        # Run parse process on sources.
         for ii in self.__sources:
             ii.parse()
 
     def read(self, preprocessor, definition_ld, filename, varname, output_name=None):
         """Read source file."""
-        self.__sources += [glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)]
+        src = glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)
+        self.__sources += [src]
 
     def renameBlock(self, block, target_name=None):
         """Rename block type."""

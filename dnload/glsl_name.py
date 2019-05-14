@@ -3,7 +3,7 @@ from dnload.common import is_verbose
 from dnload.glsl_type import interpret_type
 
 ########################################
-# GlslType #############################
+# GlslName #############################
 ########################################
 
 class GlslName:

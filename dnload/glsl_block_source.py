@@ -47,15 +47,19 @@ class GlslBlockSource(GlslBlock):
         self.detectType()
 
     def detectType(self):
-        """Try to detect type from filename."""
+        """Try to detect chain name and type from filename."""
+        self.__chain = None
         self.__type = None
-        stub = r'.*[._\-\s]%s[._\-\s].*'
-        if re.match(stub % ("frag"), self.__filename, re.I) or re.match(stub % ("fragment"), self.__filename, re.I):
-            self.__type = "fragment"
-        elif re.match(stub % ("geom"), self.__filename, re.I) or re.match(stub % ("geometry"), self.__filename, re.I):
-            self.__type = "geometry"
-        elif re.match(stub % ("vert"), self.__filename, re.I) or re.match(stub % ("vertex"), self.__filename, re.I):
-            self.__type = "vertex"
+        match = re.match(r'(.*)[._\-\s](\S+)[._\-\s].*', self.__filename, re.I)
+        if match:
+            self.__chain = match.group(1).lower()
+            shader_type = match.group(2).lower()
+            if shader_type in ("frag", "fragment"):
+                self.__type = "fragment"
+            elif shader_type in ("geom", "geometry"):
+                self.__type = "geometry"
+            elif shader_type in ("vert", "vertex"):
+                self.__type = "vertex"
         if is_verbose():
             output_message = "Shader file '%s' type" % (self.__filename)
             if self.__type:
@@ -80,6 +84,10 @@ class GlslBlockSource(GlslBlock):
         ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
         subst = {"SOURCE": ret, "VARIABLE_NAME": self.__variable_name}
         return g_template_glsl_print.format(subst)
+
+    def getChainName(self):
+        """Accessor."""
+        return self.__chain
 
     def getFilename(self):
         """Accessor."""
@@ -138,6 +146,15 @@ class GlslBlockSource(GlslBlock):
         if is_verbose():
             print("Wrote GLSL header: '%s' => '%s'" % (self.__variable_name, self.__output_name))
 
+    def __lt__(lhs, rhs):
+        lhs_chain = lhs.getChainName()
+        rhs_chain = rhs.getChainName()
+        if not lhs_chain and rhs_chain:
+            return False
+        elif lhs_chain and (not rhs_chain):
+            return True
+        return glsl_file_type_value(lhs.getType()) < glsl_file_type_value(rhs.getType())
+
     def __str__(self):
         return "Source('%s' => '%s')" % (self.__output_name, self.__variable_name)
 
@@ -174,6 +191,16 @@ def glsl_cstr_readable(op):
     if line:
         ret += [line]
     return ret
+
+def glsl_file_type_value(op):
+    """Gets file type value for given file type."""
+    if op == "vertex":
+        return 0
+    elif op == "geometry":
+        return 1
+    elif op == "fragment":
+        return 2
+    raise RuntimeError("unknown GLSL file type: %s" % (op))
 
 def glsl_read_source(preprocessor, definition_ld, filename, varname, output_name):
     """Read source into a GLSL source construct."""
