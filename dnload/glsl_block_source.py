@@ -147,6 +147,7 @@ class GlslBlockSource(GlslBlock):
             print("Wrote GLSL header: '%s' => '%s'" % (self.__variable_name, self.__output_name))
 
     def __lt__(lhs, rhs):
+        """Comparison operator."""
         lhs_chain = lhs.getChainName()
         rhs_chain = rhs.getChainName()
         if not lhs_chain and rhs_chain:
@@ -211,3 +212,8 @@ def glsl_read_source(preprocessor, definition_ld, filename, varname, output_name
 def is_glsl_block_source(op):
     """Tell if given object is a GLSL source block."""
     return isinstance(op, GlslBlockSource)
+
+def assert_glsl_block_source(op):
+    """Asserts that given object is a GLSL source block."""
+    if not is_glsl_block_source(op):
+        raise RuntimeError("%s is not of type GlslBlockSource" % (str(op)))

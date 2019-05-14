@@ -1,4 +1,5 @@
 from dnload.common import is_verbose
+from dnload.glsl_block_source import assert_glsl_block_source
 from dnload.glsl_block_source import is_glsl_block_source
 
 ########################################
@@ -15,9 +16,13 @@ class GlslSourceChain:
 
     def addSource(self, op):
         """Adds a source block."""
-        if not is_glsl_block_source(op):
-            raise RuntimeError("not a GLSL source block: %s" % (str(op)))
+        assert_glsl_block_source(op)
         self.__sources = sorted(self.__sources + [op])
+
+    def hasSource(self, op):
+        """Tests if given source block is contained within this source chain."""
+        assert_glsl_block_source(op)
+        return op in self.__sources
 
     def __str__(self):
         """String representation."""

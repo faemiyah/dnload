@@ -14,6 +14,7 @@ from dnload.glsl_float import interpret_float
 from dnload.glsl_float import is_glsl_float
 from dnload.glsl_name import interpret_name
 from dnload.glsl_name import is_glsl_name
+from dnload.glsl_name_strip import GlslNameStrip
 from dnload.glsl_operator import interpret_operator
 from dnload.glsl_operator import is_glsl_operator
 from dnload.glsl_paren import interpret_paren
@@ -133,50 +134,39 @@ class GlslBlock:
             for name in vv.getDeclaredNames():
                 if name.isLocked():
                     continue
-                array = vv.collectRecursive(name)
+                name_strip = GlslNameStrip(vv, name)
+                vv.collectRecursive(name_strip)
                 for jj in range(ii + 1, len(self._children)):
                     ww = self._children[jj]
-                    if ww.hasDeclaredName(name):
+                    if ww.collectAppend(name_strip):
                         break
-                    array += ww.collectRecursive(name)
-                if not array:
+                if name_strip.getNameCount() <= 1:
                     raise RuntimeError("identifier '%s' never referenced" % (name))
-                ret += [[vv] + array]
+                ret += [name_strip]
             ret += vv.collect()
         return ret
 
     def collectAppend(self, op):
-        """Append into already-collected list of identifiers."""
-        # Reference name
-        name = op[1]
+        """Append into an existing name strip."""
         # Break if the name is declared, instruct upper level to break also.
-        if self.hasDeclaredName(name):
+        if self.hasDeclaredName(op.getName()):
             return True
-        for ii in self.__names_used:
-            if name == ii:
-                op.append(ii)
-        # Iterate children. Break iteration if a child declares the name.
-        for ii in self._children:
-            if ii.collectAppend(op):
-                return False
+        self.collectRecursive(op)
         return False
 
-    def collectRecursive(self, name):
-        """Collect all uses of given name recursively."""
-        ret = self.collectUsed(name)
+    def collectRecursive(self, op):
+        """Recursively collect all further uses of given."""
+        self.collectUsed(op)
         for ii in self._children:
-            if ii.hasDeclaredName(name):
-                return ret
-            ret += ii.collectRecursive(name)
-        return ret
+            if ii.hasDeclaredName(op.getName()):
+                return
+            ii.collectRecursive(op)
 
-    def collectUsed(self, name):
-        """Collect all uses of given name."""
-        ret = []
+    def collectUsed(self, op):
+        """Collect all further uses into given name strip."""
         for ii in self.__names_used:
-            if name == ii:
-                ret += [ii]
-        return ret
+            if ii == op.getName():
+                op.addName(ii)
 
     def expand(self):
         """Default implementation of expand, returns node itself."""

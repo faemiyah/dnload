@@ -196,7 +196,10 @@ class Glsl:
             if ii.getType():
                 collected += ii.collect()
         # Merge multiple matching inout names.
-        merged = sorted(merge_collected_names(collected), key=len, reverse=True)
+        merged = sorted(self.mergeCollectedNames(collected), reverse=True)
+        for ii in merged:
+            print(str(ii))
+        sys.exit(0)
         # Collect all member accesses for members and set them to the blocks.
         for ii in merged:
             block = ii[0]
@@ -238,6 +241,59 @@ class Glsl:
                 if not self.hasNameConflict(block, name):
                     return name
             ii += 1
+
+    def mergeCollectedNames(self, lst):
+        """Merge all matching names in the list of collected names."""
+        # Merge functions with the same name (overrides) and inout blocks.
+        ret = []
+        for ii in lst:
+            block = ii.getBlock()
+            print("checking %s %s" % (str(ii), str(block)))
+            if is_glsl_block_function(block) or is_glsl_block_inout(block):
+                found = False
+                for jj in ret:
+                    if self.mergeCollectedNamesTest(ii, jj):
+                        found = True
+                        break
+                # Do not add to array if already merged into it.
+                if found:
+                    continue
+            ret += [ii]
+        # Set proper type information for all elements.
+        for ii in ret:
+            ii.updateNameTypes()
+        return ret
+
+    def mergeCollectedNamesSourceTest(self, lhs, rhs):
+        """Test that sources are compatible for testing between name strips."""
+        lhs_source = lhs.getSource()
+        rhs_source = rhs.getSource()
+        lhs_chain = lhs_source.getChainName()
+        rhs_chain = rhs_source.getChainName()
+        # Can always merge to/from common headers.
+        if (not lhs_chain) or (not rhs_chain):
+            return True
+        # Look for existence in same chain.
+        for ii in self.__chains:
+            if ii.hasSource(lhs_source) and ii.hasSource(rhs_source):
+                return True
+        return False
+
+    def mergeCollectedNamesTest(self, lhs, rhs):
+        """Try to merge two name strips."""
+        lhs_block = lhs.getBlock()
+        rhs_block = rhs.getBlock()
+        # Function overload merge.
+        if is_glsl_block_function(lhs_block) and is_glsl_block_function(rhs_block):
+            if self.mergeCollectedNamesSourceTest(lhs, rhs):
+                lhs.merge(rhs)
+                return True
+        # Inout merge.
+        if is_glsl_block_inout(lhs_block) and is_glsl_block_inout(rhs_block):
+            if self.mergeCollectedNamesSourceTest(lhs, rhs) and lhs_block.isMergableWith(rhs_block):
+                lhs.appendTo(rhs)
+                return True
+        return False
 
     def parse(self):
         """Parse all source files."""
@@ -494,90 +550,6 @@ def is_inline_name(op):
     if re.match(r'^i_.*$', op.getName(), re.I):
         return True
     return False
-
-def merge_collected_name_lists(lst1, lst2):
-    """Merge two collected names lists."""
-    if is_listing(lst2[0]):
-        raise RuntimeError("expected non-listing as first element of collected name list 2, got: %s" % (str(lst2[0])))
-    if is_listing(lst1[0]):
-        ret = [lst1[0] + [lst2[0]]]
-    else:
-        ret = [[lst1[0], lst2[0]]]
-    ret += lst1[1:]
-    # It is possible both listings contain some exact same following values, do not simply catenate.
-    for ii in lst2[1:]:
-        found = False
-        for jj in ret[1:]:
-            if ii is jj:
-                found = True
-                break
-        if not found:
-            ret += [ii]
-    return ret
-
-def merge_collected_names_inout(lst):
-    """Merge inout blocks from given list of names."""
-    ret = []
-    for ii in lst:
-        if is_glsl_block_inout(ii[0]):
-            found = False
-            for jj in range(len(ret)):
-                vv = ret[jj]
-                block = vv[0]
-                if is_listing(block):
-                    block = block[0]
-                if is_glsl_block_inout(block) and block.isMergableWith(ii[0]):
-                    if ii[1] != ii[0].getName():
-                        raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (ii[1], ii[0].getName()))
-                    if vv[1] != block.getName():
-                        raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (vv[1], vv[0].getName()))
-                    ret[jj] = merge_collected_name_lists(vv, ii)
-                    found = True
-                    break
-            if found:
-                continue
-        ret += [ii]
-    return ret
-
-def merge_collected_names_function(lst):
-    """Merge inout blocks from given list of names."""
-    ret = []
-    for ii in lst:
-        if is_glsl_block_function(ii[0]):
-            found = False
-            for jj in range(len(ret)):
-                vv = ret[jj]
-                block = vv[0]
-                if is_listing(block):
-                    block = block[0]
-                if is_glsl_block_function(block) and (block.getName() == ii[0].getName()):
-                    ret[jj] = merge_collected_name_lists(vv, ii)
-                    found = True
-                    break
-            if found:
-                continue
-        ret += [ii]
-    return ret
-
-def merge_collected_names(lst):
-    """Merge different matching lists in collected names."""
-    # Merge functions with the same name (overrides) and inout blocks.
-    lst1 = merge_collected_names_inout(lst)
-    ret = merge_collected_names_function(lst1)
-    # Set proper type information for all elements.
-    for ii in ret:
-        typeid = None
-        for jj in ii[1:]:
-            found_type = jj.getType()
-            if found_type:
-                if typeid and (typeid != found_type):
-                    if is_listing(ii[0]):
-                        raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0][0]), str([str(typeid), str(found_type)])))
-                    raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0]), str([str(typeid), str(found_type)])))
-                typeid = found_type
-        for jj in ii[1:]:
-            jj.setType(typeid)
-    return ret
 
 def find_parent_scope(block):
     """Find parent scope block for given block."""
