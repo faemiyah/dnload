@@ -140,8 +140,6 @@ class GlslBlock:
                     ww = self._children[jj]
                     if ww.collectAppend(name_strip):
                         break
-                if name_strip.getNameCount() <= 1:
-                    raise RuntimeError("identifier '%s' never referenced" % (name))
                 ret += [name_strip]
             ret += vv.collect()
         return ret

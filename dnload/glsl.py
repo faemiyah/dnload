@@ -69,6 +69,10 @@ class Glsl:
                     break
                 # Do another inlining round.
                 inlines += 1
+            # Check that no name is unreferenced.
+            for ii in merged:
+                if ii.getNameCount() <= 1:
+                    print("WARNING: identifier '%s' never referenced" % (ii.getName().getName()))
             # Perform simplification passes.
             simplifys = 0
             for ii in self.__sources:
@@ -193,19 +197,19 @@ class Glsl:
             if ii.getType():
                 collected += ii.collect()
         # Merge multiple matching inout names.
-        merged = sorted(self.mergeCollectedNames(collected), reverse=True)
+        ret = sorted(self.mergeCollectedNames(collected), reverse=True)
         # Collect all member accesses for members and set them to the blocks.
-        for ii in merged:
+        for ii in ret:
             block = ii.getBlock()
             if not (is_glsl_block_inout_struct(block) or is_glsl_block_struct(block)):
                 continue
             lst = ii.collectMemberAccesses()
             block.setMemberAccesses(lst)
-        # If inlining is not allowed, just return merged block.
+        # If inlining is not allowed, just return.
         if not allow_inline:
-            return merged
+            return ret
         # Perform inlining if possible.
-        for ii in merged:
+        for ii in ret:
             # Merged instances not ok for inlining.
             if ii.getBlockCount() > 1:
                 continue
@@ -216,13 +220,13 @@ class Glsl:
             # Must be an inline name to be inlined.
             if not is_inline_name(ii.getName()):
                 continue
-            names = ii.getNames()
+            names = ii.getNameList()
             # If no inline conflict, perform inline and return nothing to signify another pass can be done.
             if not self.hasInlineConflict(block, names):
                 self.inline(block, names)
                 return None
-        # Return merged list.
-        return merged
+        # Return merged list of name strips.
+        return ret
 
     def inventName(self, block, counted):
         """Invent a new name when existing names have run out."""
@@ -278,16 +282,10 @@ class Glsl:
         """Try to merge two name strips."""
         lhs_block = lhs.getBlock()
         rhs_block = rhs.getBlock()
-        # Function overload merge.
-        if is_glsl_block_function(lhs_block) and is_glsl_block_function(rhs_block):
-            if self.mergeCollectedNamesSourceTest(lhs, rhs):
-                lhs.merge(rhs)
-                return True
-        # Inout merge.
-        if is_glsl_block_inout(lhs_block) and is_glsl_block_inout(rhs_block):
-            if self.mergeCollectedNamesSourceTest(lhs, rhs) and lhs_block.isMergableWith(rhs_block):
-                lhs.appendTo(rhs)
-                return True
+        # Merge check should not be called for non-mergable blocks to begin with.
+        if lhs_block.isMergableWith(rhs_block) and self.mergeCollectedNamesSourceTest(lhs, rhs):
+            lhs.appendTo(rhs)
+            return True
         return False
 
     def parse(self):
