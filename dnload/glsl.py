@@ -83,15 +83,25 @@ class Glsl:
             swizzle = self.selectSwizzle()
             for ii in self.__sources:
                 ii.selectSwizzle(swizzle)
-            # Print number of inout merges.
+            # Print number of block merges.
             if is_verbose():
+                function_merges = []
                 inout_merges = []
                 for ii in merged:
                     if ii.getBlockCount() <= 1:
                         continue
-                    inout_merges += [ii.getBlock()]
+                    block = ii.getBlock()
+                    elem = "%s(%i)" % (block.getName().getName(), ii.getBlockCount())
+                    if is_glsl_block_function(block):
+                        function_merges += [elem]
+                    elif is_glsl_block_inout(block):
+                        inout_merges += [elem]
+                    else:
+                        raise RuntimeError("unknown merge: %s" % (str(block)))
+                if function_merges:
+                    print("GLSL function overloads found: %s" % (str(function_merges)))
                 if inout_merges:
-                    print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
+                    print("GLSL inout connections found: %s" % (str(inout_merges)))
             # Run rename passes until done.
             renames = 0
             for ii in merged:
@@ -133,6 +143,13 @@ class Glsl:
             if not ii.hasOutputName():
                 ret += [ii.generatePrintOutput()]
         return ret
+
+    def getChainLength(self, op):
+        """Gets the length of source chain with given name."""
+        for ii in self.__chains:
+            if ii.getChainName() == op:
+                return ii.getChainLength()
+        raise RuntimeError("source chain '%s' not found" % (op))
 
     def hasInlineConflict(self, block, names):
         """Tell if given block has an inlining conflict."""
@@ -263,29 +280,27 @@ class Glsl:
             ii.updateNameTypes()
         return ret
 
-    def mergeCollectedNamesSourceTest(self, lhs, rhs):
-        """Test that sources are compatible for testing between name strips."""
-        lhs_source = lhs.getSource()
-        rhs_source = rhs.getSource()
-        lhs_chain = lhs_source.getChainName()
-        rhs_chain = rhs_source.getChainName()
-        # Can always merge to/from common headers.
-        if (not lhs_chain) or (not rhs_chain):
-            return True
-        # Look for existence in same chain.
-        for ii in self.__chains:
-            if ii.hasSource(lhs_source) and ii.hasSource(rhs_source):
-                return True
-        return False
-
     def mergeCollectedNamesTest(self, lhs, rhs):
         """Try to merge two name strips."""
         lhs_block = lhs.getBlock()
         rhs_block = rhs.getBlock()
-        # Merge check should not be called for non-mergable blocks to begin with.
-        if lhs_block.isMergableWith(rhs_block) and self.mergeCollectedNamesSourceTest(lhs, rhs):
-            lhs.appendTo(rhs)
-            return True
+        # Function overloads need to check source chain.
+        if is_glsl_block_function(lhs_block):
+            lhs_source = lhs.getSource()
+            rhs_source = rhs.getSource()
+            lhs_chain = lhs_source.getChainName()
+            rhs_chain = rhs_source.getChainName()
+            if lhs_block.isMergableWith(rhs_block) and ((not lhs_chain) or (not rhs_chaine)):
+                lhs.appendTo(rhs)
+                return True
+        # Inout connections may be mixed and matched. Programmer has responsibility of using different names.
+        elif is_glsl_block_inout(lhs_block):
+            if lhs_block.isMergableWith(rhs_block):
+                lhs.appendTo(rhs)
+                return True
+        # Unknown block type.
+        else:
+            raise RuntimeError("don't know how to merge block %s" % (str(lhs_block)))
         return False
 
     def parse(self):

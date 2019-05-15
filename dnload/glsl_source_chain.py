@@ -11,13 +11,23 @@ class GlslSourceChain:
 
     def __init__(self, op):
         """Constructor."""
+        self.__chain_name = op.getChainName()
         self.__sources = []
         self.addSource(op)
 
     def addSource(self, op):
         """Adds a source block."""
-        assert_glsl_block_source(op)
+        if self.getChainName() != op.getChainName():
+            raise RuntimeError("chain name mismatch '%s' vs. '%s'" % (op.getChainName(), self.getChainName()))
         self.__sources = sorted(self.__sources + [op])
+
+    def getChainName(self):
+        """Gets the chain name for this source chain."""
+        return self.__chain_name
+
+    def getChainLength(self):
+        """Gets the length of the source chain."""
+        return len(self.__sources)
 
     def hasSource(self, op):
         """Tests if given source block is contained within this source chain."""
