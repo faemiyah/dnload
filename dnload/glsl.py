@@ -63,12 +63,11 @@ class Glsl:
             # Perform inlining passes.
             inlines = 0
             while True:
-                inline_pass_rv = self.inlinePass((max_inlines < 0) or (inlines < max_inlines))
-                # Last pass will return a listing of merged variable names.
-                if is_listing(inline_pass_rv):
-                    merged = inline_pass_rv
+                merged = self.inlinePass((max_inlines < 0) or (inlines < max_inlines))
+                # If no inlines succeeded, the result value will be a listing of merged variable names.
+                if merged:
                     break
-                # Inlining was done, another round.
+                # Do another inlining round.
                 inlines += 1
             # Perform simplification passes.
             simplifys = 0
@@ -84,9 +83,9 @@ class Glsl:
             if is_verbose():
                 inout_merges = []
                 for ii in merged:
-                    block = ii[0]
-                    if is_listing(block):
-                        inout_merges += [block[0]]
+                    if ii.getBlockCount() <= 1:
+                        continue
+                    inout_merges += [ii.getBlock()]
                 if inout_merges:
                     print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
             # Run rename passes until done.
@@ -94,19 +93,17 @@ class Glsl:
             for ii in merged:
                 if (0 <= max_renames) and (renames >= max_renames):
                     break
-                self.renamePass(ii[0], ii[1:])
+                self.renamePass(ii)
                 renames += 1
             # Run member rename passes until done.
             for ii in merged:
-                block = ii[0]
-                if is_listing(block):
-                    block = block[0]
+                block = ii.getBlock()
                 if not is_glsl_block_inout_struct(block):
                     continue
                 renames += self.renameMembers(block, max_renames - renames)
                 # Also rename block type.
                 if (0 > max_renames) or (renames < max_renames):
-                    self.renameBlock(ii[0])
+                    self.renameBlock(ii.getBlockList())
                     renames += 1
             # Perform recombine passes.
             for ii in self.__sources:
@@ -197,30 +194,29 @@ class Glsl:
                 collected += ii.collect()
         # Merge multiple matching inout names.
         merged = sorted(self.mergeCollectedNames(collected), reverse=True)
-        for ii in merged:
-            print(str(ii))
-        sys.exit(0)
         # Collect all member accesses for members and set them to the blocks.
         for ii in merged:
-            block = ii[0]
-            if is_listing(block):
-                block = block[0]
+            block = ii.getBlock()
             if not (is_glsl_block_inout_struct(block) or is_glsl_block_struct(block)):
                 continue
-            lst = collect_member_accesses(ii[0], ii[1:])
+            lst = ii.collectMemberAccesses()
             block.setMemberAccesses(lst)
         # If inlining is not allowed, just return merged block.
         if not allow_inline:
             return merged
         # Perform inlining if possible.
-        for ii in range(len(merged)):
-            vv = merged[ii]
-            block = vv[0]
-            if is_listing(block) or (not is_glsl_block_declaration(block)):
+        for ii in merged:
+            # Merged instances not ok for inlining.
+            if ii.getBlockCount() > 1:
                 continue
-            names = vv[1:]
-            if not is_inline_name(names[0]):
+            block = ii.getBlock()
+            # Must be declaration to be inlined anywhere.
+            if not is_glsl_block_declaration(block):
                 continue
+            # Must be an inline name to be inlined.
+            if not is_inline_name(ii.getName()):
+                continue
+            names = ii.getNames()
             # If no inline conflict, perform inline and return nothing to signify another pass can be done.
             if not self.hasInlineConflict(block, names):
                 self.inline(block, names)
@@ -248,7 +244,6 @@ class Glsl:
         ret = []
         for ii in lst:
             block = ii.getBlock()
-            print("checking %s %s" % (str(ii), str(block)))
             if is_glsl_block_function(block) or is_glsl_block_inout(block):
                 found = False
                 for jj in ret:
@@ -328,7 +323,7 @@ class Glsl:
         self.__sources += [src]
 
     def renameBlock(self, block, target_name=None):
-        """Rename block type."""
+        """Rename block type for given name strip."""
         # Select name to rename to.
         if not target_name:
             counted = self.countSorted()
@@ -364,18 +359,17 @@ class Glsl:
                 name.lock(letter)
         return renames
 
-    def renamePass(self, block, names):
-        """Perform rename pass from given block."""
+    def renamePass(self, op):
+        """Perform rename pass for given name strip."""
+        block_list = op.getBlockList()
         counted = self.countSorted()
         for letter in counted:
-            if not self.hasNameConflict(block, letter):
-                for ii in names:
-                    ii.lock(letter)
+            if not self.hasNameConflict(block_list, letter):
+                op.lockNames(letter)
                 return
         # None of the letters was free, invent new one.
-        target_name = self.inventName(block, counted)
-        for ii in names:
-            ii.lock(target_name)
+        target_name = self.inventName(block_list, counted)
+        op.lockNames(target_name)
 
     def selectSwizzle(self):
         counted = self.count()
@@ -434,54 +428,6 @@ class Glsl:
 ########################################
 # Functions ############################
 ########################################
-
-def collect_member_uses(op, uses):
-    """Collect member uses from inout struct blocks."""
-    # List case.
-    if is_listing(op):
-        for ii in op:
-            collect_member_uses(ii, uses)
-        return
-    # Actual inout block.
-    for ii in op.getMembers():
-        name_object = ii.getName()
-        name_string = name_object.getName()
-        if name_string in uses:
-            uses[name_string] += [name_object]
-        else:
-            uses[name_string] = [name_object]
-
-def collect_member_accesses(block, names):
-    """Collect all member name accesses from given block."""
-    # First, collect all uses from members.
-    uses = {}
-    collect_member_uses(block, uses)
-    # Then collect all uses from names.
-    for ii in range(len(names)):
-        vv = names[ii]
-        aa = vv.getAccess()
-        # Might be just declaration.
-        if not aa:
-            continue
-        aa.disableSwizzle()
-        name_object = aa.getName()
-        name_string = name_object.getName()
-        if not (name_string in uses):
-            raise RuntimeError("access '%s' not present outside members" % (str(aa)))
-        uses[name_string] += [name_object]
-    # Expand uses, set types and sort.
-    lst = []
-    for kk in uses.keys():
-        name_list = uses[kk]
-        if 1 >= len(name_list):
-            print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))
-        typeid = name_list[0].getType()
-        if not typeid:
-            raise RuntimeError("name '%s' has no type" % (name_list[0]))
-        for ii in range(1, len(name_list)):
-            name_list[ii].setType(typeid)
-        lst += [name_list]
-    return sorted(lst, key=len, reverse=True)
 
 def flatten(block):
     ret = []

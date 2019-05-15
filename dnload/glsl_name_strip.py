@@ -11,9 +11,13 @@ class GlslNameStrip:
 
     def __init__(self, block, name):
         """Constructor."""
-        self.__block = block
+        self.__blocks = [block]
         self.__names = []
         self.addName(name)
+
+    def addBlock(self, op):
+        """Add block to the list of blocks."""
+        self.__blocks += [op]
 
     def addName(self, name):
         """Append one name to the list."""
@@ -29,12 +33,61 @@ class GlslNameStrip:
 
     def appendTo(self, op):
         """Appends all names into another GLSL name strip."""
+        for ii in self.__blocks:
+            op.addBlock(ii)
         for ii in self.__names:
             op.addName(ii)
 
+    def collectMemberAccesses(self):
+        """Collect all member name accesses from the blocks."""
+        # First, collect all uses from members.
+        uses = {}
+        for ii in self.__blocks:
+            collect_member_uses(ii, uses)
+        # Then collect all uses from names.
+        for ii in self.__names:
+            aa = ii.getAccess()
+            # Might be just declaration.
+            if not aa:
+                continue
+            aa.disableSwizzle()
+            name_object = aa.getName()
+            name_string = name_object.getName()
+            if not (name_string in uses):
+                raise RuntimeError("access '%s' not present outside members" % (str(aa)))
+            uses[name_string] += [name_object]
+        # Expand uses, set types and sort.
+        ret = []
+        for kk in uses.keys():
+            name_list = uses[kk]
+            if 1 >= len(name_list):
+                print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))
+            typeid = name_list[0].getType()
+            if not typeid:
+                raise RuntimeError("name '%s' has no type" % (name_list[0]))
+            for ii in name_list[1:]:
+                current_typeid = ii.getType()
+                # Check that there is no conflicting type.
+                if current_typeid:
+                    if current_typeid != typeid:
+                        raise RuntimeError("member access %s type %s does not match base type %s" % (str(ii), str(current_typeid), str(typeid)))
+                    continue
+                # No existing type, fill it in.
+                ii.setType(typeid)
+            ret += [name_list]
+        return sorted(ret, key=len, reverse=True)
+
     def getBlock(self):
         """Gets the block that declared the original name."""
-        return self.__block
+        return self.__blocks[0]
+
+    def getBlockCount(self):
+        """Gets the number of blocks."""
+        return len(self.__blocks)
+
+    def getBlockList(self):
+        """Accessor."""
+        return self.__blocks
 
     def getName(self):
         """Gets the declared name associated with this name strip."""
@@ -43,6 +96,10 @@ class GlslNameStrip:
     def getNameCount(self):
         """Gets the number of names in this name strip."""
         return len(self.__names)
+
+    def getNameList(self):
+        """Accessor."""
+        return self.__names
 
     def getSource(self):
         """Gets the topmost parent block, i.e. source file."""
@@ -53,7 +110,12 @@ class GlslNameStrip:
 
     def isUniform(self):
         """Tells if this name strip originates from an uniform block."""
-        return is_glsl_block_uniform(self.__block)
+        return is_glsl_block_uniform(self.__blocks[0])
+
+    def lockNames(self, op):
+        """Lock all names to given string."""
+        for ii in self.__names:
+            ii.lock(op)
 
     def updateNameTypes(self):
         """Update all name types and check for errors."""
@@ -80,3 +142,12 @@ class GlslNameStrip:
 # Functions ############################
 ########################################
 
+def collect_member_uses(block, uses):
+    """Collect member uses from inout struct block."""
+    for ii in block.getMembers():
+        name_object = ii.getName()
+        name_string = name_object.getName()
+        if name_string in uses:
+            uses[name_string] += [name_object]
+        else:
+            uses[name_string] = [name_object]
