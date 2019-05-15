@@ -290,7 +290,7 @@ class Glsl:
             rhs_source = rhs.getSource()
             lhs_chain = lhs_source.getChainName()
             rhs_chain = rhs_source.getChainName()
-            if lhs_block.isMergableWith(rhs_block) and ((not lhs_chain) or (not rhs_chaine)):
+            if lhs_block.isMergableWith(rhs_block) and ((not lhs_chain) or (not rhs_chains)):
                 lhs.appendTo(rhs)
                 return True
         # Inout connections may be mixed and matched. Programmer has responsibility of using different names.
