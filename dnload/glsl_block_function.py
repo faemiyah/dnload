@@ -42,6 +42,14 @@ class GlslBlockFunction(GlslBlock):
         """Accessor."""
         return self.__typeid
 
+    def isMergableWith(self, op):
+        """Tell if this function block can be merged with given block."""
+        if not is_glsl_block_function(op):
+            return False
+        if (self.getName() != op.getName()) or (self.getType() != op.getType()):
+            return False
+        return True
+
     def __str__(self):
         """String representation."""
         return "Function('%s')" % (self.__name.getName())

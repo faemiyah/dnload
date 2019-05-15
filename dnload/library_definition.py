@@ -112,6 +112,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
     ("void", "glDrawElements", "GLenum", "GLsizei", "GLenum", "const GLvoid*"),
     ("void", "glEnable", "GLenum"),
     ("void", "glEnableVertexAttribArray", "GLuint"),
+    ("void", "glFramebufferTexture", "GLenum", "GLenum", "GLuint", "GLint"),
     ("void", "glFramebufferTexture2D", "GLenum", "GLenum", "GLenum", "GLuint", "GLint"),
     ("void", "glFramebufferRenderbuffer", "GLenum", "GLenum", "GLint", "GLuint"),
     ("void", "glGenerateMipmap", "GLenum"),

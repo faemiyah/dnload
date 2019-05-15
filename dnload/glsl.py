@@ -14,6 +14,7 @@ from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
 from dnload.glsl_block_uniform import is_glsl_block_uniform
 from dnload.glsl_name import is_glsl_name
+from dnload.glsl_source_chain import GlslSourceChain
 
 ########################################
 # Glsl #################################
@@ -24,6 +25,7 @@ class Glsl:
 
     def __init__(self):
         """Constructor."""
+        self.__chains = []
         self.__sources = []
 
     def count(self):
@@ -61,13 +63,16 @@ class Glsl:
             # Perform inlining passes.
             inlines = 0
             while True:
-                inline_pass_rv = self.inlinePass((max_inlines < 0) or (inlines < max_inlines))
-                # Last pass will return a listing of merged variable names.
-                if is_listing(inline_pass_rv):
-                    merged = inline_pass_rv
+                merged = self.inlinePass((max_inlines < 0) or (inlines < max_inlines))
+                # If no inlines succeeded, the result value will be a listing of merged variable names.
+                if merged:
                     break
-                # Inlining was done, another round.
+                # Do another inlining round.
                 inlines += 1
+            # Check that no name is unreferenced.
+            for ii in merged:
+                if ii.getNameCount() <= 1:
+                    print("WARNING: identifier '%s' never referenced" % (ii.getName().getName()))
             # Perform simplification passes.
             simplifys = 0
             for ii in self.__sources:
@@ -78,33 +83,41 @@ class Glsl:
             swizzle = self.selectSwizzle()
             for ii in self.__sources:
                 ii.selectSwizzle(swizzle)
-            # Print number of inout merges.
+            # Print number of block merges.
             if is_verbose():
+                function_merges = []
                 inout_merges = []
                 for ii in merged:
-                    block = ii[0]
-                    if is_listing(block):
-                        inout_merges += [block[0]]
+                    if ii.getBlockCount() <= 1:
+                        continue
+                    block = ii.getBlock()
+                    elem = "%s(%i)" % (block.getName().getName(), ii.getBlockCount())
+                    if is_glsl_block_function(block):
+                        function_merges += [elem]
+                    elif is_glsl_block_inout(block):
+                        inout_merges += [elem]
+                    else:
+                        raise RuntimeError("unknown merge: %s" % (str(block)))
+                if function_merges:
+                    print("GLSL function overloads found: %s" % (str(function_merges)))
                 if inout_merges:
-                    print("GLSL inout connections found: %s" % (str(map(str, inout_merges))))
+                    print("GLSL inout connections found: %s" % (str(inout_merges)))
             # Run rename passes until done.
             renames = 0
             for ii in merged:
                 if (0 <= max_renames) and (renames >= max_renames):
                     break
-                self.renamePass(ii[0], ii[1:])
+                self.renamePass(ii)
                 renames += 1
             # Run member rename passes until done.
             for ii in merged:
-                block = ii[0]
-                if is_listing(block):
-                    block = block[0]
+                block = ii.getBlock()
                 if not is_glsl_block_inout_struct(block):
                     continue
                 renames += self.renameMembers(block, max_renames - renames)
                 # Also rename block type.
                 if (0 > max_renames) or (renames < max_renames):
-                    self.renameBlock(ii[0])
+                    self.renameBlock(ii.getBlockList())
                     renames += 1
             # Perform recombine passes.
             for ii in self.__sources:
@@ -130,6 +143,13 @@ class Glsl:
             if not ii.hasOutputName():
                 ret += [ii.generatePrintOutput()]
         return ret
+
+    def getChainLength(self, op):
+        """Gets the length of source chain with given name."""
+        for ii in self.__chains:
+            if ii.getChainName() == op:
+                return ii.getChainLength()
+        raise RuntimeError("source chain '%s' not found" % (op))
 
     def hasInlineConflict(self, block, names):
         """Tell if given block has an inlining conflict."""
@@ -194,34 +214,36 @@ class Glsl:
             if ii.getType():
                 collected += ii.collect()
         # Merge multiple matching inout names.
-        merged = sorted(merge_collected_names(collected), key=len, reverse=True)
+        ret = sorted(self.mergeCollectedNames(collected), reverse=True)
         # Collect all member accesses for members and set them to the blocks.
-        for ii in merged:
-            block = ii[0]
-            if is_listing(block):
-                block = block[0]
+        for ii in ret:
+            block = ii.getBlock()
             if not (is_glsl_block_inout_struct(block) or is_glsl_block_struct(block)):
                 continue
-            lst = collect_member_accesses(ii[0], ii[1:])
+            lst = ii.collectMemberAccesses()
             block.setMemberAccesses(lst)
-        # If inlining is not allowed, just return merged block.
+        # If inlining is not allowed, just return.
         if not allow_inline:
-            return merged
+            return ret
         # Perform inlining if possible.
-        for ii in range(len(merged)):
-            vv = merged[ii]
-            block = vv[0]
-            if is_listing(block) or (not is_glsl_block_declaration(block)):
+        for ii in ret:
+            # Merged instances not ok for inlining.
+            if ii.getBlockCount() > 1:
                 continue
-            names = vv[1:]
-            if not is_inline_name(names[0]):
+            block = ii.getBlock()
+            # Must be declaration to be inlined anywhere.
+            if not is_glsl_block_declaration(block):
                 continue
+            # Must be an inline name to be inlined.
+            if not is_inline_name(ii.getName()):
+                continue
+            names = ii.getNameList()
             # If no inline conflict, perform inline and return nothing to signify another pass can be done.
             if not self.hasInlineConflict(block, names):
                 self.inline(block, names)
                 return None
-        # Return merged list.
-        return merged
+        # Return merged list of name strips.
+        return ret
 
     def inventName(self, block, counted):
         """Invent a new name when existing names have run out."""
@@ -237,17 +259,84 @@ class Glsl:
                     return name
             ii += 1
 
+    def mergeCollectedNames(self, lst):
+        """Merge all matching names in the list of collected names."""
+        # Merge functions with the same name (overrides) and inout blocks.
+        ret = []
+        for ii in lst:
+            block = ii.getBlock()
+            if is_glsl_block_function(block) or is_glsl_block_inout(block):
+                found = False
+                for jj in ret:
+                    if self.mergeCollectedNamesTest(ii, jj):
+                        found = True
+                        break
+                # Do not add to array if already merged into it.
+                if found:
+                    continue
+            ret += [ii]
+        # Set proper type information for all elements.
+        for ii in ret:
+            ii.updateNameTypes()
+        return ret
+
+    def mergeCollectedNamesTest(self, lhs, rhs):
+        """Try to merge two name strips."""
+        lhs_block = lhs.getBlock()
+        rhs_block = rhs.getBlock()
+        # Function overloads need to check source chain.
+        if is_glsl_block_function(lhs_block):
+            lhs_source = lhs.getSource()
+            rhs_source = rhs.getSource()
+            lhs_chain = lhs_source.getChainName()
+            rhs_chain = rhs_source.getChainName()
+            if lhs_block.isMergableWith(rhs_block) and ((not lhs_chain) or (not rhs_chain) or (lhs_source == rhs_source)):
+                lhs.appendTo(rhs)
+                return True
+        # Inout connections may be mixed and matched. Programmer has responsibility of using different names.
+        elif is_glsl_block_inout(lhs_block):
+            if lhs_block.isMergableWith(rhs_block):
+                lhs.appendTo(rhs)
+                return True
+        # Unknown block type.
+        else:
+            raise RuntimeError("don't know how to merge block %s" % (str(lhs_block)))
+        return False
+
     def parse(self):
         """Parse all source files."""
+        # First, assemble glsl chains.
+        common_chains = ("all", "common")
+        source_dict = {}
+        for ii in self.__sources:
+            chain_name = ii.getChainName()
+            if (not chain_name) or (chain_name in common_chains):
+                continue
+            if chain_name in source_dict:
+                source_dict[chain_name].addSource(ii)
+            else:
+                source_dict[chain_name] = GlslSourceChain(ii)
+        for ii in self.__sources:
+            chain_name = ii.getChainName()
+            if not chain_name:
+                continue
+            if chain_name in common_chains:
+                for jj in source_dict.keys():
+                    source_dict[jj].addSource(ii)
+        self.__chains = source_dict.values()
+        if is_verbose():
+            print("GLSL source chains: %s" % (" ; ".join(map(lambda x: str(x), self.__chains))))
+        # Run parse process on sources.
         for ii in self.__sources:
             ii.parse()
 
     def read(self, preprocessor, definition_ld, filename, varname, output_name=None):
         """Read source file."""
-        self.__sources += [glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)]
+        src = glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)
+        self.__sources += [src]
 
     def renameBlock(self, block, target_name=None):
-        """Rename block type."""
+        """Rename block type for given name strip."""
         # Select name to rename to.
         if not target_name:
             counted = self.countSorted()
@@ -283,18 +372,17 @@ class Glsl:
                 name.lock(letter)
         return renames
 
-    def renamePass(self, block, names):
-        """Perform rename pass from given block."""
+    def renamePass(self, op):
+        """Perform rename pass for given name strip."""
+        block_list = op.getBlockList()
         counted = self.countSorted()
         for letter in counted:
-            if not self.hasNameConflict(block, letter):
-                for ii in names:
-                    ii.lock(letter)
+            if not self.hasNameConflict(block_list, letter):
+                op.lockNames(letter)
                 return
         # None of the letters was free, invent new one.
-        target_name = self.inventName(block, counted)
-        for ii in names:
-            ii.lock(target_name)
+        target_name = self.inventName(block_list, counted)
+        op.lockNames(target_name)
 
     def selectSwizzle(self):
         counted = self.count()
@@ -353,54 +441,6 @@ class Glsl:
 ########################################
 # Functions ############################
 ########################################
-
-def collect_member_uses(op, uses):
-    """Collect member uses from inout struct blocks."""
-    # List case.
-    if is_listing(op):
-        for ii in op:
-            collect_member_uses(ii, uses)
-        return
-    # Actual inout block.
-    for ii in op.getMembers():
-        name_object = ii.getName()
-        name_string = name_object.getName()
-        if name_string in uses:
-            uses[name_string] += [name_object]
-        else:
-            uses[name_string] = [name_object]
-
-def collect_member_accesses(block, names):
-    """Collect all member name accesses from given block."""
-    # First, collect all uses from members.
-    uses = {}
-    collect_member_uses(block, uses)
-    # Then collect all uses from names.
-    for ii in range(len(names)):
-        vv = names[ii]
-        aa = vv.getAccess()
-        # Might be just declaration.
-        if not aa:
-            continue
-        aa.disableSwizzle()
-        name_object = aa.getName()
-        name_string = name_object.getName()
-        if not (name_string in uses):
-            raise RuntimeError("access '%s' not present outside members" % (str(aa)))
-        uses[name_string] += [name_object]
-    # Expand uses, set types and sort.
-    lst = []
-    for kk in uses.keys():
-        name_list = uses[kk]
-        if 1 >= len(name_list):
-            print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))
-        typeid = name_list[0].getType()
-        if not typeid:
-            raise RuntimeError("name '%s' has no type" % (name_list[0]))
-        for ii in range(1, len(name_list)):
-            name_list[ii].setType(typeid)
-        lst += [name_list]
-    return sorted(lst, key=len, reverse=True)
 
 def flatten(block):
     ret = []
@@ -469,90 +509,6 @@ def is_inline_name(op):
     if re.match(r'^i_.*$', op.getName(), re.I):
         return True
     return False
-
-def merge_collected_name_lists(lst1, lst2):
-    """Merge two collected names lists."""
-    if is_listing(lst2[0]):
-        raise RuntimeError("expected non-listing as first element of collected name list 2, got: %s" % (str(lst2[0])))
-    if is_listing(lst1[0]):
-        ret = [lst1[0] + [lst2[0]]]
-    else:
-        ret = [[lst1[0], lst2[0]]]
-    ret += lst1[1:]
-    # It is possible both listings contain some exact same following values, do not simply catenate.
-    for ii in lst2[1:]:
-        found = False
-        for jj in ret[1:]:
-            if ii is jj:
-                found = True
-                break
-        if not found:
-            ret += [ii]
-    return ret
-
-def merge_collected_names_inout(lst):
-    """Merge inout blocks from given list of names."""
-    ret = []
-    for ii in lst:
-        if is_glsl_block_inout(ii[0]):
-            found = False
-            for jj in range(len(ret)):
-                vv = ret[jj]
-                block = vv[0]
-                if is_listing(block):
-                    block = block[0]
-                if is_glsl_block_inout(block) and block.isMergableWith(ii[0]):
-                    if ii[1] != ii[0].getName():
-                        raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (ii[1], ii[0].getName()))
-                    if vv[1] != block.getName():
-                        raise RuntimeError("inout block inconsistency: '%s' vs. '%s'" % (vv[1], vv[0].getName()))
-                    ret[jj] = merge_collected_name_lists(vv, ii)
-                    found = True
-                    break
-            if found:
-                continue
-        ret += [ii]
-    return ret
-
-def merge_collected_names_function(lst):
-    """Merge inout blocks from given list of names."""
-    ret = []
-    for ii in lst:
-        if is_glsl_block_function(ii[0]):
-            found = False
-            for jj in range(len(ret)):
-                vv = ret[jj]
-                block = vv[0]
-                if is_listing(block):
-                    block = block[0]
-                if is_glsl_block_function(block) and (block.getName() == ii[0].getName()):
-                    ret[jj] = merge_collected_name_lists(vv, ii)
-                    found = True
-                    break
-            if found:
-                continue
-        ret += [ii]
-    return ret
-
-def merge_collected_names(lst):
-    """Merge different matching lists in collected names."""
-    # Merge functions with the same name (overrides) and inout blocks.
-    lst1 = merge_collected_names_inout(lst)
-    ret = merge_collected_names_function(lst1)
-    # Set proper type information for all elements.
-    for ii in ret:
-        typeid = None
-        for jj in ii[1:]:
-            found_type = jj.getType()
-            if found_type:
-                if typeid and (typeid != found_type):
-                    if is_listing(ii[0]):
-                        raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0][0]), str([str(typeid), str(found_type)])))
-                    raise RuntimeError("conflicting types for '%s': %s" % (str(ii[0]), str([str(typeid), str(found_type)])))
-                typeid = found_type
-        for jj in ii[1:]:
-            jj.setType(typeid)
-    return ret
 
 def find_parent_scope(block):
     """Find parent scope block for given block."""
