@@ -14,6 +14,7 @@ from dnload.glsl_block_source import glsl_read_source
 from dnload.glsl_block_source import is_glsl_block_source
 from dnload.glsl_block_uniform import is_glsl_block_uniform
 from dnload.glsl_name import is_glsl_name
+from dnload.glsl_name_strip import is_glsl_name_strip
 from dnload.glsl_source_chain import GlslSourceChain
 
 ########################################
@@ -117,7 +118,7 @@ class Glsl:
                 renames += self.renameMembers(block, max_renames - renames)
                 # Also rename block type.
                 if (0 > max_renames) or (renames < max_renames):
-                    self.renameBlock(ii.getBlockList())
+                    self.renameBlockType(ii.getBlockList())
                     renames += 1
             # Perform recombine passes.
             for ii in self.__sources:
@@ -135,6 +136,13 @@ class Glsl:
                 operations += ["%i combines" % (combines)]
             if operations:
                 print("GLSL processing done: %s" % (", ".join(operations)))
+
+    def findCommonChain(self, lhs, rhs):
+        """Finds a common chain that contains both given GLSL source files."""
+        for ii in self.__chains:
+            if ii.hasSource(lhs) and ii.hasSource(rhs):
+                return ii
+        return None
 
     def format(self):
         """Format output."""
@@ -168,22 +176,36 @@ class Glsl:
                         return True
         return has_inline_conflict(parent, block, names)
 
-    def hasNameConflict(self, block, name):
-        """Tell if given block would have a conflict if renamed into given name."""
-        # If block is a listing, just go over all options.
-        if is_listing(block):
-            for ii in block:
+    def hasNameConflict(self, op, name):
+        """Search for name conflicts regarding given name."""
+        # If the input is a GLSL name strip, iterate over its blocks.
+        if is_glsl_name_strip(op):
+            for ii in op.getBlockList():
                 if self.hasNameConflict(ii, name):
                     return True
             return False
-        # Check for conflicts within this block.
-        parent = find_parent_scope(block)
+        # If the parent is a source block, may need to check conflicts with other sources first.
+        parent = find_parent_scope(op)
         if is_glsl_block_source(parent):
             for ii in self.__sources:
-                if (ii != parent) and ((not parent.getType()) or (not ii.getType())):
-                    if has_name_conflict(ii, block, name):
-                        return True
-        return has_name_conflict(parent, block, name)
+                # Only check other sources.
+                if ii != parent:
+                    # Checking against header sources always happens.
+                    if (not parent.getType()) or (not ii.getType()):
+                        if has_name_conflict(ii, op, name):
+                            return True
+                    # Uniforms clash within the source chain.
+                    elif is_glsl_block_uniform(op):
+                        chain = self.findCommonChain(ii, parent)
+                        if chain:
+                            for jj in flatten(ii):
+                                if is_glsl_block_uniform(jj) and jj.hasLockedDeclaredName(name):
+                                    return True
+        # Above checks only work if uniforms are only declared in source scope.
+        elif is_glsl_block_uniform(op):
+            raise RuntimeError("found uniform block in non-source scope")
+        # Always check for conflicts within the parent block anyway.
+        return has_name_conflict(parent, op, name)
 
     def inline(self, block, names):
         """Perform inlining of block into where it is used."""
@@ -284,15 +306,14 @@ class Glsl:
         """Try to merge two name strips."""
         lhs_block = lhs.getBlock()
         rhs_block = rhs.getBlock()
-        # Function overloads need to check source chain.
+        # Function overloads need to check source type.
         if is_glsl_block_function(lhs_block):
-            lhs_source = lhs.getSource()
-            rhs_source = rhs.getSource()
-            lhs_chain = lhs_source.getChainName()
-            rhs_chain = rhs_source.getChainName()
-            if lhs_block.isMergableWith(rhs_block) and ((not lhs_chain) or (not rhs_chain) or (lhs_source == rhs_source)):
-                lhs.appendTo(rhs)
-                return True
+            if lhs_block.isMergableWith(rhs_block):
+                lhs_source = lhs_block.getSourceFile()
+                rhs_source = rhs_block.getSourceFile()
+                if (not lhs_source.getType()) or (not rhs_source.getType()) or (lhs_source == rhs_source):
+                    lhs.appendTo(rhs)
+                    return True
         # Inout connections may be mixed and matched. Programmer has responsibility of using different names.
         elif is_glsl_block_inout(lhs_block):
             if lhs_block.isMergableWith(rhs_block):
@@ -306,23 +327,23 @@ class Glsl:
     def parse(self):
         """Parse all source files."""
         # First, assemble glsl chains.
-        common_chains = ("all", "common")
         source_dict = {}
         for ii in self.__sources:
-            chain_name = ii.getChainName()
-            if (not chain_name) or (chain_name in common_chains):
+            if ii.isCommonChainName():
                 continue
+            chain_name = ii.getChainName()
+            print("non-common: %s" % (ii.getChainName()))
             if chain_name in source_dict:
                 source_dict[chain_name].addSource(ii)
             else:
                 source_dict[chain_name] = GlslSourceChain(ii)
         for ii in self.__sources:
-            chain_name = ii.getChainName()
-            if not chain_name:
+            if not ii.isCommonChainName():
                 continue
-            if chain_name in common_chains:
-                for jj in source_dict.keys():
-                    source_dict[jj].addSource(ii)
+            for jj in source_dict.keys():
+                source_chain = source_dict[jj]
+                if source_chain.isSourceSlotFree(ii):
+                    source_chain.addSource(ii)
         self.__chains = source_dict.values()
         if is_verbose():
             print("GLSL source chains: %s" % (" ; ".join(map(lambda x: str(x), self.__chains))))
@@ -335,7 +356,7 @@ class Glsl:
         src = glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)
         self.__sources += [src]
 
-    def renameBlock(self, block, target_name=None):
+    def renameBlockType(self, block):
         """Rename block type for given name strip."""
         # Select name to rename to.
         if not target_name:
@@ -354,7 +375,6 @@ class Glsl:
                 self.renameBlock(ii, target_name)
             return
         # Just select first name.
-        counted = self.countSorted()
         block.getTypeName().lock(target_name)
 
     def renameMembers(self, block, max_renames):
@@ -377,11 +397,11 @@ class Glsl:
         block_list = op.getBlockList()
         counted = self.countSorted()
         for letter in counted:
-            if not self.hasNameConflict(block_list, letter):
+            if not self.hasNameConflict(op, letter):
                 op.lockNames(letter)
                 return
         # None of the letters was free, invent new one.
-        target_name = self.inventName(block_list, counted)
+        target_name = self.inventName(op, counted)
         op.lockNames(target_name)
 
     def selectSwizzle(self):
@@ -443,6 +463,7 @@ class Glsl:
 ########################################
 
 def flatten(block):
+    """Flattens a block and its children to a sequential array."""
     ret = []
     for ii in block.getChildren():
         ret += [ii]
