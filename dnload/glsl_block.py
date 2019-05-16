@@ -202,6 +202,15 @@ class GlslBlock:
         """Accessor."""
         return self.__parent
 
+    def getSourceFile(self):
+        """Gets the topmost parent block, i.e. source file block."""
+        ret = self
+        parent = ret.getParent()
+        while parent:
+            ret = parent
+            parent = ret.getParent()
+        return ret
+
     def getUsedNames(self):
         """Accessor."""
         return self.__names_used

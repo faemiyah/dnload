@@ -101,13 +101,6 @@ class GlslNameStrip:
         """Accessor."""
         return self.__names
 
-    def getSource(self):
-        """Gets the topmost parent block, i.e. source file."""
-        ret = self.getBlock()
-        while ret.getParent():
-            ret = ret.getParent()
-        return ret
-
     def isUniform(self):
         """Tells if this name strip originates from an uniform block."""
         return is_glsl_block_uniform(self.__blocks[0])
@@ -151,3 +144,7 @@ def collect_member_uses(block, uses):
             uses[name_string] += [name_object]
         else:
             uses[name_string] = [name_object]
+
+def is_glsl_name_strip(op):
+    """Tells if given object is a GLSL name strip."""
+    return isinstance(op, GlslNameStrip)
