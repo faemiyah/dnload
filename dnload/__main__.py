@@ -741,19 +741,17 @@ def generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames
     """Generate GLSL, processing given GLSL source files."""
     glsl_db = Glsl()
     for ii in filenames:
-        # If there's a listing, the order is filename, varname, output name.
+        # If there's a listing, the order is filename, output name, varname
         if is_listing(ii):
             if 3 == len(ii):
                 glsl_db.read(preprocessor, definition_ld, ii[0], ii[1], ii[2])
             elif 2 == len(ii):
-                varname = re.sub(r'\.', r'_', os.path.basename(ii[0]))
-                glsl_db.read(preprocessor, definition_ld, ii[0], varname, ii[1])
+                glsl_db.read(preprocessor, definition_ld, ii[0], ii[1])
             else:
                 raise RuntimeError("invalid glsl file listing input: '%s'" % (str(ii)))
         # Otherwise only filename exists.
         else:
-            varname = re.sub(r'\.', r'_', os.path.basename(ii))
-            glsl_db.read(preprocessor, definition_ld, ii, varname)
+            glsl_db.read(preprocessor, definition_ld, ii)
     glsl_db.parse()
     glsl_db.crunch(mode, inlines, renames, simplifys)
     return glsl_db
@@ -767,7 +765,7 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, ren
     lines = fd.readlines()
     fd.close()
     filenames = []
-    glslre = re.compile(r'#\s*include [\<\"](.*\.glsl)\.(h|hh|hpp|hxx)[\>\"]\s*(\/\*|\/\/)\s*([^\*\/\s]+)', re.I)
+    glslre = re.compile(r'#\s*include [\<\"](.*\.glsl)\.(h|hh|hpp|hxx)[\>\"]\s*((\/\*|\/\/)\s*([^\*\/\s]+))?', re.I)
     for ii in lines:
         match = glslre.match(ii)
         if match:
@@ -778,9 +776,13 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, ren
                 glsl_filename = locate(glsl_path, glsl_base_filename)
             if not glsl_filename:
                 raise RuntimeError("could not locate GLSL source '%s'" % (glsl_base_filename))
-            glsl_varname = match.group(4)
             glsl_output_name = glsl_filename + "." + match.group(2)
-            filenames += [[glsl_filename, glsl_varname, glsl_output_name]]
+            # Varname may or may not exist.
+            glsl_varname = match.group(5)
+            if glsl_varname:
+                filenames += [[glsl_filename, glsl_output_name, glsl_varname]]
+            else:
+                filenames += [[glsl_filename, glsl_output_name]]
     if filenames:
         glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames, simplifys)
         glsl_db.write()
@@ -1022,7 +1024,7 @@ def main():
     parser.add_argument("--glsl-renames", default=-1, type=int, help="Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
     parser.add_argument("--glsl-simplifys", default=-1, type=int, help="Maximum number of simplify operations to do for GLSL.\n(default: unlimited)")
     parser.add_argument("--linux", action="store_true", help="Try to target Linux if not in Linux. Equal to '-O linux'.")
-    parser.add_argument("-o", "--output-file", default=None, help="Compile a named binary, do not only create a header. If the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.")
+    parser.add_argument("-o", "--output-file", default=[], nargs="*", help="Name of output file to generate\nIf the name specified features a path, it will be used verbatim. Otherwise the binary will be created in the same path as source file(s) compiled.\nIf only processing GLSL files, this parameter can be specified multiple times, but must be specified exactly once per input GLSL file.")
     parser.add_argument("-O", "--operating-system", help="Try to target given operating system insofar cross-compilation is possible.")
     parser.add_argument("-P", "--call-prefix", default="dnload_", help="Call prefix to identify desired calls.\n(default: %(default)s)")
     parser.add_argument("--preprocessor", default=None, help="Try to use given preprocessor executable as opposed to autodetect.")
@@ -1068,7 +1070,7 @@ def main():
     nice_filedump = args.nice_filedump
     no_glesv2 = args.no_glesv2
     objcopy = args.objcopy
-    output_file = args.output_file
+    output_files = args.output_file
     preprocessor = args.preprocessor
     rpath = args.rpath
     strip = args.strip_binary
@@ -1131,20 +1133,24 @@ def main():
 
     # Process GLSL source if given.
     if source_files_glsl:
-        if output_file:
-            if (1 < len(source_files_glsl)):
-                raise RuntimeError("output file '%s' given for multiple glsl files '%s'" % (str(output_file), str(source_files_glsl)))
-            else:
-                source_files_glsl = [[source_files_glsl[0], output_file]]
         if source_files or source_files_additional:
-            raise RuntimeError("can not combine GLSL source %s with other source files %s" %
-                               (str(source_files_glsl), str(source_files + source_files_additional)))
+            raise RuntimeError("can not combine GLSL source files %s with other source files %s" %
+                    (str(source_files_glsl), str(source_files + source_files_additional)))
+        if output_files and (len(output_files) != len(source_files_glsl)):
+            raise RuntimeError("specified output files '%s' must match input glsl files '%s'" % (str(output_files), str(source_files_glsl)))
+        if output_files:
+            source_files_glsl = zip(source_files_glsl, output_files)
         glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_inlines, glsl_renames, glsl_simplifys)
-        if output_file:
+        if output_files:
             glsl_db.write()
         else:
             print("".join(glsl_db.format()).strip())
         sys.exit(0)
+    # If no GLSL, there must be exactly one output file or nothing.
+    else:
+        if len(output_files) > 1:
+            raise RuntimeError("more than one output file specified: %s" % (str(output_files)))
+        output_file = output_files[0]
 
     # Cross-compile 32-bit arguments.
     if args.m32:

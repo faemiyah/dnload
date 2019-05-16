@@ -36,13 +36,13 @@ static const char *[[VARIABLE_NAME]] = \"\"
 class GlslBlockSource(GlslBlock):
     """GLSL source file abstraction."""
 
-    def __init__(self, definition_ld, filename, varname, output_name=None):
+    def __init__(self, definition_ld, filename, output_name=None, varname=None):
         """Constructor."""
         GlslBlock.__init__(self)
         self.__definition_ld = definition_ld
         self.__filename = filename
-        self.__variable_name = varname
         self.__output_name = output_name
+        self.__variable_name = varname
         self.__content = ""
         self.detectType()
 
@@ -75,14 +75,14 @@ class GlslBlockSource(GlslBlock):
         """Generate output to be written into a file."""
         ret = self.format(True)
         ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
-        subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": os.path.basename(self.__filename), "SOURCE": ret, "VARIABLE_NAME": self.__variable_name}
+        subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": os.path.basename(self.__filename), "SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
         return g_template_glsl_header.format(subst)
 
     def generatePrintOutput(self):
         """Generate output to be written to output."""
         ret = self.format(True)
         ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
-        subst = {"SOURCE": ret, "VARIABLE_NAME": self.__variable_name}
+        subst = {"SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
         return g_template_glsl_print.format(subst)
 
     def getChainName(self):
@@ -92,6 +92,12 @@ class GlslBlockSource(GlslBlock):
     def getFilename(self):
         """Accessor."""
         return self.__filename
+
+    def getVariableName(self):
+        """Gets the variable name for this GLSL source file."""
+        if self.__variable_name:
+            return self.__variable_name
+        return re.sub(r'\.', r'_', self.__filename)
 
     def getType(self):
         """Access type of this shader file. May be empty."""
@@ -148,8 +154,16 @@ class GlslBlockSource(GlslBlock):
         fd = open(self.__filename, "r")
         if not fd:
             raise RuntimeError("could not read GLSL source '%s'" % (fname))
-        self.preprocess(preprocessor, fd.read())
+        content = fd.read()
         fd.close()
+        # Check if first line indicates a variable, if yes, use it.
+        match = re.match(r'^\s*(\/\/|\/\*)\s*#\s*([^\*\/\s]+)', content, re.I | re.M)
+        if match:
+            if self.__variable_name:
+                raise RuntimeError("variable name redefinition '%s' vs. '%s' on GLSL source '%s'" % (match.group(2), self.__variable_name, self.getFilename()))
+            self.__variable_name = match.group(2)
+        # Preprocess actual content.
+        self.preprocess(preprocessor, content)
 
     def write(self):
         """Write compressed output."""
@@ -159,7 +173,7 @@ class GlslBlockSource(GlslBlock):
         fd.write(self.generateHeaderOutput())
         fd.close()
         if is_verbose():
-            print("Wrote GLSL header: '%s' => '%s'" % (self.__variable_name, self.__output_name))
+            print("Wrote GLSL header: '%s' => '%s'" % (self.getVariableName(), self.__output_name))
 
     def __lt__(lhs, rhs):
         """Comparison operator."""
@@ -178,7 +192,7 @@ class GlslBlockSource(GlslBlock):
         return glsl_file_type_value(lhs.getType()) < glsl_file_type_value(rhs.getType())
 
     def __str__(self):
-        return "Source('%s' => '%s')" % (self.__output_name, self.__variable_name)
+        return "Source('%s' => '%s')" % (self.__output_name, self.getVariableName())
 
 ########################################
 # Functions ############################
@@ -228,9 +242,9 @@ def glsl_file_type_value(op):
         return 2
     raise RuntimeError("unknown GLSL file type: %s" % (op))
 
-def glsl_read_source(preprocessor, definition_ld, filename, varname, output_name):
+def glsl_read_source(preprocessor, definition_ld, filename, output_name, varname):
     """Read source into a GLSL source construct."""
-    ret = GlslBlockSource(definition_ld, filename, varname, output_name)
+    ret = GlslBlockSource(definition_ld, filename, output_name, varname)
     ret.read(preprocessor)
     return ret
 

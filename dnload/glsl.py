@@ -71,9 +71,10 @@ class Glsl:
                 # Do another inlining round.
                 inlines += 1
             # Check that no name is unreferenced.
-            for ii in merged:
-                if ii.getNameCount() <= 1:
-                    print("WARNING: identifier '%s' never referenced" % (ii.getName().getName()))
+            if is_verbose():
+                for ii in merged:
+                    if ii.getNameCount() <= 1:
+                        print("WARNING: identifier '%s' never referenced" % (ii.getName().getName()))
             # Perform simplification passes.
             simplifys = 0
             for ii in self.__sources:
@@ -332,7 +333,6 @@ class Glsl:
             if ii.isCommonChainName():
                 continue
             chain_name = ii.getChainName()
-            print("non-common: %s" % (ii.getChainName()))
             if chain_name in source_dict:
                 source_dict[chain_name].addSource(ii)
             else:
@@ -351,9 +351,9 @@ class Glsl:
         for ii in self.__sources:
             ii.parse()
 
-    def read(self, preprocessor, definition_ld, filename, varname, output_name=None):
+    def read(self, preprocessor, definition_ld, filename, output_name=None, varname=None):
         """Read source file."""
-        src = glsl_read_source(preprocessor, definition_ld, filename, varname, output_name)
+        src = glsl_read_source(preprocessor, definition_ld, filename, output_name, varname)
         self.__sources += [src]
 
     def renameBlockType(self, block):
