@@ -308,11 +308,12 @@ class Glsl:
         rhs_block = rhs.getBlock()
         # Function overloads need to check source type.
         if is_glsl_block_function(lhs_block):
-            lhs_source_type = lhs_block.getSourceFile().getType()
-            rhs_source_type = rhs_block.getSourceFile().getType()
-            if lhs_block.isMergableWith(rhs_block) and ((not lhs_source_type) or (not rhs_source_type) or (lhs_source == rhs_source)):
-                lhs.appendTo(rhs)
-                return True
+            if lhs_block.isMergableWith(rhs_block):
+                lhs_source = lhs_block.getSourceFile()
+                rhs_source = rhs_block.getSourceFile()
+                if (not lhs_source.getType()) or (not rhs_source.getType()) or (lhs_source == rhs_source):
+                    lhs.appendTo(rhs)
+                    return True
         # Inout connections may be mixed and matched. Programmer has responsibility of using different names.
         elif is_glsl_block_inout(lhs_block):
             if lhs_block.isMergableWith(rhs_block):
