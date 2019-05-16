@@ -52,7 +52,7 @@ class GlslBlockSource(GlslBlock):
         self.__type = None
         match = re.match(r'(.*)[._\-\s](\S+)[._\-\s].*', self.__filename, re.I)
         if match:
-            self.__chain = match.group(1).lower()
+            self.__chain = extract_chain_name(match.group(1))
             shader_type = match.group(2).lower()
             if shader_type in ("frag", "fragment"):
                 self.__type = "fragment"
@@ -98,7 +98,22 @@ class GlslBlockSource(GlslBlock):
         return self.__type
 
     def hasOutputName(self):
+        """Tells if output name has been set."""
         return not (self.__output_name is None)
+
+    def isCommonChainName(self):
+        """Checks if the chain name for this source is for a common chain."""
+        chain_name = self.getChainName()
+        source_type = self.getType()
+        # If there's no chain name, it's common by default.
+        if not chain_name:
+            if source_type:
+                raise RuntimeError("GLSL source block has no chain name but has type '%s'" % (source_type))
+            return True
+        # Chain name exists -> test against common names.
+        if not source_type:
+            raise RuntimeError("GLSL source block has a chain name '%s' but no type" % (chain_name))
+        return chain_name.lower() in ("all", "common", "default")
 
     def parse(self):
         """Parse code into blocks and statements."""
@@ -148,12 +163,18 @@ class GlslBlockSource(GlslBlock):
 
     def __lt__(lhs, rhs):
         """Comparison operator."""
-        lhs_chain = lhs.getChainName()
-        rhs_chain = rhs.getChainName()
-        if not lhs_chain and rhs_chain:
-            return False
-        elif lhs_chain and (not rhs_chain):
+        lhs_type = lhs.getType()
+        rhs_type = rhs.getType()
+        if (not lhs_type) and rhs_type:
             return True
+        elif lhs_type and (not rhs_type):
+            return False
+        lhs_common = lhs.isCommonChainName()
+        rhs_common = rhs.isCommonChainName()
+        if lhs_common and (not rhs_common):
+            return True
+        elif (not lhs_common) and rhs_common:
+            return False
         return glsl_file_type_value(lhs.getType()) < glsl_file_type_value(rhs.getType())
 
     def __str__(self):
@@ -162,6 +183,10 @@ class GlslBlockSource(GlslBlock):
 ########################################
 # Functions ############################
 ########################################
+
+def extract_chain_name(op):
+    """Extracts chain name from given filename part."""
+    return os.path.basename(op)
 
 def glsl_cstr_readable(op):
     """Make GLSL source string into a 'readable' C string array."""
