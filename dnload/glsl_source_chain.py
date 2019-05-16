@@ -56,11 +56,3 @@ class GlslSourceChain:
         """String representation."""
         ret = map(lambda x: "'%s'" % (x.getFilename()), self.__sources)
         return "[%s]" % (" => ".join(ret))
-
-########################################
-# Globals ##############################
-########################################
-
-def is_common_chain(op):
-    """Check if the given chain name qualifies for a common chain."""
-    return op.lower() in ("all", "common")

@@ -556,6 +556,14 @@ def extract_symbol_names(source, prefix):
         ret = ret.union(symbolset)
     return ret
 
+def find_global_tmpdir():
+    """Try to find a global temporary directory."""
+    if os.path.exists("/tmp"):
+        return "/tmp"
+    if os.path.exists("/var/tmp"):
+        return "/var/tmp"
+    return None
+
 def find_library_definition(op):
     """Find library definition with name."""
     for ii in g_library_definitions:
@@ -1107,6 +1115,9 @@ def main():
             print("WARNING: supplied temporary directory '%s' not usable, autodetecting" % (args.temporary_directory))
         regex_tmpdir = re.compile(r'(build|cmakefiles)', re.I)
         found_tmpdir = locate(None, regex_tmpdir)
+        # Local tmpdir not found, try global.
+        if not found_tmpdir:
+            found_tmpdir = find_global_tmpdir()
         if set_temporary_directory(found_tmpdir) and is_verbose():
             print("Using temporary directory '%s/'." % (found_tmpdir))
 
