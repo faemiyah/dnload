@@ -995,6 +995,7 @@ def main():
     library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
     opengl_reason = None
     opengl_version = None
+    output_file = None
     program_name = os.path.basename(sys.argv[0])
     sdl_version = 2
 
@@ -1070,7 +1071,7 @@ def main():
     nice_filedump = args.nice_filedump
     no_glesv2 = args.no_glesv2
     objcopy = args.objcopy
-    output_files = args.output_file
+    output_file_list = args.output_file
     preprocessor = args.preprocessor
     rpath = args.rpath
     strip = args.strip_binary
@@ -1136,21 +1137,21 @@ def main():
         if source_files or source_files_additional:
             raise RuntimeError("can not combine GLSL source files %s with other source files %s" %
                     (str(source_files_glsl), str(source_files + source_files_additional)))
-        if output_files and (len(output_files) != len(source_files_glsl)):
-            raise RuntimeError("specified output files '%s' must match input glsl files '%s'" % (str(output_files), str(source_files_glsl)))
-        if output_files:
-            source_files_glsl = zip(source_files_glsl, output_files)
+        if output_file_list and (len(output_file_list) != len(source_files_glsl)):
+            raise RuntimeError("specified output files '%s' must match input glsl files '%s'" % (str(output_file_list), str(source_files_glsl)))
+        if output_file_list:
+            source_files_glsl = zip(source_files_glsl, output_file_list)
         glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_inlines, glsl_renames, glsl_simplifys)
-        if output_files:
+        if output_file_list:
             glsl_db.write()
         else:
             print("".join(glsl_db.format()).strip())
         sys.exit(0)
     # If no GLSL, there must be exactly one output file or nothing.
-    else:
-        if len(output_files) > 1:
-            raise RuntimeError("more than one output file specified: %s" % (str(output_files)))
-        output_file = output_files[0]
+    elif output_file_list:
+        if len(output_file_list) > 1:
+            raise RuntimeError("more than one output file specified: %s" % (str(output_file_list)))
+        output_file = output_file_list[0]
 
     # Cross-compile 32-bit arguments.
     if args.m32:
