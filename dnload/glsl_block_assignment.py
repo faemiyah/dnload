@@ -1,5 +1,6 @@
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
+from dnload.glsl_block_array import glsl_parse_array
 from dnload.glsl_block_statement import glsl_parse_statement
 from dnload.glsl_block_statement import glsl_parse_statements
 from dnload.glsl_paren import GlslParen
@@ -112,6 +113,10 @@ def glsl_parse_assignment(source, explicit=True):
         (terminator, remaining) = extract_tokens(intermediate, ("?,|;",))
         if terminator:
             return (GlslBlockAssignment(name, modifiers, operator, statements, terminator), remaining)
+    # Try array assignment.
+    (statement, remaining) = glsl_parse_array(content, explicit)
+    if statement:
+        return (GlslBlockAssignment(name, modifiers, operator, statement, None), remaining)
     # Try statement assignment.
     (statement, remaining) = glsl_parse_statement(content, explicit)
     if statement:
