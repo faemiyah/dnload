@@ -152,6 +152,14 @@ def osarch_match(op):
             break
     return False
 
+def osname_is_freebsd():
+    """Check if the operating system name maps to FreeBSD."""
+    return ("FreeBSD" == g_osname)
+
+def osname_is_linux():
+    """Check if the operating system name maps to Linux."""
+    return ("Linux" == g_osname)
+
 def platform_map_iterate(op):
     """Follow platform mapping chain once."""
     if op in g_platform_mapping:

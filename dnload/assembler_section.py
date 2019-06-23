@@ -7,6 +7,7 @@ from dnload.platform_var import g_osarch
 from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osarch_is_ia32
 from dnload.platform_var import osarch_is_amd64
+from dnload.platform_var import osname_is_linux
 from dnload.platform_var import PlatformVar
 
 ########################################
@@ -110,8 +111,8 @@ class AssemblerSection:
             match = re.match(r'\s*sub.*\s+[^\d]*(\d+),\s*%(rsp|esp)', current_line, re.IGNORECASE)
             if match:
                 total_decrement = int(match.group(1)) + stack_decrement
-                # As per gcc ABI, align to 16 bytes on 64-bit architectures.
-                if osarch_is_64_bit() and ((total_decrement & 0xF) != 0):
+                # As per Linux ABI, align to 16 bytes on 64-bit architectures.
+                if osname_is_linux() and osarch_is_64_bit() and ((total_decrement & 0xF) != 0):
                     total_decrement += 0x10 - (total_decrement & 0xF)
                 self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
                 break
