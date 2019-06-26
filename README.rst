@@ -1133,13 +1133,14 @@ This software has a very narrow usecase, but it's not that unlikely there will a
 TODO
 ====
 
-* Explain GLSL minification in documentation.
-* Add support for a separate output directory for temporary files.
-* Examine dlopen/dlsym failures in ``linux-ia32`` / ``linux-amd64`` on modern distros?
 * Extend cross-compilation support to other operating systems and architectures as opposed to 32-bit / 64-bit switch only.
 * Only SDL/OpenGL supported right now. Should probably also support GLFW.
 * Perhaps there are more efficient ways to interleave the header structs? Perhaps this can be permutated?
 * Perhaps .data segment contents can be sorted and rearranged for better compression?
+* [DOCS] Explain GLSL minification.
+* [DOCS] Explain new, better safe symtab method without symbol counting.
+* [DOCS] Explain PoroCYon's direct interpreter call trick.
+* [DOCS] Explain new, better entry crushing method.
 
 References
 ====
