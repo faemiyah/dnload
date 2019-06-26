@@ -110,11 +110,17 @@ class AssemblerSection:
             # Stop at stack decrement.
             match = re.match(r'\s*sub.*\s+[^\d]*(\d+),\s*%(rsp|esp)', current_line, re.IGNORECASE)
             if match:
-                total_decrement = int(match.group(1)) + stack_decrement
-                # As per Linux ABI, align to 16 bytes on 64-bit architectures.
-                if osname_is_linux() and osarch_is_64_bit() and ((total_decrement & 0xF) != 0):
-                    total_decrement += 0x10 - (total_decrement & 0xF)
-                self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
+                # Align to 16 bytes if necessary.
+                if osname_is_linux() and osarch_is_64_bit():
+                    if osarch_is_amd64():
+                        # Just ignore increment, there's probably enough stack.
+                        self.__content[jj] = re.sub(r'subq(\s*).*', r'andq\g<1>$0xFFFFFFFFFFFFFFF0, %rsp', current_line)
+                    else:
+                        raise RuntimeError("no stack alignment instruction for current architecture")
+                else:
+                    total_decrement = int(match.group(1)) + stack_decrement
+                    self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
+                    #self.__content[jj] = re.sub(r'subl(\s*).*', r'andl\g<1>$0xFFFFFFF0, %esp', current_line)
                 break
             # Do nothing if suspicious instruction is found.
             if is_verbose():
