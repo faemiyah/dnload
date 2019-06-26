@@ -74,29 +74,16 @@ g_assembler_ehdr = (
     ("e_machine, EM_386 = 3, EM_ARM = 40, EM_X86_64 = 62", 2, PlatformVar("e_machine")),
     ("e_version, EV_CURRENT = 1", 4, 1),
     ("e_entry, execution starting point", PlatformVar("addr"), PlatformVar("start")),
-    ("e_phoff, offset from start to program headers", PlatformVar("addr"), "phdr_interp - ehdr"),
+    ("e_phoff, offset from start to program headers", PlatformVar("addr"), "phdr_load - ehdr"),
     ("e_shoff, start of section headers", PlatformVar("addr"), 0),
     ("e_flags, unused", 4, PlatformVar("e_flags")),
     ("e_ehsize, Elf32_Ehdr size", 2, "ehdr_end - ehdr"),
-    ("e_phentsize, Elf32_Phdr size", 2, "phdr_interp_end - phdr_interp"),
+    ("e_phentsize, Elf32_Phdr size", 2, "phdr_load_end - phdr_load"),
     ("e_phnum, Elf32_Phdr count, PT_LOAD, [PT_LOAD (bss)], PT_INTERP, PT_DYNAMIC", 2, PlatformVar("phdr_count")),
     ("e_shentsize, Elf32_Shdr size", 2, 0),
     ("e_shnum, Elf32_Shdr count", 2, 0),
     ("e_shstrndx, index of section containing string table of section header names", 2, 0),
 )
-
-g_assembler_phdr32_interp = (
-    "phdr_interp",
-    "Elf32_Phdr, PT_INTERP",
-    ("p_type, PT_INTERP = 3", 4, 3),
-    ("p_offset, offset of block", PlatformVar("addr"), "interp - ehdr"),
-    ("p_vaddr, address of block", PlatformVar("addr"), "interp"),
-    ("p_paddr, unused", PlatformVar("addr"), 0),
-    ("p_filesz, block size on disk", PlatformVar("addr"), "interp_end - interp"),
-    ("p_memsz, block size in memory", PlatformVar("addr"), "interp_end - interp"),
-    ("p_flags, ignored", 4, 0),
-    ("p_align, 1 for strtab", PlatformVar("addr"), 1),
-    )
 
 g_assembler_phdr32_load_single = (
     "phdr_load",
@@ -137,6 +124,19 @@ g_assembler_phdr32_load_bss = (
     ("p_align, usually " + str(PlatformVar("memory_page")), PlatformVar("addr"), PlatformVar("memory_page")),
     )
 
+g_assembler_phdr32_interp = (
+    "phdr_interp",
+    "Elf32_Phdr, PT_INTERP",
+    ("p_type, PT_INTERP = 3", 4, 3),
+    ("p_offset, offset of block", PlatformVar("addr"), "interp - ehdr"),
+    ("p_vaddr, address of block", PlatformVar("addr"), "interp"),
+    ("p_paddr, unused", PlatformVar("addr"), 0),
+    ("p_filesz, block size on disk", PlatformVar("addr"), "interp_end - interp"),
+    ("p_memsz, block size in memory", PlatformVar("addr"), "interp_end - interp"),
+    ("p_flags, ignored", 4, 0),
+    ("p_align, 1 for strtab", PlatformVar("addr"), 1),
+    )
+
 g_assembler_phdr32_dynamic = (
     "phdr_dynamic",
     "Elf32_Phdr, PT_DYNAMIC",
@@ -148,19 +148,6 @@ g_assembler_phdr32_dynamic = (
     ("p_memsz, block size in memory", PlatformVar("addr"), "dynamic_end - dynamic"),
     ("p_flags, ignored", 4, 0),
     ("p_align", PlatformVar("addr"), 1),
-    )
-
-g_assembler_phdr64_interp = (
-    "phdr_interp",
-    "Elf64_Phdr, PT_INTERP",
-    ("p_type, PT_INTERP = 3", 4, 3),
-    ("p_flags, ignored", 4, 0),
-    ("p_offset, offset of block", PlatformVar("addr"), "interp - ehdr"),
-    ("p_vaddr, address of block", PlatformVar("addr"), "interp"),
-    ("p_paddr, unused", PlatformVar("addr"), 0),
-    ("p_filesz, block size on disk", PlatformVar("addr"), "interp_end - interp"),
-    ("p_memsz, block size in memory", PlatformVar("addr"), "interp_end - interp"),
-    ("p_align, 1 for strtab", PlatformVar("addr"), 1),
     )
 
 g_assembler_phdr64_load_single = (
@@ -200,6 +187,19 @@ g_assembler_phdr64_load_bss = (
     ("p_filesz, .bss size on disk", PlatformVar("addr"), 0),
     ("p_memsz, .bss size in memory", PlatformVar("addr"), "bss_end - end"),
     ("p_align, usually " + str(PlatformVar("memory_page")), PlatformVar("addr"), PlatformVar("memory_page")),
+    )
+
+g_assembler_phdr64_interp = (
+    "phdr_interp",
+    "Elf64_Phdr, PT_INTERP",
+    ("p_type, PT_INTERP = 3", 4, 3),
+    ("p_flags, ignored", 4, 0),
+    ("p_offset, offset of block", PlatformVar("addr"), "interp - ehdr"),
+    ("p_vaddr, address of block", PlatformVar("addr"), "interp"),
+    ("p_paddr, unused", PlatformVar("addr"), 0),
+    ("p_filesz, block size on disk", PlatformVar("addr"), "interp_end - interp"),
+    ("p_memsz, block size in memory", PlatformVar("addr"), "interp_end - interp"),
+    ("p_align, 1 for strtab", PlatformVar("addr"), 1),
     )
 
 g_assembler_phdr64_dynamic = (
@@ -520,25 +520,43 @@ def collect_libraries_rename(op):
         return "lib%s" % (op)
     return op
 
-def compress_file(compression, pretty, src, dst):
+def compress_file(compression, call_ld, pretty, src, dst):
     """Compress a file to be a self-extracting file-dumping executable."""
     str_header = PlatformVar("shelldrop_header").get()
     str_tail = PlatformVar("shelldrop_tail").get()
+    str_chmod = ""
+    str_ld = ""
     str_cleanup = ";exit"
+    # If we're calling LD directly, we need to refer to it, but CHMOD is not needed.
+    if call_ld:
+        str_var = "I"
+        str_ref = "$I"
+        str_ld = str(PlatformVar("interp")).strip("\"") + " "
+    else:
+        str_var = "HOME"
+        str_ref = "~"
+        str_chmod = ";chmod +x %s" % (str_ref)
+    # 'pretty' script will also remove the file.
     if pretty:
         str_tail = "tail -n+2"
         str_cleanup = ";rm ~;exit"
+    # Select filedump type.
     if "lzma" == compression:
         command = ["xz", "--format=lzma", "--lzma1=preset=9,lc=1,lp=0,nice=273,pb=0", "--stdout"]
-        header = "%sHOME=/tmp/i;%s $0|lzcat>~;chmod +x ~;~%s" % (str_header, str_tail, str_cleanup)
+        str_cat = "lzcat"
     elif "raw" == compression:
         command = ["xz", "-9", "--extreme", "--format=raw", "--stdout"]
-        header = "%sHOME=/tmp/i;%s $0|xzcat -F raw>~;chmod +x ~;~%s" % (str_header, str_tail, str_cleanup)
+        str_cat = "xzcat -F raw"
     elif "xz" == compression:
         command = ["xz", "--format=xz", "--lzma2=preset=9,lc=1,nice=273,pb=0", "--stdout"]
-        header = "%sHOME=/tmp/i;%s $0|xzcat>~;chmod +x ~;~%s" % (str_header, str_tail, str_cleanup)
+        str_cat = "xzcat"
     else:
         raise RuntimeError("unknown compression format '%s'" % compression)
+    # Create the header string.
+    header = "%s%s=/tmp/i;%s $0|%s>%s%s;%s%s%s" % (str_header, str_var, str_tail, str_cat, str_ref, str_chmod, str_ld, str_ref, str_cleanup)
+    if is_verbose():
+        print("Filedump header: '%s'" % header)
+    # Compress the file.
     (compressed, se) = run_command(command + [src], False)
     wfd = open(dst, "wb")
     wfd.write((header + "\n").encode())
@@ -589,12 +607,18 @@ def find_symbols(lst):
     return ret
 
 def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                            additional_sources=[]):
+                            additional_sources=[], interp_needed=False):
     """Generate a binary using all possible tricks. Return whether or not reprocess is necessary."""
     output_file_s = generate_temporary_filename(output_file + ".S")
     if source_file:
         compiler.compile_asm(source_file, output_file_s, True)
     segment_ehdr = AssemblerSegment(g_assembler_ehdr)
+    segment_dynamic = AssemblerSegment(g_assembler_dynamic)
+    segment_hash = AssemblerSegment(g_assembler_hash)
+    segment_interp = AssemblerSegment(g_assembler_interp)
+    segment_strtab = AssemblerSegment(g_assembler_strtab)
+    segment_symtab = AssemblerSegment(g_assembler_symtab)
+    # Dynamic and interp depend on address size.
     if osarch_is_32_bit():
         segment_phdr_dynamic = AssemblerSegment(g_assembler_phdr32_dynamic)
         segment_phdr_interp = AssemblerSegment(g_assembler_phdr32_interp)
@@ -603,11 +627,6 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
         segment_phdr_interp = AssemblerSegment(g_assembler_phdr64_interp)
     else:
         raise_unknown_address_size()
-    segment_dynamic = AssemblerSegment(g_assembler_dynamic)
-    segment_hash = AssemblerSegment(g_assembler_hash)
-    segment_interp = AssemblerSegment(g_assembler_interp)
-    segment_strtab = AssemblerSegment(g_assembler_strtab)
-    segment_symtab = AssemblerSegment(g_assembler_symtab)
     # There may be symbols necessary for addition.
     und_symbols = get_platform_und_symbols()
     if is_listing(und_symbols):
@@ -653,36 +672,48 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     asm.sort_sections(assembler)
     asm.crunch()
     # May be necessary to have two PT_LOAD headers as opposed to one.
+    phdr_count = 2
+    segment_phdr_load_bss = None
     bss_section = asm.generate_fake_bss(assembler, und_symbols, elfling)
     if 0 < bss_section.get_alignment():
-        replace_platform_variable("phdr_count", 4)
         if osarch_is_32_bit():
-            segment_phdr_load_double = AssemblerSegment(g_assembler_phdr32_load_double)
+            segment_phdr_load = AssemblerSegment(g_assembler_phdr32_load_double)
             segment_phdr_load_bss = AssemblerSegment(g_assembler_phdr32_load_bss)
         elif osarch_is_64_bit():
-            segment_phdr_load_double = AssemblerSegment(g_assembler_phdr64_load_double)
+            segment_phdr_load = AssemblerSegment(g_assembler_phdr64_load_double)
             segment_phdr_load_bss = AssemblerSegment(g_assembler_phdr64_load_bss)
         else:
             raise_unknown_address_size()
-        load_segments = [segment_phdr_load_double, segment_phdr_load_bss]
+        phdr_count += 1
     else:
         if osarch_is_32_bit():
-            segment_phdr_load_single = AssemblerSegment(g_assembler_phdr32_load_single)
+            segment_phdr_load = AssemblerSegment(g_assembler_phdr32_load_single)
         elif osarch_is_64_bit():
-            segment_phdr_load_single = AssemblerSegment(g_assembler_phdr64_load_single)
+            segment_phdr_load = AssemblerSegment(g_assembler_phdr64_load_single)
         else:
             raise_unknown_address_size()
-        load_segments = [segment_phdr_load_single]
-    # Collapse headers.
-    segments_head = [segment_ehdr, segment_phdr_interp]
+    # Segments before the phdr array and the first phdr.
+    segments_head = [segment_ehdr, segment_phdr_load]
+    # Segments that cannot be crunched because the phdrs must be in order.
+    segments_mid = []
+    if segment_phdr_load_bss:
+        segments_mid += segment_phdr_load_bss
+    if interp_needed:
+        phdr_count += 1
+        segments_mid += [segment_phdr_interp]
+    # Last phdr and segments after the phdr array.
     segments_tail = [segment_phdr_dynamic]
     if is_listing(und_symbols):
         segments_tail += [segment_hash]
     segments_tail += [segment_dynamic]
     if is_listing(und_symbols):
         segments_tail += [segment_symtab]
-    segments_tail += [segment_interp, segment_strtab]
-    segments = merge_segments(segments_head) + load_segments + merge_segments(segments_tail)
+    if interp_needed:
+        segments_tail += [segment_interp]
+    segments_tail += [segment_strtab]
+    # Merge all segments.
+    replace_platform_variable("phdr_count", phdr_count)
+    segments = merge_segments(segments_head) + segments_mid + merge_segments(segments_tail)
     # Create content of earlier sections and write source when done.
     if asm.hasSectionAlignment():
         asm.getSectionAlignment().create_content(assembler)
@@ -986,6 +1017,7 @@ def main():
     extra_compiler_flags = []
     extra_linker_flags = []
     include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
+    interp_needed = False
     library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
     opengl_reason = None
     opengl_version = None
@@ -1003,6 +1035,7 @@ def main():
     parser.add_argument("-D", "--define", default=[], action="append", help="Additional preprocessor definition.")
     parser.add_argument("-e", "--elfling", action="store_true", help="Use elfling packer if available.")
     parser.add_argument("-E", "--preprocess-only", action="store_true", help="Preprocess only, do not generate compiled output.")
+    parser.add_argument("--explicit-interp", action="store_true", help="Add an interp segment even if file dumping would allow removing it.")
     parser.add_argument("-h", "--help", action="store_true", help="Print this help string and exit.")
     parser.add_argument("-I", "--include-directory", default=[], action="append", help="Add an include directory to be searched for header files.")
     parser.add_argument("--interp", default=None, type=str, help="Use given interpreter as opposed to platform default.")
@@ -1076,6 +1109,10 @@ def main():
     # Verbosity.
     if args.verbose:
         set_verbose(True)
+
+    # Is interpreter segment necessary?
+    if args.explicit_interp or (compression not in ["lzma", "raw", "xz"]):
+        interp_needed = True
 
     # Definitions.
     if args.nice_exit:
@@ -1375,14 +1412,14 @@ def main():
     if "maximum" == compilation_mode:
         objcopy = executable_find(objcopy, default_objcopy_list, "objcopy")
         generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                                source_files_additional)
+                                source_files_additional, interp_needed)
         # Now have complete binary, may need to reprocess.
         if elfling:
             output_file_stripped = generate_temporary_filename(output_file + ".stripped")
             output_file_extracted = generate_temporary_filename(output_file + ".extracted")
             elfling.compress(output_file_stripped, output_file_extracted)
             generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                                    source_files_additional)
+                                    source_files_additional, interp_needed)
     elif "hash" == compilation_mode:
         output_file_s = generate_temporary_filename(output_file + ".S")
         output_file_final_s = generate_temporary_filename(output_file + ".final.S")
@@ -1409,7 +1446,7 @@ def main():
         strip = executable_find(strip, default_strip_list, "strip")
         shutil.copy(output_file_unprocessed, output_file_stripped)
         run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file_stripped])
-    compress_file(compression, nice_filedump, output_file_stripped, output_file)
+    compress_file(compression, not interp_needed, nice_filedump, output_file_stripped, output_file)
 
     return 0
 
