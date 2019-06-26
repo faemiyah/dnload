@@ -520,7 +520,7 @@ def collect_libraries_rename(op):
         return "lib%s" % (op)
     return op
 
-def compress_file(compression, call_ld, pretty, src, dst):
+def compress_file(compression, filedrop_interp, pretty, src, dst):
     """Compress a file to be a self-extracting file-dumping executable."""
     str_header = PlatformVar("shelldrop_header").get()
     str_tail = PlatformVar("shelldrop_tail").get()
@@ -528,14 +528,10 @@ def compress_file(compression, call_ld, pretty, src, dst):
     str_ld = ""
     str_cleanup = ";exit"
     # If we're calling LD directly, we need to refer to it, but CHMOD is not needed.
-    if call_ld:
-        str_var = "I"
-        str_ref = "$I"
-        str_ld = str(PlatformVar("interp")).strip("\"") + " "
+    if filedrop_interp:
+        str_ld = filedrop_interp + " "
     else:
-        str_var = "HOME"
-        str_ref = "~"
-        str_chmod = ";chmod +x %s" % (str_ref)
+        str_chmod = ";chmod +x $I"
     # 'pretty' script will also remove the file.
     if pretty:
         str_tail = "tail -n+2"
@@ -553,9 +549,7 @@ def compress_file(compression, call_ld, pretty, src, dst):
     else:
         raise RuntimeError("unknown compression format '%s'" % compression)
     # Create the header string.
-    header = "%s%s=/tmp/i;%s $0|%s>%s%s;%s%s%s" % (str_header, str_var, str_tail, str_cat, str_ref, str_chmod, str_ld, str_ref, str_cleanup)
-    if is_verbose():
-        print("Filedump header: '%s'" % header)
+    header = "%sI=/tmp/i;%s $0|%s>$I%s;%s$I%s" % (str_header, str_tail, str_cat, str_chmod, str_ld, str_cleanup)
     # Compress the file.
     (compressed, se) = run_command(command + [src], False)
     wfd = open(dst, "wb")
@@ -1007,7 +1001,7 @@ def main():
     global g_osname
     compression = str(PlatformVar("compression"))
     default_assembler_list = ["/usr/local/bin/as", "as"]
-    default_compiler_list = ["g++7", "g++-7", "g++49", "g++-4.9", "g++", "c++"]
+    default_compiler_list = ["g++8", "g++-8", "g++7", "g++-7", "g++", "c++"]
     default_linker_list = ["/usr/local/bin/ld", "ld"]
     default_preprocessor_list = ["cpp", "clang-cpp"]
     default_objcopy_list = ["/usr/local/bin/objcopy", "objcopy"]
@@ -1017,7 +1011,6 @@ def main():
     extra_compiler_flags = []
     extra_linker_flags = []
     include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
-    interp_needed = False
     library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
     opengl_reason = None
     opengl_version = None
@@ -1035,7 +1028,7 @@ def main():
     parser.add_argument("-D", "--define", default=[], action="append", help="Additional preprocessor definition.")
     parser.add_argument("-e", "--elfling", action="store_true", help="Use elfling packer if available.")
     parser.add_argument("-E", "--preprocess-only", action="store_true", help="Preprocess only, do not generate compiled output.")
-    parser.add_argument("--explicit-interp", action="store_true", help="Add an interp segment even if file dumping would allow removing it.")
+    parser.add_argument("-F", "--filedrop-mode", default=None, help="File dropping and interpreter calling mode.\n\theader:\n\t\tAdd explicit PT_INTERP header into the binary.\n\tnative:\n\t\tCall dynamic linker for the native architecture.\n\tcross:\n\t\tCall dynamic linker assuming cross-architecture emulation.\n\tauto:\n\t\tTry to autodetect and create the smallest binary to be ran on current machine.")
     parser.add_argument("-h", "--help", action="store_true", help="Print this help string and exit.")
     parser.add_argument("-I", "--include-directory", default=[], action="append", help="Add an include directory to be searched for header files.")
     parser.add_argument("--interp", default=None, type=str, help="Use given interpreter as opposed to platform default.")
@@ -1110,10 +1103,6 @@ def main():
     if args.verbose:
         set_verbose(True)
 
-    # Is interpreter segment necessary?
-    if args.explicit_interp or (compression not in ["lzma", "raw", "xz"]):
-        interp_needed = True
-
     # Definitions.
     if args.nice_exit:
         definitions += ["DNLOAD_NO_DEBUGGER_TRAP"]
@@ -1184,6 +1173,13 @@ def main():
             raise RuntimeError("more than one output file specified: %s" % (str(output_file_list)))
         output_file = output_file_list[0]
 
+    # Check if cross interpreter is necessary before selecting to cross-compile or not.
+    if (not args.filedrop_mode) or (args.filedrop_mode == "auto"):
+        if osarch_is_64_bit() and args.m32:
+            args.filedrop_mode = "cross"
+        else:
+            args.filedrop_mode = "native"
+
     # Cross-compile 32-bit arguments.
     if args.m32:
         if osarch_is_32_bit():
@@ -1208,6 +1204,23 @@ def main():
     if args.operating_system:
         new_osname = platform_map(args.operating_system.lower())
         replace_osname(new_osname, "Cross-compile:")
+
+    # Select interpreter.
+    filedrop_interp = None
+    interp_needed = False
+    if args.filedrop_mode == "cross":
+        try:
+            filedrop_interp = str(PlatformVar("interp-cross"))
+        except ValueError as ee:
+            filedrop_interp = str(PlatformVar("interp"))
+    elif args.filedrop_mode == "native":
+        filedrop_interp = str(PlatformVar("interp"))
+    else:
+        if args.filedrop_mode != "header":
+            raise RuntimeError("unknown filedrop mode: '%s'" % (args.filedrop_mode))
+        interp_needed = True
+    if filedrop_interp:
+        filedrop_interp = filedrop_interp.strip("\"")
 
     if compilation_mode not in ("vanilla", "dlfcn", "hash", "maximum"):
         raise RuntimeError("unknown method '%s'" % (compilation_mode))
@@ -1446,7 +1459,7 @@ def main():
         strip = executable_find(strip, default_strip_list, "strip")
         shutil.copy(output_file_unprocessed, output_file_stripped)
         run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file_stripped])
-    compress_file(compression, not interp_needed, nice_filedump, output_file_stripped, output_file)
+    compress_file(compression, filedrop_interp, nice_filedump, output_file_stripped, output_file)
 
     return 0
 

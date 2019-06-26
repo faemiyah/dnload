@@ -23,7 +23,7 @@ class PlatformVar:
         for ii in combinations:
             if ii in current_var:
                 return current_var[ii]
-        raise RuntimeError("current platform %s not supported for variable '%s'" % (str(combinations), self.__name))
+        raise ValueError("current platform %s not supported for variable '%s'" % (str(combinations), self.__name))
 
     def deconstructable(self):
         """Tell if this platform value can be deconstructed."""
@@ -91,6 +91,7 @@ g_platform_variables = {
     "function_srand": {"default": None},
     "gl_library": {"default": "GL"},
     "interp": {"FreeBSD": "\"/libexec/ld-elf.so.1\"", "Linux-arm32l": "\"/lib/ld-linux.so.3\"", "Linux-ia32": "\"/lib/ld-linux.so.2\"", "Linux-amd64": "\"/lib64/ld-linux-x86-64.so.2\""},
+    "interp-cross": {"FreeBSD-ia32": "\"/libexec/ld-elf32.so.1\""},
     "march": {"amd64": "core2", "armv6l": "armv6t2", "armv7l": "armv7", "ia32": "pentium4"},
     "memory_page": {"32-bit": 0x1000, "64-bit": 0x200000},
     "mpreferred-stack-boundary": {"arm32l": 0, "ia32": 2, "64-bit": 4},
