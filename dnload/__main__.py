@@ -80,9 +80,9 @@ g_assembler_ehdr = (
     ("e_ehsize, Elf32_Ehdr size", 2, "ehdr_end - ehdr"),
     ("e_phentsize, Elf32_Phdr size", 2, "phdr_load_end - phdr_load"),
     ("e_phnum, Elf32_Phdr count, PT_LOAD, [PT_LOAD (bss)], PT_INTERP, PT_DYNAMIC", 2, PlatformVar("phdr_count")),
-    ("e_shentsize, Elf32_Shdr size", 2, 0),
+    ("e_shentsize, Elf32_Shdr size", 2, PlatformVar("e_shentsize")), # Merges with load phdr.
     ("e_shnum, Elf32_Shdr count", 2, 0),
-    ("e_shstrndx, index of section containing string table of section header names", 2, 0),
+    ("e_shstrndx, index of section containing string table of section header names", 2, PlatformVar("e_shstrndx")),
 )
 
 g_assembler_phdr32_load_single = (
@@ -707,6 +707,9 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     segments_tail += [segment_strtab]
     # Merge all segments.
     replace_platform_variable("phdr_count", phdr_count)
+    replace_platform_variable("e_shentsize", 1) # Merges with PT_LOAD.
+    if osarch_is_64_bit():
+        replace_platform_variable("e_shstrndx", 7) # Merges with rwx flags.
     segments = merge_segments(segments_head) + segments_mid + merge_segments(segments_tail)
     # Create content of earlier sections and write source when done.
     if asm.hasSectionAlignment():

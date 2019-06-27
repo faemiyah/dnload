@@ -84,6 +84,8 @@ g_platform_variables = {
     "compression": {"default": "lzma"},
     "e_flags": {"default": 0, "arm32l": 0x5000402},
     "e_machine": {"amd64": 62, "arm32l": 40, "ia32": 3},
+    "e_shentsize": {"default": 0},
+    "e_shstrndx": {"default": 0},
     "ei_class": {"32-bit": 1, "64-bit": 2},
     "ei_osabi": {"FreeBSD": 9, "Linux-arm32l": 0, "Linux": 3},
     "entry": {"64-bit": 0x400000, "armv6l": 0x10000, "armv7l": 0x8000, "ia32": 0x2000000},  # ia32: 0x8048000
