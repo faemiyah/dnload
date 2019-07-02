@@ -1,6 +1,7 @@
 import re
 from dnload.common import is_verbose
 from dnload.glsl_type import interpret_type
+from dnload.glsl_type import interpret_pseudo_type
 
 ########################################
 # GlslName #############################
@@ -23,6 +24,10 @@ class GlslName:
             self.setType(interpret_type("vec2"))
         elif self.__name in g_vec4:
             self.setType(interpret_type("vec4"))
+        elif self.__name in g_mat:
+            self.setType(interpret_pseudo_type("mat"))
+        elif self.__name in g_vec:
+            self.setType(interpret_pseudo_type("vec"))
 
     def format(self, force):
         """Return formatted output."""
@@ -122,6 +127,7 @@ g_locked = (
     "false",
     "floor",
     "fract",
+    "gl_FragDepth",
     "gl_InstanceID",
     "gl_PerVertex",
     "layout",
@@ -134,9 +140,7 @@ g_locked = (
     "min",
     "mix",
     "mod",
-    "normalize",
     "pow",
-    "reflect",
     "return",
     "sign",
     "sin",
@@ -145,7 +149,6 @@ g_locked = (
     "step",
     "tan",
     "tanh",
-    "transpose",
     "true",
     "uniform",
     )
@@ -156,6 +159,10 @@ g_primitives = (
     "points",
     "triangles",
     "triangle_strip",
+    )
+
+g_mat = (
+    "transpose",
     )
 
 g_vec2 = (
@@ -172,13 +179,18 @@ g_vec4 = (
     "textureGrad",
     )
 
+g_vec = (
+    "normalize",
+    "reflect",
+    )
+
 ########################################
 # Functions ############################
 ########################################
 
 def get_list_locked():
     """Get list of all locked words."""
-    return g_locked + g_primitives + g_vec2 + g_vec4
+    return g_locked + g_primitives + g_mat + g_vec2 + g_vec4 + g_vec
 
 def get_list_primitives():
     """Get list of primitive words."""

@@ -11,16 +11,20 @@ class GlslType:
         """Constructor."""
         self.__modifier = modifier
         self.__type = source
+        # Save the flag so this type may check for errors.
+        self.__pseudo_type = match_pseudo_type_id(self.__type)
 
     def format(self, force):
         """Return formatted output."""
+        if self.__pseudo_type:
+            raise RuntimeError("trying to format a pseudo type '%s'" % (self.__type))
         if self.__modifier and (not force or (self.__modifier != "const")):
             return "%s %s" % (self.__modifier, self.__type)
         return self.__type
 
     def isVectorType(self):
         """Tell if this is a vector type (eglible for swizzling)."""
-        if re.match(r'^(uvec\d|ivec\d|vec\d)$', self.__type):
+        if re.match(r'^(uvec\d|ivec\d|vec\d?)$', self.__type):
             return True
         return False
 
@@ -56,6 +60,18 @@ def match_type_id(op):
     if re.match(r'^(bool|float|int|uint|uvec\d|ivec\d|mat\d|[iu]?sampler\dD|samplerCube|vec\d|void)$', op):
         return True
     return False
+
+def match_pseudo_type_id(op):
+    """Tell if given string matches a pseudo type."""
+    if re.match(r'(mat|vec)$', op):
+        return True
+    return False
+
+def interpret_pseudo_type(op):
+    """Interpret a pseudo-type that cannot be formatted, but is recognized as a type."""
+    if match_pseudo_type_id(op):
+        return GlslType(None, op)
+    return None
 
 def interpret_type(op1, op2=None):
     """Try to interpret type identifier."""
