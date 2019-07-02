@@ -222,16 +222,22 @@ class Glsl:
 
     def inlinePass(self, allow_inline):
         """Run inline pass. Return list of merged names if no inlining could be done."""
-        # Collect identifiers. First pass - collect from generic sources and append from non-generic.
         collected = []
         for ii in self.__sources:
-            if not ii.getType():
-                collect_pass = ii.collect()
-                for jj in self.__sources:
-                    if jj.getType():
-                        for kk in collect_pass:
-                            jj.collectAppend(kk)
-                collected += collect_pass
+            # First pass - collect from generic sources only
+            if ii.getType():
+                continue
+            collect_pass = ii.collect()
+            for jj in self.__sources:
+                # Second pass - append from non-generic.
+                if not jj.getType():
+                    continue
+                for kk in collect_pass:
+                    # Successive sources may only append to names declared on source level.
+                    if not is_source_level_name_strip(kk):
+                        continue
+                    jj.collectAppend(kk)
+            collected += collect_pass
         # Second pass - collect from non-generic sources. Do not append.
         for ii in self.__sources:
             if ii.getType():
@@ -530,6 +536,11 @@ def is_inline_name(op):
     if re.match(r'^i_.*$', op.getName(), re.I):
         return True
     return False
+
+def is_source_level_name_strip(op):
+    """Tell if given name strip exists in source level."""
+    blk = op.getBlock()
+    return is_glsl_block_source(blk.getParent())
 
 def find_parent_scope(block):
     """Find parent scope block for given block."""
