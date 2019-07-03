@@ -69,8 +69,12 @@ class GlslBlockSource(GlslBlock):
         subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
         return g_template_glsl_header.format(subst)
 
-    def generatePrintOutput(self):
+    def generatePrintOutput(self, plain=False):
         """Generate output to be written to output."""
+        # Just the shader as-is.
+        if plain:
+            return self.format(True)
+        # Header-like output.
         ret = self.format(True)
         ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
         subst = {"SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}

@@ -145,13 +145,13 @@ class Glsl:
                 return ii
         return None
 
-    def format(self):
+    def generatePrintOutput(self, plain=False):
         """Format output."""
         ret = []
         for ii in self.__sources:
             if not ii.hasOutputName():
-                ret += [ii.generatePrintOutput()]
-        return ret
+                ret += [ii.generatePrintOutput(plain).strip()]
+        return "\n".join(ret)
 
     def getChainLength(self, op):
         """Gets the length of source chain with given name."""

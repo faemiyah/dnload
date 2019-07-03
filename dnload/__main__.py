@@ -1031,7 +1031,7 @@ def main():
     parser.add_argument("-D", "--define", default=[], action="append", help="Additional preprocessor definition.")
     parser.add_argument("-e", "--elfling", action="store_true", help="Use elfling packer if available.")
     parser.add_argument("-E", "--preprocess-only", action="store_true", help="Preprocess only, do not generate compiled output.")
-    parser.add_argument("-F", "--filedrop-mode", default=None, help="File dropping and interpreter calling mode.\n\theader:\n\t\tAdd explicit PT_INTERP header into the binary.\n\tnative:\n\t\tCall dynamic linker for the native architecture.\n\tcross:\n\t\tCall dynamic linker assuming cross-architecture emulation.\n\tauto:\n\t\tTry to autodetect and create the smallest binary to be ran on current machine.")
+    parser.add_argument("-F", "--filedrop-mode", default="auto", choices=("header", "native", "cross", "auto"), help="File dropping and interpreter calling mode.\n\theader:\n\t\tAdd explicit PT_INTERP header into the binary.\n\tnative:\n\t\tCall dynamic linker for the native architecture.\n\tcross:\n\t\tCall dynamic linker assuming cross-architecture emulation.\n\tauto:\n\t\tTry to autodetect and create the smallest binary to be ran on current machine.")
     parser.add_argument("-h", "--help", action="store_true", help="Print this help string and exit.")
     parser.add_argument("-I", "--include-directory", default=[], action="append", help="Add an include directory to be searched for header files.")
     parser.add_argument("--interp", default=None, type=str, help="Use given interpreter as opposed to platform default.")
@@ -1059,7 +1059,8 @@ def main():
     parser.add_argument("-S", "--strip-binary", default=None, help="Try to use given strip executable as opposed to autodetect.")
     parser.add_argument("-t", "--target", default="dnload.h", help="Target header file to look for.\n(default: %(default)s)")
     parser.add_argument("-T", "--temporary-directory", default=None, help="Directory to store temporary files in.\n(default: autodetect)")
-    parser.add_argument("-u", "--unpack-header", choices=("lzma", "xz"), default=compression, help="Unpack header to use.\n(default: %(default)s)")
+    parser.add_argument("-u", "--unpack-header", default=compression, choices=("lzma", "xz"), help="Unpack header to use.\n(default: %(default)s)")
+    parser.add_argument("--verbatim", action="store_true", help="Perform select actions in a more verbatim manner:\n\t* Print GLSL to output without C header formatting.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Print more info about what is being done.")
     parser.add_argument("-V", "--version", action="store_true", help="Print version and exit.")
     parser.add_argument("source", default=[], nargs="*", help="Source file(s) to preprocess and/or compile.")
@@ -1168,7 +1169,7 @@ def main():
         if output_file_list:
             glsl_db.write()
         else:
-            print("".join(glsl_db.format()).strip())
+            print(glsl_db.generatePrintOutput(args.verbatim))
         sys.exit(0)
     # If no GLSL, there must be exactly one output file or nothing.
     elif output_file_list:
@@ -1177,7 +1178,7 @@ def main():
         output_file = output_file_list[0]
 
     # Check if cross interpreter is necessary before selecting to cross-compile or not.
-    if (not args.filedrop_mode) or (args.filedrop_mode == "auto"):
+    if args.filedrop_mode == "auto":
         if osarch_is_64_bit() and args.m32:
             args.filedrop_mode = "cross"
         else:
