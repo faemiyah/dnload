@@ -3,6 +3,7 @@ import os
 
 from dnload.common import generate_temporary_filename
 from dnload.common import is_verbose
+from dnload.common import variablize
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block_preprocessor import glsl_parse_preprocessor
 from dnload.glsl_parse import glsl_parse
@@ -41,6 +42,7 @@ class GlslBlockSource(GlslBlock):
         GlslBlock.__init__(self)
         self.__definition_ld = definition_ld
         self.__filename = filename
+        self.__basename = os.path.basename(filename)
         self.__output_name = output_name
         self.__variable_name = varname
         self.__content = ""
@@ -48,18 +50,7 @@ class GlslBlockSource(GlslBlock):
 
     def detectType(self):
         """Try to detect chain name and type from filename."""
-        self.__chain = None
-        self.__type = None
-        match = re.match(r'(.*)[._\-\s](\S+)[._\-\s].*', self.__filename, re.I)
-        if match:
-            self.__chain = extract_chain_name(match.group(1))
-            shader_type = match.group(2).lower()
-            if shader_type in ("frag", "fragment"):
-                self.__type = "fragment"
-            elif shader_type in ("geom", "geometry"):
-                self.__type = "geometry"
-            elif shader_type in ("vert", "vertex"):
-                self.__type = "vertex"
+        (self.__chain, self.__type) = detect_shader_type(self.__basename)
         if is_verbose():
             output_message = "Shader file '%s' type" % (self.__filename)
             if self.__type:
@@ -75,7 +66,7 @@ class GlslBlockSource(GlslBlock):
         """Generate output to be written into a file."""
         ret = self.format(True)
         ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
-        subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": os.path.basename(self.__filename), "SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
+        subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
         return g_template_glsl_header.format(subst)
 
     def generatePrintOutput(self):
@@ -97,7 +88,7 @@ class GlslBlockSource(GlslBlock):
         """Gets the variable name for this GLSL source file."""
         if self.__variable_name:
             return self.__variable_name
-        return re.sub(r'\.', r'_', self.__filename)
+        return variablize(self.__basename)
 
     def getType(self):
         """Access type of this shader file. May be empty."""
@@ -198,9 +189,28 @@ class GlslBlockSource(GlslBlock):
 # Functions ############################
 ########################################
 
-def extract_chain_name(op):
-    """Extracts chain name from given filename part."""
-    return os.path.basename(op)
+def detect_shader_type(op):
+    """Detect shader type from filename, if possible."""
+    # Try explicit naming by filename ending.
+    match = re.match(r'(.*)\.([^\.]+)$', op, re.I)
+    if match:
+        shader_type = get_shader_type(match.group(2))
+        if shader_type:
+            return (variablize(match.group(1)), shader_type)
+    # Try chain.type.glsl -order.
+    match = re.match(r'(.*)[._\-\s](\S+)[._\-\s].*$', op, re.I)
+    if match:
+        shader_type = get_shader_type(match.group(2))
+        if shader_type:
+            return (variablize(match.group(1)), shader_type)
+    # Try just type and assume default chain name.
+    match = re.match(r'^(\S+)[._\-\s].*$', op, re.I)
+    if match:
+        shader_type = get_shader_type(match.group(1))
+        if shader_type:
+            return ("default", shader_type)
+    # Could not determine anything -> generic header shader.
+    return (None, None)
 
 def glsl_cstr_readable(op):
     """Make GLSL source string into a 'readable' C string array."""
@@ -247,6 +257,18 @@ def glsl_read_source(preprocessor, definition_ld, filename, output_name, varname
     ret = GlslBlockSource(definition_ld, filename, output_name, varname)
     ret.read(preprocessor)
     return ret
+
+def get_shader_type(op):
+    """Gets shader type from given string."""
+    shader_type = op.lower()
+    if shader_type in ("frag", "fragment"):
+        return "fragment"
+    elif shader_type in ("geom", "geometry"):
+        return "geometry"
+    elif shader_type in ("vert", "vertex"):
+        return "vertex"
+    # No type could be detected.
+    return None
 
 def is_glsl_block_source(op):
     """Tell if given object is a GLSL source block."""

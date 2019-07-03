@@ -193,3 +193,7 @@ def set_verbose(op):
     """Set verbosity status."""
     global g_verbose
     g_verbose = op
+
+def variablize(op):
+    """Transform difficult characters in given string so that it can be used as a variable name."""
+    return re.sub(r'[\.\s-]', r'_', op)
