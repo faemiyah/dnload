@@ -266,8 +266,6 @@ typedef Elf32_Sym dnload_elf_sym_t;
 /** Elf dynamic structure tag type. */
 typedef Elf32_Sword dnload_elf_tag_t;
 #endif
-/** \brief ELF base address. */
-#define ELF_BASE_ADDRESS 0x400000
 /** \brief Get dynamic section element by tag.
  *
  * \param dyn Dynamic section.
@@ -307,6 +305,7 @@ static const struct link_map* elf_get_link_map()
 {
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
     // ELF header is in a fixed location in memory.
+    const void* ELF_BASE_ADDRESS = 0x400000;
     // First program header is located directly afterwards.
     const dnload_elf_ehdr_t *ehdr = (const dnload_elf_ehdr_t*)ELF_BASE_ADDRESS;
     const dnload_elf_phdr_t *phdr = (const dnload_elf_phdr_t*)((size_t)ehdr + (size_t)ehdr->e_phoff);
