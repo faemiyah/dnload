@@ -40,26 +40,29 @@ class AssemblerSegment:
         self.refresh_name_label()
         self.refresh_name_end_label()
 
+    def add_dt_element(self, d_tag, d_un):
+        """Add one d_tag / d_un element pair."""
+        # Added after the first d_tag and d_un that are supposed to be merged up.
+        self.__data[2:2] = [d_tag, d_un]
+        self.refresh_name_label()
+
     def add_dt_hash(self, op):
         """Add hash dynamic structure."""
         d_tag = AssemblerVariable(("d_tag, DT_HASH = 4", PlatformVar("addr"), 4))
         d_un = AssemblerVariable(("d_un", PlatformVar("addr"), op))
-        self.__data[0:0] = [d_tag, d_un]
-        self.refresh_name_label()
+        self.add_dt_element(d_tag, d_un)
 
     def add_dt_needed(self, op):
         """Add requirement to given library."""
         d_tag = AssemblerVariable(("d_tag, DT_NEEDED = 1", PlatformVar("addr"), 1))
         d_un = AssemblerVariable(("d_un, library name offset in strtab", PlatformVar("addr"), "strtab_%s - strtab" % labelify(op)))
-        self.__data[0:0] = [d_tag, d_un]
-        self.refresh_name_label()
+        self.add_dt_element(d_tag, d_un)
 
     def add_dt_symtab(self, op):
         """Add symtab dynamic structure."""
         d_tag = AssemblerVariable(("d_tag, DT_SYMTAB = 6", PlatformVar("addr"), 6))
         d_un = AssemblerVariable(("d_un", PlatformVar("addr"), op))
-        self.__data[0:0] = [d_tag, d_un]
-        self.refresh_name_label()
+        self.add_dt_element(d_tag, d_un)
 
     def add_hash(self, lst):
         """Generate a minimal DT_HASH based on symbol listing."""

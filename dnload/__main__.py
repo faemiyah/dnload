@@ -146,8 +146,8 @@ g_assembler_phdr32_dynamic = (
     ("p_paddr, unused", PlatformVar("addr"), 0),
     ("p_filesz, block size on disk", PlatformVar("addr"), "dynamic_end - dynamic"),
     ("p_memsz, block size in memory", PlatformVar("addr"), "dynamic_end - dynamic"),
-    ("p_flags, ignored", 4, 0),
-    ("p_align", PlatformVar("addr"), 1),
+    ("p_flags, ignored", 4, 21), # Merges with DT_DEBUG in dynamic section.
+    ("p_align", PlatformVar("addr"), 0),
     )
 
 g_assembler_phdr64_load_single = (
@@ -212,7 +212,7 @@ g_assembler_phdr64_dynamic = (
     ("p_paddr, unused", PlatformVar("addr"), 0),
     ("p_filesz, block size on disk", PlatformVar("addr"), "dynamic_end - dynamic"),
     ("p_memsz, block size in memory", PlatformVar("addr"), "dynamic_end - dynamic"),
-    ("p_align", PlatformVar("addr"), 1),
+    ("p_align", PlatformVar("addr"), 21), # Merges with DT_DEBUG in dynamic section.
     )
 
 g_assembler_hash = (
@@ -223,10 +223,10 @@ g_assembler_hash = (
 g_assembler_dynamic = (
     "dynamic",
     "PT_DYNAMIC",
-    ("d_tag, DT_STRTAB = 5", PlatformVar("addr"), 5),
-    ("d_un", PlatformVar("addr"), "strtab"),
     ("d_tag, DT_DEBUG = 21", PlatformVar("addr"), 21),
     ("d_un", PlatformVar("addr"), 0, "dynamic_r_debug"),
+    ("d_tag, DT_STRTAB = 5", PlatformVar("addr"), 5),
+    ("d_un", PlatformVar("addr"), "strtab"),
     ("d_tag, DT_NULL = 0", PlatformVar("addr"), 0),
     ("d_un", PlatformVar("addr"), 0),
     )
