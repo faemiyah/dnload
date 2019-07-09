@@ -696,12 +696,11 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
         phdr_count += 1
         segments_mid += [segment_phdr_interp]
     # Last phdr and segments after the phdr array.
-    segments_tail = [segment_phdr_dynamic]
-    if is_listing(und_symbols):
-        segments_tail += [segment_hash]
-    segments_tail += [segment_dynamic]
+    segments_tail = [segment_phdr_dynamic, segment_dynamic]
     if is_listing(und_symbols):
         segments_tail += [segment_symtab]
+    if is_listing(und_symbols):
+        segments_tail += [segment_hash]
     if interp_needed:
         segments_tail += [segment_interp]
     segments_tail += [segment_strtab]
