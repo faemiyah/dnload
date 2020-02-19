@@ -13,7 +13,7 @@ class GlslPipeline
     GLuint m_id = 0u;
 
     /// Shaders.
-    std::vector<GlslShaderProgramUptr> m_shader_programs;
+    std::vector<GlslShaderProgramUptr> m_shaders;
 
   public:
     /// Destructor.
@@ -28,6 +28,12 @@ class GlslPipeline
     ///
     /// \return Combined name.
     std::string getName() const;
+
+    /// Gets the ID of the shader program at given stage in the pipeline.
+    ///
+    /// \param type Shader program type.
+    /// \return Program ID.
+    GLuint getProgramId(GLenum type) const;
 
     /// Link the program.
     ///

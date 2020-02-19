@@ -21,7 +21,10 @@ private:
     /// Constructor.
     ///
     /// \param type Shader type.
-    GlslShaderProgram(GLenum type);
+    GlslShaderProgram(GLenum type) :
+        GlslShaderSource(type)
+    {
+    }
 
 public:
     /// Destructor.
@@ -49,9 +52,9 @@ public:
     /// \param src Source file.
     static GlslShaderProgramUptr create(GLenum type, std::string_view src)
     {
-        GlslShaderUptr ret(new GlslShader(type));
-        ret.addFile(src1);
-        ret.compile();
+        GlslShaderProgramUptr ret(new GlslShaderProgram(type));
+        ret->addFile(src);
+        ret->compile();
         return ret;
     }
     /// Create a new shader program.
@@ -61,10 +64,10 @@ public:
     /// \param src2 Source file.
     static GlslShaderProgramUptr create(GLenum type, std::string_view src1, std::string_view src2)
     {
-        GlslShaderUptr ret(new GlslShader(type));
-        ret.addFile(src1);
-        ret.addFile(src2);
-        ret.compile();
+        GlslShaderProgramUptr ret(new GlslShaderProgram(type));
+        ret->addFile(src1);
+        ret->addFile(src2);
+        ret->compile();
         return ret;
     }
 };

@@ -1,5 +1,10 @@
 #include "glsl_pipeline.hpp"
 
+#include <boost/throw_exception.hpp>
+
+#include <iostream>
+#include <sstream>
+
 #if !defined(DNLOAD_GLESV2)
 
 //######################################
@@ -39,21 +44,21 @@ std::string get_pipeline_info_log(GLuint op)
 // Global ##############################
 //######################################
 
-GlslProgram::~GlslProgram()
+GlslPipeline::~GlslPipeline()
 {
     cleanup();
 }
 
-void GlslProgram::cleanup()
+void GlslPipeline::cleanup()
 {
     if(m_id)
     {
         glDeleteProgramPipelines(1, &m_id);
-        m_pipeline_id = 0;
+        m_id = 0;
     }
 }
 
-std::string GlslProgram::getName() const
+std::string GlslPipeline::getName() const
 {
     std::ostringstream sstr;
     sstr << "'";
@@ -71,23 +76,38 @@ std::string GlslProgram::getName() const
     return sstr.str();
 }
 
-bool GlslProgram::link()
+GLuint GlslPipeline::getProgramId(GLenum type) const
+{
+    for(auto& vv : m_shaders)
+    {
+        if(vv->getType() == type)
+        {
+            return vv->getId();
+        }
+    }
+
+    std::ostringstream sstr;
+    sstr << "no shader program of type '" << type << "' in pipeline";
+    BOOST_THROW_EXCEPTION(std::runtime_error(sstr.str()));
+}
+
+bool GlslPipeline::link()
 {
     cleanup();
 
-    glGenProgramPipelines(1, &m_pipeline_id);
+    glGenProgramPipelines(1, &m_id);
 
-    for(GlslShaderProgramUptr &vv : m_shader_programs)
+    for(auto& vv : m_shaders)
     {
-        if(!vv->link())
+        if(!vv->compile())
         {
             return false;
         }
 
-        glUseProgramStages(m_pipeline_id, vv->getStage(), vv->getPipelineId());
+        glUseProgramStages(m_id, vv->getStage(), vv->getId());
     }
 
-    std::string log = get_pipeline_info_log(m_pipeline_id);
+    std::string log = get_pipeline_info_log(m_id);
     if(!log.empty())
     {
         std::cout << log;

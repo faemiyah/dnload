@@ -54,11 +54,6 @@ bool get_shader_compile_status(GLuint op)
 // Class ###############################
 //######################################
 
-GlslShader::GlslShader(GLenum type) :
-    GlslShaderSource(type)
-{
-}
-
 GlslShader::~GlslShader()
 {
     cleanup();

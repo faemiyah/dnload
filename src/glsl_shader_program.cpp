@@ -2,49 +2,49 @@
 
 #include "glsl_program.hpp"
 
+#include <boost/throw_exception.hpp>
+
+#include <iostream>
+#include <sstream>
+
 #if !defined(DNLOAD_GLESV2)
 
 //######################################
 // Global ##############################
 //######################################
 
-GlslShaderProgram::GlslShaderProgram(GLenum type) :
-    GlslShaderSource(type)
-{
-}
-
-GlslShader::~GlslShader()
+GlslShaderProgram::~GlslShaderProgram()
 {
     cleanup();
 }
 
-void GlslShader::cleanup()
+void GlslShaderProgram::cleanup()
 {
     if(m_id)
     {
-        glDeleteProgram(m_pipeline_id);
+        glDeleteProgram(m_id);
         m_id = 0u;
     }
 }
 
-bool GlslShader::compile(bool pipeline)
+bool GlslShaderProgram::compile()
 {
     cleanup();
 
     std::string source = read();
     const GLchar* glsl_parts[1] = { source.c_str() };
 
-    m_id = glCreateShaderProgramv(m_type, static_cast<GLsizei>(glsl_parts.size()), &(glsl_parts[0]));
-    if(!GlslProgram::get_program_link_status(m_id))
+    m_id = glCreateShaderProgramv(m_type, static_cast<GLsizei>(1), &(glsl_parts[0]));
+    if(!get_program_link_status(m_id))
     {
-        std::cout << GlslProgram::get_program_info_log(m_id);
+        std::cout << get_program_info_log(m_id);
         return false;
     }
 
     return true;
 }
 
-GLuint GlslShader::getStage() const
+GLuint GlslShaderProgram::getStage() const
 {
     switch(m_type)
     {
@@ -64,3 +64,4 @@ GLuint GlslShader::getStage() const
 }
 
 #endif
+

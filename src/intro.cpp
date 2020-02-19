@@ -8,8 +8,11 @@
 #include "dnload.h"
 
 #if defined(USE_LD)
+#if defined(DNLOAD_GLESV2)
 #include "glsl_program.hpp"
-#include "glsl_shader_source.hpp"
+#else
+#include "glsl_pipeline.hpp"
+#endif
 #include "image_png.hpp"
 #include <cstdio>
 #include <iomanip>
@@ -468,7 +471,7 @@ void write_audio(void *data, size_t size)
 /// \param idx Frame index to write.
 void write_frame(unsigned screen_w, unsigned screen_h, unsigned idx)
 {
-    boost::scoped_array<uint8_t> image(new uint8_t[screen_w * screen_h * 3]);
+    std::unique_ptr<uint8_t[]> image(new uint8_t[screen_w * screen_h * 3]);
     std::ostringstream sstr;
 
     glReadPixels(0, 0, static_cast<GLsizei>(screen_w), static_cast<GLsizei>(screen_h), GL_RGB, GL_UNSIGNED_BYTE,
@@ -608,8 +611,8 @@ void _start()
     {
         BOOST_THROW_EXCEPTION(std::runtime_error("pipeline creation failure"));
     }
-    glBindProgramPipeline(program.getPipelineId());
-    g_program_fragment = program.getPipelineId(GL_FRAGMENT_SHADER);
+    glBindProgramPipeline(program.getId());
+    g_program_fragment = program.getProgramId(GL_FRAGMENT_SHADER);
 #else
     // Shader generation inline.
     GLuint pipeline;
@@ -767,8 +770,8 @@ void _start()
                     g_program_fragment = program.getId();
                     glUseProgram(g_program_fragment);
 #else
-                    glBindProgramPipeline(program.getPipelineId());
-                    g_program_fragment = program.getPipelineId(GL_FRAGMENT_SHADER);
+                    glBindProgramPipeline(program.getId());
+                    g_program_fragment = program.getProgramId(GL_FRAGMENT_SHADER);
 #endif
                     break;
 
