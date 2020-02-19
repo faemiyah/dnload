@@ -1147,6 +1147,23 @@ def main():
         if set_temporary_directory(found_tmpdir) and is_verbose():
             print("Using temporary directory '%s/'." % (found_tmpdir))
 
+    # GLES check (as opposed to plain desktop GL)
+    gles_reason = None
+    if not no_glesv2:
+        if os.path.exists(PATH_MALI):
+            definitions += ["DNLOAD_MALI"]
+            gles_reason = "'%s' (Mali)" % (PATH_MALI)
+        if os.path.exists(PATH_VIDEOCORE):
+            definitions += ["DNLOAD_VIDEOCORE"]
+            gles_reason = "'%s' (VideoCore)" % (PATH_VIDEOCORE)
+            if 'armv7l' == g_osarch:
+                replace_osarch("armv6l", "Workaround (Raspberry Pi): ")
+    if gles_reason:
+        definitions += ["DNLOAD_GLESV2"]
+        replace_platform_variable("gl_library", "GLESv2")
+        if is_verbose():
+            print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
+
     # Find preprocessor.
     preprocessor_list = default_preprocessor_list
     if os.name == "nt":
@@ -1229,22 +1246,6 @@ def main():
         raise RuntimeError("unknown method '%s'" % (compilation_mode))
     elif "hash" == compilation_mode:
         definitions += ["DNLOAD_NO_FIXED_R_DEBUG_ADDRESS"]
-
-    gles_reason = None
-    if not no_glesv2:
-        if os.path.exists(PATH_MALI):
-            definitions += ["DNLOAD_MALI"]
-            gles_reason = "'%s' (Mali)" % (PATH_MALI)
-        if os.path.exists(PATH_VIDEOCORE):
-            definitions += ["DNLOAD_VIDEOCORE"]
-            gles_reason = "'%s' (VideoCore)" % (PATH_VIDEOCORE)
-            if 'armv7l' == g_osarch:
-                replace_osarch("armv6l", "Workaround (Raspberry Pi): ")
-    if gles_reason:
-        definitions += ["DNLOAD_GLESV2"]
-        replace_platform_variable("gl_library", "GLESv2")
-        if is_verbose():
-            print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
 
     if 0 >= len(target_search_path):
         for ii in source_files:

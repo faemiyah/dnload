@@ -1,13 +1,6 @@
-#version 430
+attribute vec2 vertex;
 
-in vec2 vertex;
-
-out vec2 position;
-
-out gl_PerVertex
-{
-    vec4 gl_Position;
-};
+varying mediump vec2 position;
 
 void main()
 {

@@ -5,7 +5,8 @@
 #define bsd_u_int unsigned int
 
 #if defined(__cplusplus)
-extern "C" {
+extern "C"
+{
 #endif
 
 /** \brief BSD rand() implementation.

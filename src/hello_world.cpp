@@ -1,6 +1,5 @@
-/** \file
- * "Hello World!" example.
- */
+/// \file
+/// "Hello World!" example.
 
 //######################################
 // Include #############################
@@ -18,13 +17,13 @@ int main()
 void _start()
 #endif
 {
-  dnload();
-  dnload_puts("Hello World!");
+    dnload();
+    dnload_puts("Hello World!");
 
 #if defined(USE_LD)
-  return 0;
+    return 0;
 #else
-  asm_exit();
+    asm_exit();
 #endif
 }
 
