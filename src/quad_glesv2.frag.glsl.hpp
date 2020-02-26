@@ -1,48 +1,42 @@
-static const char* g_shader_fragment_quad = ""
+#ifndef __g_shader_fragment_quad_header__
+#define __g_shader_fragment_quad_header__
+static const char *g_shader_fragment_quad = ""
 #if defined(USE_LD)
 "quad_glesv2.frag.glsl"
 #else
-"uniform mediump vec3 uniform_array[4];"
-""
-"attribute mediump vec2 position;"
-""
+"precision highp float;"
+"uniform vec3 i[4];"
+"varying vec2 e;"
 "void main()"
 "{"
-"mediump vec2 aspect = position;"
-"if(uniform_array[3].y > 1.0)"
+"vec2 o=e;"
+"if(i[3].g>1.)o.r*=i[3].g;"
+"else o.g/=i[3].g;"
+"vec3 e=normalize(i[1]),g=normalize(cross(e,i[2])),v=normalize(o.r*g+o.g*normalize(cross(g,e))+e);"
+"float l=dot(-i[0],v),c=1.+sin(i[3].r/4444.)*.1;"
+"vec3 t=l*v+i[0];"
+"float r=dot(t,t);"
+"if(r<=c)"
 "{"
-"    aspect.x *= uniform_array[3].y;"
+"vec3 e=(l-sqrt(c*c-r*r))*v+i[0];"
+"gl_FragColor=vec4(e*dot(e,vec3(1)),1.);"
 "}"
-"else"
-"{"
-"    aspect.y /= uniform_array[3].y;"
-"}"
-""
-"mediump vec3 forward = normalize(uniform_array[1]);"
-"mediump vec3 right = normalize(cross(forward, uniform_array[2]));"
-"mediump vec3 direction = normalize(aspect.x * right + aspect.y * normalize(cross(right, forward)) + forward);"
-""
-"mediump float product = dot(-uniform_array[0], direction);"
-"mediump float radius = 1.0 + sin(uniform_array[3].x / 4444.0) * 0.1;"
-"mediump vec3 collision = product * direction + uniform_array[0];"
-""
-"mediump float squared = dot(collision, collision);"
-"if(squared <= radius)"
-"{"
-"    mediump vec3 color = (product - sqrt(radius * radius - squared * squared)) * direction + uniform_array[0];"
-"    gl_FragColor = vec4(color * dot(color, vec3(1.0)), 1.0);"
-"}"
-"else"
-"{"
-"    gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);"
-"}"
+"else gl_FragColor=vec4(.0,.0,.0,1.);"
 "}"
 #endif
 "";
-static const char* g_shader_fragment_quad_uniform_uniform_array = ""
+#if !defined(DNLOAD_RENAME_UNUSED)
+#if defined(__GNUC__)
+#define DNLOAD_RENAME_UNUSED __attribute__((unused))
+#else
+#define DNLOAD_RENAME_UNUSED
+#endif
+#endif
+static const char* g_shader_fragment_quad_uniform_uniform_array DNLOAD_RENAME_UNUSED = ""
 #if defined(USE_LD)
 "uniform_array"
 #else
-"uniform_array"
+"i"
 #endif
 "";
+#endif

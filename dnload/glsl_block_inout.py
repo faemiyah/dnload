@@ -23,6 +23,14 @@ class GlslBlockInOut(GlslBlock):
             ret += self._layout.format(force)
         return ret + self._inout.format(force)
 
+    def getInout(self):
+        """Accessor."""
+        return self._inout
+
+    def getLayout(self):
+        """Accessor."""
+        return self._layout
+
     def format(self, force):
         """Return formatted output."""
         return self.formatBase(force) + ";"
@@ -134,6 +142,10 @@ class GlslBlockInOutTyped(GlslBlockInOut):
         if is_glsl_block_inout_typed(op) and (op.getName() == self.__name) and (op.getType() == self.__typeid):
             return True
         return False
+
+    def setImpliedPrecision(self, precision_state):
+        """Sets the implied precision for this block."""
+        self.__typeid.setImpliedPrecision(precision_state)
 
     def __str__(self):
         """String representation."""

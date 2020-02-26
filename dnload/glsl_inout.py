@@ -13,6 +13,10 @@ class GlslInOut:
         """Return formatted output."""
         return self.__inout
 
+    def isAlwaysInput(self):
+        """Tell if this inout directive always corresponds to input."""
+        return self.__inout in ("attribute", "in")
+
     def __str__(self):
         """String representation."""
         return "GlslInOut('%s')" % (self.__inout)

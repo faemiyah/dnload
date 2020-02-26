@@ -50,6 +50,12 @@ class GlslBlockFunction(GlslBlock):
             return False
         return True
 
+    def setImpliedPrecision(self, precision_state):
+        """Sets the implied precision for this block."""
+        self.__typeid.setImpliedPrecision(precision_state)
+        for ii in self.__parameters:
+            ii.setImpliedPrecision(precision_state)
+
     def __str__(self):
         """String representation."""
         return "Function('%s')" % (self.__name.getName())

@@ -26,6 +26,10 @@ class GlslBlockMember(GlslBlock):
         """Accessor."""
         return self.__name
 
+    def setImpliedPrecision(self, precision_state):
+        """Sets the implied precision for this block."""
+        self.__typeid.setImpliedPrecision(precision_state)
+
     def __eq__(self, other):
         """Equals operator."""
         return (self.format(False) == other.format(False))
@@ -69,3 +73,7 @@ def glsl_parse_member_list(source):
         ret += [member]
         content = remaining
     return ret
+
+def is_glsl_block_member(op):
+    """Tell if given object is a GLSL member block."""
+    return isinstance(op, GlslBlockMember)

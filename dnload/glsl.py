@@ -1,3 +1,4 @@
+import copy
 import re
 
 from dnload.common import is_listing
@@ -8,6 +9,8 @@ from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_function import is_glsl_block_function
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
+from dnload.glsl_block_member import is_glsl_block_member
+from dnload.glsl_block_precision import is_glsl_block_precision
 from dnload.glsl_block_scope import is_glsl_block_scope
 from dnload.glsl_block_struct import is_glsl_block_struct
 from dnload.glsl_block_source import glsl_read_source
@@ -81,6 +84,9 @@ class Glsl:
                 if (0 <= max_simplifys) and (simplifys >= max_simplifys):
                     break
                 simplifys += simplify_pass(ii, max_simplifys - simplifys)
+            # Set implied precision recursively, this may eliminate precision directives later.
+            for ii in self.__chains:
+                precision_pass(ii)
             # After all names have been collected, it's possible to select the best swizzle.
             swizzle = self.selectSwizzle()
             for ii in self.__sources:
@@ -411,6 +417,7 @@ class Glsl:
         op.lockNames(target_name)
 
     def selectSwizzle(self):
+        """Select the swizzle to be used."""
         counted = self.count()
         rgba = 0
         if "r" in counted:
@@ -529,7 +536,16 @@ def inline_instances(parent, block, names):
 
 def is_glsl_block_global(op):
     """Tell if block is somehting of a global concern."""
-    return (is_glsl_block_inout(op) or is_glsl_block_uniform(op))
+    return (is_glsl_block_inout(op) or
+            is_glsl_block_uniform(op))
+
+def is_glsl_block_precision_relevant(op):
+    """Tell if block is something to which precision directive matters."""
+    return (is_glsl_block_declaration(op) or
+            is_glsl_block_function(op) or
+            is_glsl_block_member(op) or
+            is_glsl_block_inout(op) or
+            is_glsl_block_uniform(op))
 
 def is_inline_name(op):
     """Tell if given name is viable for inlining."""
@@ -558,6 +574,38 @@ def find_parent_scope(block):
         if is_glsl_block_control(parent) or is_glsl_block_function(parent):
             return parent
         block = parent
+
+def precision_pass_recursive(block, precision_state):
+    """Recursively apply implied precision information on type declarations."""
+    if is_glsl_block_precision_relevant(block):
+        block.setImpliedPrecision(precision_state)
+    # Recurse down.
+    for ii in block.getChildren():
+        if is_glsl_block_precision(ii):
+            precision_state.setPrecision(jj.getType(), jj.getPrecision())
+        else:
+            precision_pass_recursive(ii, copy.deepcopy(precision_state))
+
+def precision_pass(chain):
+    """Run a precision pass on given source file chain."""
+    print(str(chain))
+    # Recursively set implied precision for every typeid in the chain.
+    chain_precision_state = {}
+    for ii in chain.getSources():
+        # Overwrite initial precision directives from chain precision state.
+        precision_state = ii.getPrecisions()
+        for (kk, vv) in chain_precision_state:
+            precison_state.setPrecision(kk, vv)
+        # Loop over child elements of the source file.
+        for jj in ii.getChildren():
+            # Check whether to alter the chain precision state.
+            if is_glsl_block_precision(jj):
+                if not ii.getType():
+                    chain_precision_state[jj.getType()] = jj.getPrecision()
+                precision_state.setPrecision(jj.getType(), jj.getPrecision())
+            # Otherwise recursively iterate downwards.
+            else:
+                precision_pass_recursive(jj, copy.deepcopy(precision_state))
 
 def single_character_alphabet():
     """Returns an alphabet of single characters, lower and upper case."""

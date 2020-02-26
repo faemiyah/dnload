@@ -31,9 +31,17 @@ class GlslBlockUniform(GlslBlock):
             ret += "[%s]" % (self.__size.format(force))
         return ret + ";"
 
+    def getLayout(self):
+        """Accessor."""
+        return self.__layout
+
     def getName(self):
         """Accessor."""
         return self.__name
+
+    def setImpliedPrecision(self, precision_state):
+        """Sets the implied precision for this block."""
+        self.__typeid.setImpliedPrecision(precision_state)
 
     def __str__(self):
         """String representation."""

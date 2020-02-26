@@ -40,6 +40,7 @@ class GlslBlock:
         self.__parent = None
 
     def addAccesses(self, op):
+        """Adds access elements in the block to the block's access list."""
         if is_listing(op):
             for ii in op:
                 self.addAccesses(ii)
@@ -418,6 +419,13 @@ def tokenize_interpret(tokens):
             ret += [inout]
             ii += 1
             continue
+        # Try 3-stage type.
+        if (ii + 2) < len(tokens):
+            typeid = interpret_type(element, tokens[ii + 1], tokens[ii + 2])
+            if typeid:
+                ret += [typeid]
+                ii += 3
+                continue
         # Try 2-stage type.
         if (ii + 1) < len(tokens):
             typeid = interpret_type(element, tokens[ii + 1])

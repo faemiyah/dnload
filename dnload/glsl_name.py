@@ -141,6 +141,7 @@ g_locked = (
     "mix",
     "mod",
     "pow",
+    "precision",
     "return",
     "sign",
     "sin",

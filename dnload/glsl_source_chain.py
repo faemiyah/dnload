@@ -35,6 +35,10 @@ class GlslSourceChain:
         """Gets the length of the source chain."""
         return len(self.__sources)
 
+    def getSources(self):
+        """Gets all source files in the source chain."""
+        return self.__sources
+
     def hasSource(self, op):
         """Tests if given source block is contained within this source chain."""
         assert_glsl_block_source(op)

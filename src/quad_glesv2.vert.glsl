@@ -1,6 +1,6 @@
 attribute vec2 vertex;
 
-varying mediump vec2 position;
+varying highp vec2 position;
 
 void main()
 {

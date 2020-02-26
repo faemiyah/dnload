@@ -12,6 +12,8 @@ from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_flow import glsl_parse_flow
 from dnload.glsl_block_group import GlslBlockGroup
 from dnload.glsl_block_group import is_glsl_block_group
+from dnload.glsl_block_precision import glsl_parse_precision
+from dnload.glsl_block_precision import is_glsl_block_precision
 from dnload.glsl_block_return import glsl_parse_return
 from dnload.glsl_block_return import is_glsl_block_return
 from dnload.glsl_block_unary import glsl_parse_unary
@@ -122,6 +124,11 @@ def glsl_parse_content(source):
     while source:
         # Parse scope, allow one-statement scope (will be merged with a control or destroyed later).
         (block, remaining) = glsl_parse_scope(source, False)
+        if block:
+            ret += [block]
+            source = remaining
+            continue
+        (block, remaining) = glsl_parse_precision(source)
         if block:
             ret += [block]
             source = remaining

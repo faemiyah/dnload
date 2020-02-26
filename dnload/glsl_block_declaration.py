@@ -60,6 +60,10 @@ class GlslBlockDeclaration(GlslBlock):
         """Accessor."""
         return self.__typeid
 
+    def setImpliedPrecision(self, precision_state):
+        """Sets the implied precision for this block."""
+        self.__typeid.setImpliedPrecision(precision_state)
+
     def __str__(self):
         """String representation."""
         return "Declaration('%s')" % (self.__typeid.format(False))

@@ -5,6 +5,7 @@ from dnload.glsl_block_declaration import glsl_parse_declaration
 from dnload.glsl_block_default import glsl_parse_default
 from dnload.glsl_block_inout import glsl_parse_inout
 from dnload.glsl_block_pervertex import glsl_parse_pervertex
+from dnload.glsl_block_precision import glsl_parse_precision
 from dnload.glsl_block_struct import glsl_parse_struct
 from dnload.glsl_block_uniform import glsl_parse_uniform
 
@@ -23,6 +24,9 @@ def glsl_parse_tokenized(source):
     if not source:
         return []
     # Try default parses for global scope.
+    (block, remaining) = glsl_parse_precision(source)
+    if block:
+        return [block] + glsl_parse_tokenized(remaining)
     (block, remaining) = glsl_parse_inout(source)
     if block:
         return [block] + glsl_parse_tokenized(remaining)

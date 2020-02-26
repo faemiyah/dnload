@@ -6,29 +6,56 @@ from dnload.common import is_verbose
 from dnload.common import variablize
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block_preprocessor import glsl_parse_preprocessor
+from dnload.glsl_block_inout import is_glsl_block_inout_typed
+from dnload.glsl_block_uniform import is_glsl_block_uniform
 from dnload.glsl_parse import glsl_parse
+from dnload.glsl_source_precision import GlslSourcePrecision
 from dnload.template import Template
 
 ########################################
 # Globals ##############################
 ########################################
 
-g_template_glsl_header = Template("""static const char *[[VARIABLE_NAME]] = \"\"
+g_template_glsl_header = Template("""#ifndef __[[VARIABLE_NAME]]_header__
+#define __[[VARIABLE_NAME]]_header__
+static const char *[[VARIABLE_NAME]] = \"\"
 #if defined([[DEFINITION_LD]])
 \"[[FILE_NAME]]\"
 #else
 [[SOURCE]]
 #endif
-\"\";
+\"\";[[UNUSED]][[RENAMES]]
+#endif
 """)
 
 g_template_glsl_print = Template("""#ifndef __[[VARIABLE_NAME]]_header__
 #define __[[VARIABLE_NAME]]_header__
-static const char *[[VARIABLE_NAME]] = \"\"
+static const char* [[VARIABLE_NAME]] = \"\"
 [[SOURCE]]
-\"\";
+\"\";[[UNUSED]][[RENAMES]]
 #endif
 """)
+
+g_rename_unused = """
+#if !defined(DNLOAD_RENAME_UNUSED)
+#if defined(__GNUC__)
+#define DNLOAD_RENAME_UNUSED __attribute__((unused))
+#else
+#define DNLOAD_RENAME_UNUSED
+#endif
+#endif"""
+
+g_template_glsl_rename_header = Template("""
+static const char* [[SOURCE_NAME]]_[[TYPE_NAME]]_[[VARIABLE_NAME]] DNLOAD_RENAME_UNUSED = \"\"
+#if defined([[DEFINITION_LD]])
+\"[[VARIABLE_NAME]]\"
+#else
+\"[[RENAME]]\"
+#endif
+\"\";""")
+
+g_template_glsl_rename_print = Template("""
+static const char* [[SOURCE_NAME]]_[[TYPE_NAME]]_[[VARIABLE_NAME]] DNLOAD_RENAME_UNUSED = \"[[RENAME]]\";""")
 
 ########################################
 # GlslBlockSource ######################
@@ -46,11 +73,13 @@ class GlslBlockSource(GlslBlock):
         self.__output_name = output_name
         self.__variable_name = varname
         self.__content = ""
+        # Determine remaining fields from the former.
         self.detectType()
 
     def detectType(self):
         """Try to detect chain name and type from filename."""
         (self.__chain, self.__type) = detect_shader_type(self.__basename)
+        self.__precisions = GlslSourcePrecision(self.__type)
         if is_verbose():
             output_message = "Shader file '%s' type" % (self.__filename)
             if self.__type:
@@ -64,9 +93,10 @@ class GlslBlockSource(GlslBlock):
 
     def generateHeaderOutput(self):
         """Generate output to be written into a file."""
-        ret = self.format(True)
-        ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
-        subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
+        source = self.format(True)
+        source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(source)))
+        renames = self.generateRenames(True)
+        subst = { "DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused, }
         return g_template_glsl_header.format(subst)
 
     def generatePrintOutput(self, plain=False):
@@ -75,10 +105,32 @@ class GlslBlockSource(GlslBlock):
         if plain:
             return self.format(True)
         # Header-like output.
-        ret = self.format(True)
-        ret = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(ret)))
-        subst = {"SOURCE": ret, "VARIABLE_NAME": self.getVariableName()}
+        source = self.format(True)
+        source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(source)))
+        renames = self.generateRenames(False)
+        subst = { "SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused, }
         return g_template_glsl_print.format(subst)
+
+    def generateRename(self, type_name, name, rename, header_mode):
+        """Generates a single rename string."""
+        subst = { "DEFINITION_LD": self.__definition_ld, "SOURCE_NAME": self.getVariableName(), "TYPE_NAME": type_name, "VARIABLE_NAME": name, "RENAME": rename, }
+        if header_mode:
+            return g_template_glsl_rename_header.format(subst)
+        return g_template_glsl_rename_print.format(subst)
+
+    def generateRenames(self, header_mode):
+        """Generate rename strings."""
+        ret = ""
+        for ii in self.getChildren():
+            if is_glsl_block_inout_typed(ii):
+                if (self.getType() == "vertex") and (not ii.getLayout()) and (ii.getInout().isAlwaysInput()):
+                    name = ii.getName()
+                    ret += self.generateRename("attribute", name.getName(), name.resolveName(), header_mode)
+            elif is_glsl_block_uniform(ii):
+                if not ii.getLayout():
+                    name = ii.getName()
+                    ret += self.generateRename("uniform", name.getName(), name.resolveName(), header_mode)
+        return ret
 
     def getChainName(self):
         """Accessor."""
@@ -87,6 +139,10 @@ class GlslBlockSource(GlslBlock):
     def getFilename(self):
         """Accessor."""
         return self.__filename
+
+    def getPrecisions(self):
+        """Accessor."""
+        return self.__precisions
 
     def getVariableName(self):
         """Gets the variable name for this GLSL source file."""

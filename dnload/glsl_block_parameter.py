@@ -31,6 +31,10 @@ class GlslBlockParameter(GlslBlock):
             ret += "%s " % (self.__inout.format(force))
         return ret + "%s %s" % (self.__typeid.format(force), self.__assignment.format(force))
 
+    def setImpliedPrecision(self, precision_state):
+        """Sets the implied precision for this block."""
+        self.__typeid.setImpliedPrecision(precision_state)
+
     def __str__(self):
         """String representation."""
         return "Parameter('%s')" % (self.__assignment.getName().format(False))
