@@ -126,6 +126,7 @@ class AssemblerFile:
         # Gather global names that cannot be renamed.
         for ii in other.__sections:
             globls = globls.union(ii.gather_globals())
+            print(str(globls))
         # Gather all labels.
         for ii in other.__sections:
             if jump_point_name:

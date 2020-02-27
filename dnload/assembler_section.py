@@ -51,9 +51,9 @@ class AssemblerSection:
             match = re.match(r'(\s*)\.align\s+(\d+).*', line)
             if not match:
                 continue
-            # Get actual align byte count.
+            # Compiler thinking aligning to less than desired platform alignment is probably ok.
             align = get_align_bytes(int(match.group(2)))
-            if align == desired:
+            if align <= desired:
                 continue
             # Some alignment directives are necessary due to data access.
             if not can_minimize_align(align):
@@ -269,7 +269,7 @@ class AssemblerSection:
         """Gathers a list of .globl definitions."""
         ret = set()
         for ii in self.__content:
-            match = re.match(r'\s*\.globl\s+([\.\w]+).*', ii)
+            match = re.match(r'\s*\.globa?l\s+([\.\w]+).*', ii)
             if match:
                 ret = ret.union(set([match.group(1)]))
         return ret

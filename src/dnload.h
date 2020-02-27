@@ -137,53 +137,53 @@ static void asm_exit(void)
 
 #if defined(USE_LD)
 /** \cond */
-#define dnload_glCreateProgram glCreateProgram
-#define dnload_glUseProgram glUseProgram
-#define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
-#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
-#define dnload_glVertexAttribPointer glVertexAttribPointer
 #define dnload_glLinkProgram glLinkProgram
-#define dnload_glShaderSource glShaderSource
-#define dnload_glGetUniformLocation glGetUniformLocation
-#define dnload_glDrawArrays glDrawArrays
 #define dnload_SDL_GL_SetAttribute SDL_GL_SetAttribute
-#define dnload_SDL_CreateWindow SDL_CreateWindow
-#define dnload_SDL_ShowCursor SDL_ShowCursor
-#define dnload_SDL_PollEvent SDL_PollEvent
-#define dnload_SDL_Init SDL_Init
-#define dnload_glCompileShader glCompileShader
-#define dnload_SDL_PauseAudio SDL_PauseAudio
-#define dnload_SDL_Quit SDL_Quit
-#define dnload_glEnableVertexAttribArray glEnableVertexAttribArray
 #define dnload_glUniform3fv glUniform3fv
-#define dnload_SDL_OpenAudio SDL_OpenAudio
+#define dnload_glGetUniformLocation glGetUniformLocation
+#define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
+#define dnload_SDL_PauseAudio SDL_PauseAudio
 #define dnload_glAttachShader glAttachShader
+#define dnload_SDL_OpenAudio SDL_OpenAudio
+#define dnload_SDL_CreateWindow SDL_CreateWindow
+#define dnload_SDL_PollEvent SDL_PollEvent
 #define dnload_glCreateShader glCreateShader
+#define dnload_SDL_Init SDL_Init
+#define dnload_glCreateProgram glCreateProgram
+#define dnload_SDL_Quit SDL_Quit
+#define dnload_SDL_ShowCursor SDL_ShowCursor
+#define dnload_glVertexAttribPointer glVertexAttribPointer
+#define dnload_glCompileShader glCompileShader
+#define dnload_glShaderSource glShaderSource
+#define dnload_glDrawArrays glDrawArrays
+#define dnload_glUseProgram glUseProgram
+#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
+#define dnload_glEnableVertexAttribArray glEnableVertexAttribArray
 /** \endcond */
 #else
 /** \cond */
-#define dnload_glCreateProgram g_symbol_table.df_glCreateProgram
-#define dnload_glUseProgram g_symbol_table.df_glUseProgram
-#define dnload_SDL_GL_SwapWindow g_symbol_table.df_SDL_GL_SwapWindow
-#define dnload_SDL_GL_CreateContext g_symbol_table.df_SDL_GL_CreateContext
-#define dnload_glVertexAttribPointer g_symbol_table.df_glVertexAttribPointer
 #define dnload_glLinkProgram g_symbol_table.df_glLinkProgram
-#define dnload_glShaderSource g_symbol_table.df_glShaderSource
-#define dnload_glGetUniformLocation g_symbol_table.df_glGetUniformLocation
-#define dnload_glDrawArrays g_symbol_table.df_glDrawArrays
 #define dnload_SDL_GL_SetAttribute g_symbol_table.df_SDL_GL_SetAttribute
-#define dnload_SDL_CreateWindow g_symbol_table.df_SDL_CreateWindow
-#define dnload_SDL_ShowCursor g_symbol_table.df_SDL_ShowCursor
-#define dnload_SDL_PollEvent g_symbol_table.df_SDL_PollEvent
-#define dnload_SDL_Init g_symbol_table.df_SDL_Init
-#define dnload_glCompileShader g_symbol_table.df_glCompileShader
-#define dnload_SDL_PauseAudio g_symbol_table.df_SDL_PauseAudio
-#define dnload_SDL_Quit g_symbol_table.df_SDL_Quit
-#define dnload_glEnableVertexAttribArray g_symbol_table.df_glEnableVertexAttribArray
 #define dnload_glUniform3fv g_symbol_table.df_glUniform3fv
-#define dnload_SDL_OpenAudio g_symbol_table.df_SDL_OpenAudio
+#define dnload_glGetUniformLocation g_symbol_table.df_glGetUniformLocation
+#define dnload_SDL_GL_SwapWindow g_symbol_table.df_SDL_GL_SwapWindow
+#define dnload_SDL_PauseAudio g_symbol_table.df_SDL_PauseAudio
 #define dnload_glAttachShader g_symbol_table.df_glAttachShader
+#define dnload_SDL_OpenAudio g_symbol_table.df_SDL_OpenAudio
+#define dnload_SDL_CreateWindow g_symbol_table.df_SDL_CreateWindow
+#define dnload_SDL_PollEvent g_symbol_table.df_SDL_PollEvent
 #define dnload_glCreateShader g_symbol_table.df_glCreateShader
+#define dnload_SDL_Init g_symbol_table.df_SDL_Init
+#define dnload_glCreateProgram g_symbol_table.df_glCreateProgram
+#define dnload_SDL_Quit g_symbol_table.df_SDL_Quit
+#define dnload_SDL_ShowCursor g_symbol_table.df_SDL_ShowCursor
+#define dnload_glVertexAttribPointer g_symbol_table.df_glVertexAttribPointer
+#define dnload_glCompileShader g_symbol_table.df_glCompileShader
+#define dnload_glShaderSource g_symbol_table.df_glShaderSource
+#define dnload_glDrawArrays g_symbol_table.df_glDrawArrays
+#define dnload_glUseProgram g_symbol_table.df_glUseProgram
+#define dnload_SDL_GL_CreateContext g_symbol_table.df_SDL_GL_CreateContext
+#define dnload_glEnableVertexAttribArray g_symbol_table.df_glEnableVertexAttribArray
 /** \endcond */
 /** \brief Symbol table structure.
  *
@@ -191,52 +191,52 @@ static void asm_exit(void)
  */
 static struct SymbolTableStruct
 {
-    GLuint (DNLOAD_APIENTRY *df_glCreateProgram)(void);
-    void (DNLOAD_APIENTRY *df_glUseProgram)(GLuint);
-    void (*df_SDL_GL_SwapWindow)(SDL_Window*);
-    SDL_GLContext (*df_SDL_GL_CreateContext)(SDL_Window*);
-    void (DNLOAD_APIENTRY *df_glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
     void (DNLOAD_APIENTRY *df_glLinkProgram)(GLuint);
-    void (DNLOAD_APIENTRY *df_glShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
-    GLint (DNLOAD_APIENTRY *df_glGetUniformLocation)(GLuint, const GLchar*);
-    void (DNLOAD_APIENTRY *df_glDrawArrays)(GLenum, GLint, GLsizei);
     int (*df_SDL_GL_SetAttribute)(SDL_GLattr, int);
-    SDL_Window* (*df_SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
-    int (*df_SDL_ShowCursor)(int);
-    int (*df_SDL_PollEvent)(SDL_Event*);
-    int (*df_SDL_Init)(Uint32);
-    void (DNLOAD_APIENTRY *df_glCompileShader)(GLuint);
-    void (*df_SDL_PauseAudio)(int);
-    void (*df_SDL_Quit)(void);
-    void (DNLOAD_APIENTRY *df_glEnableVertexAttribArray)(GLuint);
     void (DNLOAD_APIENTRY *df_glUniform3fv)(GLint, GLsizei, const GLfloat*);
-    int (*df_SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
+    GLint (DNLOAD_APIENTRY *df_glGetUniformLocation)(GLuint, const GLchar*);
+    void (*df_SDL_GL_SwapWindow)(SDL_Window*);
+    void (*df_SDL_PauseAudio)(int);
     void (DNLOAD_APIENTRY *df_glAttachShader)(GLuint, GLuint);
+    int (*df_SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
+    SDL_Window* (*df_SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
+    int (*df_SDL_PollEvent)(SDL_Event*);
     GLuint (DNLOAD_APIENTRY *df_glCreateShader)(GLenum);
+    int (*df_SDL_Init)(Uint32);
+    GLuint (DNLOAD_APIENTRY *df_glCreateProgram)(void);
+    void (*df_SDL_Quit)(void);
+    int (*df_SDL_ShowCursor)(int);
+    void (DNLOAD_APIENTRY *df_glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
+    void (DNLOAD_APIENTRY *df_glCompileShader)(GLuint);
+    void (DNLOAD_APIENTRY *df_glShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
+    void (DNLOAD_APIENTRY *df_glDrawArrays)(GLenum, GLint, GLsizei);
+    void (DNLOAD_APIENTRY *df_glUseProgram)(GLuint);
+    SDL_GLContext (*df_SDL_GL_CreateContext)(SDL_Window*);
+    void (DNLOAD_APIENTRY *df_glEnableVertexAttribArray)(GLuint);
 } g_symbol_table =
 {
-    (GLuint (DNLOAD_APIENTRY *)(void))0x78721c3,
-    (void (DNLOAD_APIENTRY *)(GLuint))0xcc55bb62,
-    (void (*)(SDL_Window*))0x295bfb59,
-    (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
-    (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*))0xc443174a,
     (void (DNLOAD_APIENTRY *)(GLuint))0x133a35c5,
-    (void (DNLOAD_APIENTRY *)(GLuint, GLsizei, const GLchar**, const GLint*))0xc609c385,
-    (GLint (DNLOAD_APIENTRY *)(GLuint, const GLchar*))0x25c12218,
-    (void (DNLOAD_APIENTRY *)(GLenum, GLint, GLsizei))0xcb871c63,
     (int (*)(SDL_GLattr, int))0x1da21ab0,
-    (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
-    (int (*)(int))0xb88bf697,
-    (int (*)(SDL_Event*))0x64949d97,
-    (int (*)(Uint32))0x70d6574,
-    (void (DNLOAD_APIENTRY *)(GLuint))0xc5165dd3,
-    (void (*)(int))0x29f14a4,
-    (void (*)(void))0x7eb657f3,
-    (void (DNLOAD_APIENTRY *)(GLuint))0xe9e99723,
     (void (DNLOAD_APIENTRY *)(GLint, GLsizei, const GLfloat*))0x223459b4,
-    (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
+    (GLint (DNLOAD_APIENTRY *)(GLuint, const GLchar*))0x25c12218,
+    (void (*)(SDL_Window*))0x295bfb59,
+    (void (*)(int))0x29f14a4,
     (void (DNLOAD_APIENTRY *)(GLuint, GLuint))0x30b3cfcf,
+    (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
+    (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
+    (int (*)(SDL_Event*))0x64949d97,
     (GLuint (DNLOAD_APIENTRY *)(GLenum))0x6b4ffac6,
+    (int (*)(Uint32))0x70d6574,
+    (GLuint (DNLOAD_APIENTRY *)(void))0x78721c3,
+    (void (*)(void))0x7eb657f3,
+    (int (*)(int))0xb88bf697,
+    (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*))0xc443174a,
+    (void (DNLOAD_APIENTRY *)(GLuint))0xc5165dd3,
+    (void (DNLOAD_APIENTRY *)(GLuint, GLsizei, const GLchar**, const GLint*))0xc609c385,
+    (void (DNLOAD_APIENTRY *)(GLenum, GLint, GLsizei))0xcb871c63,
+    (void (DNLOAD_APIENTRY *)(GLuint))0xcc55bb62,
+    (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+    (void (DNLOAD_APIENTRY *)(GLuint))0xe9e99723,
 };
 #endif
 
@@ -460,13 +460,6 @@ extern "C"
 #endif
 /** Program entry point. */
 void _start() DNLOAD_VISIBILITY;
-#if defined(__FreeBSD__)
-/** Symbol required by libc. */
-void *environ DNLOAD_VISIBILITY;
-/** Symbol required by libc. */
-void *__progname DNLOAD_VISIBILITY;
-#endif
-
 #if defined(__cplusplus)
 }
 #endif

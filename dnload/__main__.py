@@ -30,6 +30,7 @@ from dnload.platform_var import g_osarch
 from dnload.platform_var import g_osname
 from dnload.platform_var import g_osversion
 from dnload.platform_var import osarch_is_amd64
+from dnload.platform_var import osarch_is_arm32l
 from dnload.platform_var import osarch_is_32_bit
 from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osname_is_freebsd
@@ -475,7 +476,7 @@ void *__progname DNLOAD_VISIBILITY;
 # Functions ############################
 ########################################
 
-def collect_libraries(libraries, symbols, compilation_mode):
+def collect_libraries(libraries, extra_libraries, symbols, compilation_mode):
     """Collect libraries to link against from symbols given."""
     # Collect suggested set of libraries.
     library_set = set()
@@ -485,6 +486,10 @@ def collect_libraries(libraries, symbols, compilation_mode):
     if not libraries:
         if "dlfcn" == compilation_mode:
             raise RuntimeError("cannot autodetect libraries for compilation mode '%s'" % compilation_mode)
+        if extra_libraries:
+            if is_verbose():
+                print("Adding extra libraries due to platform: %s" % (str(extra_libraries)))
+            library_set = library_set.union(extra_libraries)
         libraries = list(library_set)
         output_message = "Autodetected libraries to link against: "
     # If libraries were given, warn if something seems to be missing.
@@ -736,8 +741,8 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     output_file_stripped = generate_temporary_filename(output_file + ".stripped")
     linker.generate_linker_script(output_file_ld, True)
     linker.set_linker_script(output_file_ld)
-    # TODO: when is objcopy exactly required?
-    if True:
+    # Some platforms cannot skip the extra objcopy step. Reason unknown.
+    if not osarch_is_arm32l():
         objcopy = None
     linker.link_binary(objcopy, link_files, output_file_unprocessed)
     if bss_section.get_alignment():
@@ -1011,6 +1016,7 @@ def main():
     definitions = []
     extra_assembler_flags = []
     extra_compiler_flags = []
+    extra_libraries = []
     extra_linker_flags = []
     include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
     library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
@@ -1151,6 +1157,7 @@ def main():
     gles_reason = None
     if not no_glesv2:
         if os.path.exists(PATH_MALI):
+            extra_libraries += ["EGL"]
             definitions += ["DNLOAD_MALI"]
             gles_reason = "'%s' (Mali)" % (PATH_MALI)
         if os.path.exists(PATH_VIDEOCORE):
@@ -1200,7 +1207,9 @@ def main():
 
     # Check if cross interpreter is necessary before selecting to cross-compile or not.
     if args.filedrop_mode == "auto":
-        if osarch_is_64_bit() and args.m32:
+        if osarch_is_arm32l():
+            args.filedrop_mode = "header"
+        elif osarch_is_64_bit() and args.m32:
             args.filedrop_mode = "cross"
         else:
             args.filedrop_mode = "native"
@@ -1421,7 +1430,7 @@ def main():
             print("Using output file '%s' after source file '%s'." % (output_file, source_file))
 
     source_file = source_files[0]
-    libraries = collect_libraries(libraries, real_symbols, compilation_mode)
+    libraries = collect_libraries(libraries, extra_libraries, real_symbols, compilation_mode)
     compiler.generate_compiler_flags()
     compiler.generate_linker_flags()
     compiler.set_libraries(libraries)

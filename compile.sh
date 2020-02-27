@@ -10,11 +10,7 @@ if [ ! -f "src/dnload.h" ] ; then
     touch src/dnload.h
 fi
 
-if [ -d "/usr/lib/arm-linux-gnueabihf/mali-egl" ] ; then # Mali.
-    python "${DNLOAD}" -v src/intro.cpp -o intro -lc -lgcc -lEGL -lGLESv2 -lSDL2 -m hash $*
-else
-    python "${DNLOAD}" -v src/intro.cpp -o intro $*
-fi
+python "${DNLOAD}" -v src/intro.cpp -o intro $*
 if [ $? -ne 0 ] ; then
     echo "${0}: compilation failed"
     exit 1

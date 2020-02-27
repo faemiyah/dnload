@@ -147,6 +147,10 @@ def osarch_is_ia32():
     """Check if the architecture maps to ia32."""
     return osarch_match("ia32")
 
+def osarch_is_arm32l():
+    """Check if the architecture maps to ia32."""
+    return osarch_match("arm32l")
+
 def osarch_match(op):
     """Check if osarch matches some chain resulting in given value."""
     arch = g_osarch
