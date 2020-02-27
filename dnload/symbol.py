@@ -1,3 +1,4 @@
+from dnload.common import is_verbose
 from dnload.platform_var import PlatformVar
 from dnload.template import Template
 
@@ -223,7 +224,7 @@ static const struct link_map* elf_get_link_map()
 {
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
     // ELF header is in a fixed location in memory.
-    const void* ELF_BASE_ADDRESS = [[BASE_ADDRESS]];
+    const void* ELF_BASE_ADDRESS = (const void*)([[BASE_ADDRESS]]);
     // First program header is located directly afterwards.
     const dnload_elf_ehdr_t *ehdr = (const dnload_elf_ehdr_t*)ELF_BASE_ADDRESS;
     const dnload_elf_phdr_t *phdr = (const dnload_elf_phdr_t*)((size_t)ehdr + (size_t)ehdr->e_phoff);

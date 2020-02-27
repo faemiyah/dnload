@@ -28,52 +28,6 @@
 #include <stdlib.h>
 #endif
 
-#if defined(DNLOAD_VIDEOCORE)
-#include "bcm_host.h"
-#include "EGL/egl.h"
-#endif
-
-#if defined(USE_LD)
-#if defined(WIN32)
-#include "windows.h"
-#include "GL/glew.h"
-#include "GL/glu.h"
-#elif defined(__APPLE__)
-#include "GL/glew.h"
-#include <OpenGL/glu.h>
-#else
-#if defined(DNLOAD_GLESV2)
-#include "GLES2/gl2.h"
-#include "GLES2/gl2ext.h"
-#else
-#include "GL/glew.h"
-#include "GL/glu.h"
-#endif
-#endif
-#else
-#if defined(__APPLE__)
-#include <OpenGL/gl.h>
-#include <OpenGL/glext.h>
-#include <OpenGL/glu.h>
-#else
-#if defined(DNLOAD_GLESV2)
-#include "GLES2/gl2.h"
-#include "GLES2/gl2ext.h"
-#else
-#include "GL/gl.h"
-#include "GL/glext.h"
-#include "GL/glu.h"
-#endif
-#endif
-#endif
-
-#include "SDL.h"
-#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__)
-#define DNLOAD_MAIN SDL_main
-#else
-#define DNLOAD_MAIN main
-#endif
-
 /** Macro stringification helper (adds indirection). */
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /** Macro stringification. */
@@ -137,39 +91,11 @@ static void asm_exit(void)
 
 #if defined(USE_LD)
 /** \cond */
-#define dnload_glUseProgramStages glUseProgramStages
-#define dnload_glBindProgramPipeline glBindProgramPipeline
-#define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
-#define dnload_SDL_PauseAudio SDL_PauseAudio
-#define dnload_SDL_OpenAudio SDL_OpenAudio
-#define dnload_SDL_CreateWindow SDL_CreateWindow
-#define dnload_SDL_PollEvent SDL_PollEvent
-#define dnload_SDL_Init SDL_Init
-#define dnload_glGenProgramPipelines glGenProgramPipelines
-#define dnload_SDL_Quit SDL_Quit
-#define dnload_glCreateShaderProgramv glCreateShaderProgramv
-#define dnload_SDL_ShowCursor SDL_ShowCursor
-#define dnload_glProgramUniform3fv glProgramUniform3fv
-#define dnload_glRects glRects
-#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
+#define dnload_puts puts
 /** \endcond */
 #else
 /** \cond */
-#define dnload_glUseProgramStages g_symbol_table.df_glUseProgramStages
-#define dnload_glBindProgramPipeline g_symbol_table.df_glBindProgramPipeline
-#define dnload_SDL_GL_SwapWindow g_symbol_table.df_SDL_GL_SwapWindow
-#define dnload_SDL_PauseAudio g_symbol_table.df_SDL_PauseAudio
-#define dnload_SDL_OpenAudio g_symbol_table.df_SDL_OpenAudio
-#define dnload_SDL_CreateWindow g_symbol_table.df_SDL_CreateWindow
-#define dnload_SDL_PollEvent g_symbol_table.df_SDL_PollEvent
-#define dnload_SDL_Init g_symbol_table.df_SDL_Init
-#define dnload_glGenProgramPipelines g_symbol_table.df_glGenProgramPipelines
-#define dnload_SDL_Quit g_symbol_table.df_SDL_Quit
-#define dnload_glCreateShaderProgramv g_symbol_table.df_glCreateShaderProgramv
-#define dnload_SDL_ShowCursor g_symbol_table.df_SDL_ShowCursor
-#define dnload_glProgramUniform3fv g_symbol_table.df_glProgramUniform3fv
-#define dnload_glRects g_symbol_table.df_glRects
-#define dnload_SDL_GL_CreateContext g_symbol_table.df_SDL_GL_CreateContext
+#define dnload_puts g_symbol_table.df_puts
 /** \endcond */
 /** \brief Symbol table structure.
  *
@@ -177,38 +103,10 @@ static void asm_exit(void)
  */
 static struct SymbolTableStruct
 {
-    void (DNLOAD_APIENTRY *df_glUseProgramStages)(GLuint, GLbitfield, GLuint);
-    void (DNLOAD_APIENTRY *df_glBindProgramPipeline)(GLuint);
-    void (*df_SDL_GL_SwapWindow)(SDL_Window*);
-    void (*df_SDL_PauseAudio)(int);
-    int (*df_SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
-    SDL_Window* (*df_SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
-    int (*df_SDL_PollEvent)(SDL_Event*);
-    int (*df_SDL_Init)(Uint32);
-    void (DNLOAD_APIENTRY *df_glGenProgramPipelines)(GLsizei, GLuint*);
-    void (*df_SDL_Quit)(void);
-    GLuint (DNLOAD_APIENTRY *df_glCreateShaderProgramv)(GLenum, GLsizei, const char**);
-    int (*df_SDL_ShowCursor)(int);
-    void (DNLOAD_APIENTRY *df_glProgramUniform3fv)(GLuint, GLint, GLsizei, const GLfloat*);
-    void (DNLOAD_APIENTRY *df_glRects)(GLshort, GLshort, GLshort, GLshort);
-    SDL_GLContext (*df_SDL_GL_CreateContext)(SDL_Window*);
+    int (*df_puts)(const char*);
 } g_symbol_table =
 {
-    (void (DNLOAD_APIENTRY *)(GLuint, GLbitfield, GLuint))0x212d8ad7,
-    (void (DNLOAD_APIENTRY *)(GLuint))0x2386bc04,
-    (void (*)(SDL_Window*))0x295bfb59,
-    (void (*)(int))0x29f14a4,
-    (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
-    (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
-    (int (*)(SDL_Event*))0x64949d97,
-    (int (*)(Uint32))0x70d6574,
-    (void (DNLOAD_APIENTRY *)(GLsizei, GLuint*))0x75e35418,
-    (void (*)(void))0x7eb657f3,
-    (GLuint (DNLOAD_APIENTRY *)(GLenum, GLsizei, const char**))0xa4fd03d8,
-    (int (*)(int))0xb88bf697,
-    (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLsizei, const GLfloat*))0xc969d24e,
-    (void (DNLOAD_APIENTRY *)(GLshort, GLshort, GLshort, GLshort))0xd419e20a,
-    (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+    (int (*)(const char*))0x950c8684,
 };
 #endif
 
@@ -305,7 +203,7 @@ static const struct link_map* elf_get_link_map()
 {
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
     // ELF header is in a fixed location in memory.
-    const void* ELF_BASE_ADDRESS = 0x400000;
+    const void* ELF_BASE_ADDRESS = (const void*)(0x10000);
     // First program header is located directly afterwards.
     const dnload_elf_ehdr_t *ehdr = (const dnload_elf_ehdr_t*)ELF_BASE_ADDRESS;
     const dnload_elf_phdr_t *phdr = (const dnload_elf_phdr_t*)((size_t)ehdr + (size_t)ehdr->e_phoff);
@@ -409,7 +307,7 @@ static void* dnload_find_symbol(uint32_t hash)
 static void dnload(void)
 {
     unsigned ii;
-    for(ii = 0; (15 > ii); ++ii)
+    for(ii = 0; (1 > ii); ++ii)
     {
         void **iter = ((void**)&g_symbol_table) + ii;
         *iter = dnload_find_symbol(*(uint32_t*)iter);
@@ -432,6 +330,13 @@ extern "C"
 #endif
 /** Program entry point. */
 void _start() DNLOAD_VISIBILITY;
+#if defined(__FreeBSD__)
+/** Symbol required by libc. */
+void *environ DNLOAD_VISIBILITY;
+/** Symbol required by libc. */
+void *__progname DNLOAD_VISIBILITY;
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

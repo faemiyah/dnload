@@ -88,7 +88,7 @@ g_platform_variables = {
     "e_shstrndx": {"default": 0},
     "ei_class": {"32-bit": 1, "64-bit": 2},
     "ei_osabi": {"FreeBSD": 9, "Linux-arm32l": 0, "Linux": 3},
-    "entry": {"64-bit": 0x400000, "armv6l": 0x10000, "armv7l": 0x8000, "ia32": 0x2000000},  # ia32: 0x8048000
+    "entry": {"64-bit": 0x400000, "arm32l": 0x10000, "ia32": 0x2000000},  # ia32: 0x8048000
     "function_rand": {"default": None},
     "function_srand": {"default": None},
     "gl_library": {"default": "GL"},

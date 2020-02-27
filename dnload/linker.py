@@ -52,7 +52,7 @@ class Linker:
             if dynamic_linker.startswith("\"") and dynamic_linker.endswith("\""):
                 dynamic_linker = dynamic_linker[1:-1]
             else:
-                raise RuntimeError("dynamic liner definition '%s' should be quoeted" % (dynamic_linker))
+                raise RuntimeError("dynamic liner definition '%s' should be quoted" % (dynamic_linker))
             self.__linker_flags += ["-nostdlib", "--strip-all", "--dynamic-linker=%s" % (dynamic_linker)]
         else:
             raise RuntimeError("compilation not supported with compiler '%s'" % (op))
@@ -61,11 +61,15 @@ class Linker:
         """Accessor."""
         return self.__command
 
+    def get_command_basename(self):
+        """Accessor."""
+        return self.__command_basename
+
     def get_library_list(self):
         """Generate link library list libraries."""
         ret = []
         prefix = "-l"
-        if self.__command_basename.startswith("cl."):
+        if self.is_msvc():
             prefix = "/l"
         for ii in self.__libraries:
             ret += [prefix + ii]
@@ -76,11 +80,11 @@ class Linker:
         ret = []
         prefix = "-L"
         rpath_prefix = ["-Xlinker"]
-        if self.__command_basename.startswith("cl."):
+        if self.is_msvc():
             prefix = "/L"
         for ii in self.__library_directories:
             ret += [prefix + ii]
-        if self.__command_basename.startswith("ld"):
+        if self.is_ld():
             ret += ["-rpath-link", ":".join(self.__library_directories)]
             rpath_prefix = []
         for ii in self.__rpath_directories:
@@ -148,19 +152,25 @@ class Linker:
 
     def is_clang(self):
         """Tells if the linker is considered to be clang."""
-        if self.__command_basename.startswith("clang"):
+        if self.command_basename_startswith("clang"):
             return True
         return False
 
     def is_gcc(self):
         """Tells if the linker is considered to be gcc."""
-        if self.__command_basename.startswith("g++") or self.__command_basename.startswith("gcc"):
+        if self.command_basename_startswith("g++") or self.command_basename_startswith("gcc"):
             return True
         return False
 
     def is_ld(self):
         """Tells if the linker is considered to be ld."""
-        if self.__command_basename.startswith("ld"):
+        if self.command_basename_startswith("ld"):
+            return True
+        return False
+
+    def is_msvc(self):
+        """Tells if the linker is considered to be ld."""
+        if self.command_basename_startswith("cl."):
             return True
         return False
 

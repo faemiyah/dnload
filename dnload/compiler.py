@@ -1,4 +1,5 @@
 import os
+import re
 
 from dnload.common import is_listing
 from dnload.common import is_verbose
@@ -69,19 +70,31 @@ class Compiler(Linker):
 
     def generate_standard(self):
         """Generate C++ standard string."""
-        if self.command_basename_startswith("g++") or self.command_basename_startswith("gcc"):
+        if self.is_gcc():
             # TODO: For older g++ versions: -std=gnu11 ?
             self.__standard = ["-std=c++11"]
-        elif self.command_basename_startswith("clang"):
+        elif self.is_clang():
             self.__standard = ["-std=c++11"]
         else:
             self.__standard = []
+
+    def get_extra_library_directories(self):
+        """Determine extra library requirements for the compiler."""
+        ret = []
+        if self.is_gcc():
+            (so, se) = run_command([self.get_command(), "-v"])
+            match = re.search(r'COLLECT_LTO_WRAPPER\s*\=\s*([^\n]+)', se, re.I | re.M)
+            if match:
+                ret += [os.path.dirname(match.group(1))]
+        if is_verbose() and ret:
+            print("Compiler '%s' requires additional library directories: %s" % (self.get_command_basename(), str(ret)))
+        return ret
 
     def set_definitions(self, lst):
         """Set definitions."""
         prefix = "-D"
         self._definitions = []
-        if self.command_basename_startswith("cl."):
+        if self.is_msvc():
             prefix = "/D"
             self._definitions += [prefix + "WIN32"]
         if isinstance(lst, (list, tuple)):
@@ -93,7 +106,7 @@ class Compiler(Linker):
     def set_include_dirs(self, lst):
         """Set include directory listing."""
         prefix = "-I"
-        if self.command_basename_startswith("cl."):
+        if self.is_msvc():
             prefix = "/I"
         self._include_directories = []
         for ii in lst:

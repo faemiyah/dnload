@@ -54,6 +54,7 @@ from dnload.template import Template
 ########################################
 
 PATH_MALI = "/usr/lib/arm-linux-gnueabihf/mali-egl"
+PATH_LD_LINUX_ARMHF = "/lib/ld-linux-armhf.so.3"
 PATH_VIDEOCORE = "/opt/vc"
 
 VERSION_REVISION = "r14"
@@ -1163,6 +1164,12 @@ def main():
         replace_platform_variable("gl_library", "GLESv2")
         if is_verbose():
             print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
+        # Check for armhf interp as opposed to default.
+        current_interp = str(PlatformVar("interp"))[1:-1]
+        if os.path.exists(PATH_LD_LINUX_ARMHF) and (not os.path.exists(current_interp)):
+            if is_verbose():
+                print("Interp '%s' not found, switching to: '%s'" % (current_interp, PATH_LD_LINUX_ARMHF))
+            replace_platform_variable("interp", "\"%s\"" % (PATH_LD_LINUX_ARMHF))
 
     # Find preprocessor.
     preprocessor_list = default_preprocessor_list
@@ -1379,12 +1386,12 @@ def main():
         compiler_list = ["cl.exe"] + compiler_list
     compiler = Compiler(executable_find(compiler, compiler_list, "compiler"))
     compiler.set_definitions(definitions)
-    # Some special linker directories may be necessary.
-    if compiler.get_command() in ('gcc48', 'g++-4.8'):
-        library_directories += ["/usr/lib/gcc/arm-linux-gnueabihf/4.8"]
     compiler.set_include_dirs(include_directories)
     if extra_compiler_flags:
         compiler.add_extra_compiler_flags(extra_compiler_flags)
+    # Some compilers require extra library dirs.
+    library_directories += compiler.get_extra_library_directories()
+
     # Find assembler.
     assembler = Assembler(executable_find(assembler, default_assembler_list, "assembler"))
     if extra_assembler_flags:
