@@ -37,7 +37,7 @@ class GlslType:
 
     def getPrecisionType(self):
         """Get the precision type corresponding with this type."""
-        if not self.__type in g_type_to_precision_type:
+        if self.__type not in g_type_to_precision_type:
             raise RuntimeError("no known corresponding precision type for '%s'" % (self.__type))
         return g_type_to_precision_type[self.__type]
 
@@ -71,47 +71,47 @@ class GlslType:
 ########################################
 
 g_modifier_strings = (
-        "const",
-        "flat",
-        )
+    "const",
+    "flat",
+    )
 
 g_precision_strings = (
-        "lowp",
-        "mediump",
-        "highp",
-        )
+    "lowp",
+    "mediump",
+    "highp",
+    )
 
 g_type_to_precision_type = {
-        "atomic_uint" : "atomic_uint",
-        "bool" : "int",
-        "float" : "float",
-        "int" : "int",
-        "ivec2" : "int",
-        "ivec3" : "int",
-        "ivec4" : "int",
-        "mat2" : "float",
-        "mat3" : "float",
-        "mat4" : "float",
-        "sampler1D" : "sampler1D",
-        "sampler1DShadow" : "sampler1DShadow",
-        "sampler2D" : "sampler2D",
-        "sampler2DShadow" : "sampler2DShadow",
-        "sampler3D" : "sampler3D",
-        "sampler3DShadow" : "sampler3DShadow",
-        "samplerCube" : "samplerCube",
-        "samplerCubeShadow" : "samplerCubeShadow",
-        "uvec2" : "int",
-        "uvec3" : "int",
-        "uvec4" : "int",
-        "uint" : "int",
-        "uvec2" : "int",
-        "uvec3" : "int",
-        "uvec4" : "int",
-        "vec2" : "float",
-        "vec3" : "float",
-        "vec4" : "float",
-        "void" : None,
-        }
+    "atomic_uint": "atomic_uint",
+    "bool": "int",
+    "float": "float",
+    "int": "int",
+    "ivec2": "int",
+    "ivec3": "int",
+    "ivec4": "int",
+    "mat2": "float",
+    "mat3": "float",
+    "mat4": "float",
+    "sampler1D": "sampler1D",
+    "sampler1DShadow": "sampler1DShadow",
+    "sampler2D": "sampler2D",
+    "sampler2DShadow": "sampler2DShadow",
+    "sampler3D": "sampler3D",
+    "sampler3DShadow": "sampler3DShadow",
+    "samplerCube": "samplerCube",
+    "samplerCubeShadow": "samplerCubeShadow",
+    "uvec2": "int",
+    "uvec3": "int",
+    "uvec4": "int",
+    "uint": "int",
+    "uvec2": "int",
+    "uvec3": "int",
+    "uvec4": "int",
+    "vec2": "float",
+    "vec3": "float",
+    "vec4": "float",
+    "void": None,
+    }
 
 g_precision_type_strings = filter(lambda x: x, g_type_to_precision_type.values())
 

@@ -28,6 +28,52 @@
 #include <stdlib.h>
 #endif
 
+#if defined(DNLOAD_VIDEOCORE)
+#include "bcm_host.h"
+#include "EGL/egl.h"
+#endif
+
+#if defined(USE_LD)
+#if defined(WIN32)
+#include "windows.h"
+#include "GL/glew.h"
+#include "GL/glu.h"
+#elif defined(__APPLE__)
+#include "GL/glew.h"
+#include <OpenGL/glu.h>
+#else
+#if defined(DNLOAD_GLESV2)
+#include "GLES2/gl2.h"
+#include "GLES2/gl2ext.h"
+#else
+#include "GL/glew.h"
+#include "GL/glu.h"
+#endif
+#endif
+#else
+#if defined(__APPLE__)
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#include <OpenGL/glu.h>
+#else
+#if defined(DNLOAD_GLESV2)
+#include "GLES2/gl2.h"
+#include "GLES2/gl2ext.h"
+#else
+#include "GL/gl.h"
+#include "GL/glext.h"
+#include "GL/glu.h"
+#endif
+#endif
+#endif
+
+#include "SDL.h"
+#if defined(SDL_INIT_EVERYTHING) && defined(__APPLE__)
+#define DNLOAD_MAIN SDL_main
+#else
+#define DNLOAD_MAIN main
+#endif
+
 /** Macro stringification helper (adds indirection). */
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /** Macro stringification. */
@@ -91,11 +137,53 @@ static void asm_exit(void)
 
 #if defined(USE_LD)
 /** \cond */
-#define dnload_puts puts
+#define dnload_glCreateProgram glCreateProgram
+#define dnload_glUseProgram glUseProgram
+#define dnload_SDL_GL_SwapWindow SDL_GL_SwapWindow
+#define dnload_SDL_GL_CreateContext SDL_GL_CreateContext
+#define dnload_glVertexAttribPointer glVertexAttribPointer
+#define dnload_glLinkProgram glLinkProgram
+#define dnload_glShaderSource glShaderSource
+#define dnload_glGetUniformLocation glGetUniformLocation
+#define dnload_glDrawArrays glDrawArrays
+#define dnload_SDL_GL_SetAttribute SDL_GL_SetAttribute
+#define dnload_SDL_CreateWindow SDL_CreateWindow
+#define dnload_SDL_ShowCursor SDL_ShowCursor
+#define dnload_SDL_PollEvent SDL_PollEvent
+#define dnload_SDL_Init SDL_Init
+#define dnload_glCompileShader glCompileShader
+#define dnload_SDL_PauseAudio SDL_PauseAudio
+#define dnload_SDL_Quit SDL_Quit
+#define dnload_glEnableVertexAttribArray glEnableVertexAttribArray
+#define dnload_glUniform3fv glUniform3fv
+#define dnload_SDL_OpenAudio SDL_OpenAudio
+#define dnload_glAttachShader glAttachShader
+#define dnload_glCreateShader glCreateShader
 /** \endcond */
 #else
 /** \cond */
-#define dnload_puts g_symbol_table.df_puts
+#define dnload_glCreateProgram g_symbol_table.df_glCreateProgram
+#define dnload_glUseProgram g_symbol_table.df_glUseProgram
+#define dnload_SDL_GL_SwapWindow g_symbol_table.df_SDL_GL_SwapWindow
+#define dnload_SDL_GL_CreateContext g_symbol_table.df_SDL_GL_CreateContext
+#define dnload_glVertexAttribPointer g_symbol_table.df_glVertexAttribPointer
+#define dnload_glLinkProgram g_symbol_table.df_glLinkProgram
+#define dnload_glShaderSource g_symbol_table.df_glShaderSource
+#define dnload_glGetUniformLocation g_symbol_table.df_glGetUniformLocation
+#define dnload_glDrawArrays g_symbol_table.df_glDrawArrays
+#define dnload_SDL_GL_SetAttribute g_symbol_table.df_SDL_GL_SetAttribute
+#define dnload_SDL_CreateWindow g_symbol_table.df_SDL_CreateWindow
+#define dnload_SDL_ShowCursor g_symbol_table.df_SDL_ShowCursor
+#define dnload_SDL_PollEvent g_symbol_table.df_SDL_PollEvent
+#define dnload_SDL_Init g_symbol_table.df_SDL_Init
+#define dnload_glCompileShader g_symbol_table.df_glCompileShader
+#define dnload_SDL_PauseAudio g_symbol_table.df_SDL_PauseAudio
+#define dnload_SDL_Quit g_symbol_table.df_SDL_Quit
+#define dnload_glEnableVertexAttribArray g_symbol_table.df_glEnableVertexAttribArray
+#define dnload_glUniform3fv g_symbol_table.df_glUniform3fv
+#define dnload_SDL_OpenAudio g_symbol_table.df_SDL_OpenAudio
+#define dnload_glAttachShader g_symbol_table.df_glAttachShader
+#define dnload_glCreateShader g_symbol_table.df_glCreateShader
 /** \endcond */
 /** \brief Symbol table structure.
  *
@@ -103,10 +191,52 @@ static void asm_exit(void)
  */
 static struct SymbolTableStruct
 {
-    int (*df_puts)(const char*);
+    GLuint (DNLOAD_APIENTRY *df_glCreateProgram)(void);
+    void (DNLOAD_APIENTRY *df_glUseProgram)(GLuint);
+    void (*df_SDL_GL_SwapWindow)(SDL_Window*);
+    SDL_GLContext (*df_SDL_GL_CreateContext)(SDL_Window*);
+    void (DNLOAD_APIENTRY *df_glVertexAttribPointer)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*);
+    void (DNLOAD_APIENTRY *df_glLinkProgram)(GLuint);
+    void (DNLOAD_APIENTRY *df_glShaderSource)(GLuint, GLsizei, const GLchar**, const GLint*);
+    GLint (DNLOAD_APIENTRY *df_glGetUniformLocation)(GLuint, const GLchar*);
+    void (DNLOAD_APIENTRY *df_glDrawArrays)(GLenum, GLint, GLsizei);
+    int (*df_SDL_GL_SetAttribute)(SDL_GLattr, int);
+    SDL_Window* (*df_SDL_CreateWindow)(const char*, int, int, int, int, Uint32);
+    int (*df_SDL_ShowCursor)(int);
+    int (*df_SDL_PollEvent)(SDL_Event*);
+    int (*df_SDL_Init)(Uint32);
+    void (DNLOAD_APIENTRY *df_glCompileShader)(GLuint);
+    void (*df_SDL_PauseAudio)(int);
+    void (*df_SDL_Quit)(void);
+    void (DNLOAD_APIENTRY *df_glEnableVertexAttribArray)(GLuint);
+    void (DNLOAD_APIENTRY *df_glUniform3fv)(GLint, GLsizei, const GLfloat*);
+    int (*df_SDL_OpenAudio)(SDL_AudioSpec*, SDL_AudioSpec*);
+    void (DNLOAD_APIENTRY *df_glAttachShader)(GLuint, GLuint);
+    GLuint (DNLOAD_APIENTRY *df_glCreateShader)(GLenum);
 } g_symbol_table =
 {
-    (int (*)(const char*))0x950c8684,
+    (GLuint (DNLOAD_APIENTRY *)(void))0x78721c3,
+    (void (DNLOAD_APIENTRY *)(GLuint))0xcc55bb62,
+    (void (*)(SDL_Window*))0x295bfb59,
+    (SDL_GLContext (*)(SDL_Window*))0xdba45bd,
+    (void (DNLOAD_APIENTRY *)(GLuint, GLint, GLenum, GLboolean, GLsizei, const GLvoid*))0xc443174a,
+    (void (DNLOAD_APIENTRY *)(GLuint))0x133a35c5,
+    (void (DNLOAD_APIENTRY *)(GLuint, GLsizei, const GLchar**, const GLint*))0xc609c385,
+    (GLint (DNLOAD_APIENTRY *)(GLuint, const GLchar*))0x25c12218,
+    (void (DNLOAD_APIENTRY *)(GLenum, GLint, GLsizei))0xcb871c63,
+    (int (*)(SDL_GLattr, int))0x1da21ab0,
+    (SDL_Window* (*)(const char*, int, int, int, int, Uint32))0x4fbea370,
+    (int (*)(int))0xb88bf697,
+    (int (*)(SDL_Event*))0x64949d97,
+    (int (*)(Uint32))0x70d6574,
+    (void (DNLOAD_APIENTRY *)(GLuint))0xc5165dd3,
+    (void (*)(int))0x29f14a4,
+    (void (*)(void))0x7eb657f3,
+    (void (DNLOAD_APIENTRY *)(GLuint))0xe9e99723,
+    (void (DNLOAD_APIENTRY *)(GLint, GLsizei, const GLfloat*))0x223459b4,
+    (int (*)(SDL_AudioSpec*, SDL_AudioSpec*))0x46fd70c8,
+    (void (DNLOAD_APIENTRY *)(GLuint, GLuint))0x30b3cfcf,
+    (GLuint (DNLOAD_APIENTRY *)(GLenum))0x6b4ffac6,
 };
 #endif
 
@@ -307,7 +437,7 @@ static void* dnload_find_symbol(uint32_t hash)
 static void dnload(void)
 {
     unsigned ii;
-    for(ii = 0; (1 > ii); ++ii)
+    for(ii = 0; (22 > ii); ++ii)
     {
         void **iter = ((void**)&g_symbol_table) + ii;
         *iter = dnload_find_symbol(*(uint32_t*)iter);

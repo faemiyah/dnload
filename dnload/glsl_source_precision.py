@@ -41,16 +41,16 @@ class GlslSourcePrecision:
 ########################################
 
 g_precisions_fragment = {
-        "int" : "mediump",
-        "sampler2D" : "lowp",
-        "samplerCube" : "lowp",
-        "atomic_uint" : "highp",
-        }
+    "int": "mediump",
+    "sampler2D": "lowp",
+    "samplerCube": "lowp",
+    "atomic_uint": "highp",
+    }
 
 g_precisions_vertex = {
-        "float" : "highp",
-        "int" : "highp",
-        "sampler2D" : "lowp",
-        "samplerCube" : "lowp",
-        "atomic_uint" : "highp",
-        }
+    "float": "highp",
+    "int": "highp",
+    "sampler2D": "lowp",
+    "samplerCube": "lowp",
+    "atomic_uint": "highp",
+    }

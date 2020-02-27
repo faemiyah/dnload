@@ -96,7 +96,7 @@ class GlslBlockSource(GlslBlock):
         source = self.format(True)
         source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(source)))
         renames = self.generateRenames(True)
-        subst = { "DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused, }
+        subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused}
         return g_template_glsl_header.format(subst)
 
     def generatePrintOutput(self, plain=False):
@@ -108,12 +108,12 @@ class GlslBlockSource(GlslBlock):
         source = self.format(True)
         source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(source)))
         renames = self.generateRenames(False)
-        subst = { "SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused, }
+        subst = {"SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused}
         return g_template_glsl_print.format(subst)
 
     def generateRename(self, type_name, name, rename, header_mode):
         """Generates a single rename string."""
-        subst = { "DEFINITION_LD": self.__definition_ld, "SOURCE_NAME": self.getVariableName(), "TYPE_NAME": type_name, "VARIABLE_NAME": name, "RENAME": rename, }
+        subst = {"DEFINITION_LD": self.__definition_ld, "SOURCE_NAME": self.getVariableName(), "TYPE_NAME": type_name, "VARIABLE_NAME": name, "RENAME": rename}
         if header_mode:
             return g_template_glsl_rename_header.format(subst)
         return g_template_glsl_rename_print.format(subst)

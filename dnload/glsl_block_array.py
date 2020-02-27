@@ -48,8 +48,7 @@ def glsl_parse_array(source, explicit=True):
         return (None, source)
     # Bracket scope must be empty.
     if bracket_scope and (len(bracket_scope != 1) or (not is_glsl_type(bracket_scope[0]))):
-        raise RuntimeError("illegal contents for array literal bracket scope: %s" %
-                (str(map(lambda x: str(x), bracket_scope))))
+        raise RuntimeError("illegal contents for array literal bracket scope: %s" % (str(map(lambda x: str(x), bracket_scope))))
     # Parse paren scope.
     statements = []
     while paren_scope:
@@ -58,8 +57,7 @@ def glsl_parse_array(source, explicit=True):
             statements += [statement]
             paren_scope = following
             continue
-        raise RuntimeError("remaining elements cannot be parsed into a statement: %s" %
-                (str(map(lambda x: str(x), paren_scope))))
+        raise RuntimeError("remaining elements cannot be parsed into a statement: %s" % (str(map(lambda x: str(x), paren_scope))))
     # Look for a terminator.
     (terminator, remaining) = extract_tokens(content, "?,|;")
     if terminator:

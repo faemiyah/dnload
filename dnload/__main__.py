@@ -54,7 +54,6 @@ from dnload.template import Template
 ########################################
 
 PATH_MALI = "/usr/lib/arm-linux-gnueabihf/mali-egl"
-PATH_LD_LINUX_ARMHF = "/lib/ld-linux-armhf.so.3"
 PATH_VIDEOCORE = "/opt/vc"
 
 VERSION_REVISION = "r14"
@@ -81,7 +80,7 @@ g_assembler_ehdr = (
     ("e_ehsize, Elf32_Ehdr size", 2, "ehdr_end - ehdr"),
     ("e_phentsize, Elf32_Phdr size", 2, "phdr_load_end - phdr_load"),
     ("e_phnum, Elf32_Phdr count, PT_LOAD, [PT_LOAD (bss)], PT_INTERP, PT_DYNAMIC", 2, PlatformVar("phdr_count")),
-    ("e_shentsize, Elf32_Shdr size", 2, PlatformVar("e_shentsize")), # Merges with load phdr.
+    ("e_shentsize, Elf32_Shdr size", 2, PlatformVar("e_shentsize")),  # Merges with load phdr.
     ("e_shnum, Elf32_Shdr count", 2, 0),
     ("e_shstrndx, index of section containing string table of section header names", 2, PlatformVar("e_shstrndx")),
 )
@@ -147,7 +146,7 @@ g_assembler_phdr32_dynamic = (
     ("p_paddr, unused", PlatformVar("addr"), 0),
     ("p_filesz, block size on disk", PlatformVar("addr"), "dynamic_end - dynamic"),
     ("p_memsz, block size in memory", PlatformVar("addr"), "dynamic_end - dynamic"),
-    ("p_flags, ignored", 4, 21), # Merges with DT_DEBUG in dynamic section.
+    ("p_flags, ignored", 4, 21),  # Merges with DT_DEBUG in dynamic section.
     ("p_align", PlatformVar("addr"), 0),
     )
 
@@ -213,7 +212,7 @@ g_assembler_phdr64_dynamic = (
     ("p_paddr, unused", PlatformVar("addr"), 0),
     ("p_filesz, block size on disk", PlatformVar("addr"), "dynamic_end - dynamic"),
     ("p_memsz, block size in memory", PlatformVar("addr"), "dynamic_end - dynamic"),
-    ("p_align", PlatformVar("addr"), 21), # Merges with DT_DEBUG in dynamic section.
+    ("p_align", PlatformVar("addr"), 21),  # Merges with DT_DEBUG in dynamic section.
     )
 
 g_assembler_hash = (
@@ -707,9 +706,9 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     segments_tail += [segment_strtab]
     # Merge all segments.
     replace_platform_variable("phdr_count", phdr_count)
-    replace_platform_variable("e_shentsize", 1) # Merges with PT_LOAD.
+    replace_platform_variable("e_shentsize", 1)  # Merges with PT_LOAD.
     if osarch_is_64_bit():
-        replace_platform_variable("e_shstrndx", 7) # Merges with rwx flags.
+        replace_platform_variable("e_shstrndx", 7)  # Merges with rwx flags.
     segments = merge_segments(segments_head) + segments_mid + merge_segments(segments_tail)
     # Create content of earlier sections and write source when done.
     if asm.hasSectionAlignment():
@@ -1164,12 +1163,6 @@ def main():
         replace_platform_variable("gl_library", "GLESv2")
         if is_verbose():
             print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
-        # Check for armhf interp as opposed to default.
-        current_interp = str(PlatformVar("interp"))[1:-1]
-        if os.path.exists(PATH_LD_LINUX_ARMHF) and (not os.path.exists(current_interp)):
-            if is_verbose():
-                print("Interp '%s' not found, switching to: '%s'" % (current_interp, PATH_LD_LINUX_ARMHF))
-            replace_platform_variable("interp", "\"%s\"" % (PATH_LD_LINUX_ARMHF))
 
     # Find preprocessor.
     preprocessor_list = default_preprocessor_list
@@ -1182,8 +1175,7 @@ def main():
     # Process GLSL source if given.
     if source_files_glsl:
         if source_files or source_files_additional:
-            raise RuntimeError("can not combine GLSL source files %s with other source files %s" %
-                    (str(source_files_glsl), str(source_files + source_files_additional)))
+            raise RuntimeError("can not combine GLSL source files %s with other source files %s" % (str(source_files_glsl), str(source_files + source_files_additional)))
         if output_file_list and (len(output_file_list) != len(source_files_glsl)):
             raise RuntimeError("specified output files '%s' must match input glsl files '%s'" % (str(output_file_list), str(source_files_glsl)))
         if output_file_list:
@@ -1199,6 +1191,12 @@ def main():
         if len(output_file_list) > 1:
             raise RuntimeError("more than one output file specified: %s" % (str(output_file_list)))
         output_file = output_file_list[0]
+
+    # Check for armhf interp as opposed to default.
+    if g_osarch in ("armv6l", "armv7l"):
+        current_interp = str(PlatformVar("interp"))[1:-1]
+        if os.path.exists("/lib/ld-linux-armhf.so.3") and (not os.path.exists(current_interp)):
+            replace_osarch(g_osarch + "hf", "Workaround (armhf ABI): ")
 
     # Check if cross interpreter is necessary before selecting to cross-compile or not.
     if args.filedrop_mode == "auto":

@@ -120,7 +120,6 @@ class AssemblerSection:
                 else:
                     total_decrement = int(match.group(1)) + stack_decrement
                     self.__content[jj] = re.sub(r'\d+', str(total_decrement), current_line)
-                    #self.__content[jj] = re.sub(r'subl(\s*).*', r'andl\g<1>$0xFFFFFFF0, %esp', current_line)
                 break
             # Do nothing if suspicious instruction is found.
             if is_verbose():
