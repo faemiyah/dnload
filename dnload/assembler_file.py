@@ -3,6 +3,7 @@ import re
 from dnload.assembler_section import AssemblerSection
 from dnload.assembler_section_alignment import is_assembler_section_alignment
 from dnload.assembler_section_bss import AssemblerSectionBss
+from dnload.common import human_readable_bytes
 from dnload.common import is_verbose
 from dnload.common import listify
 
@@ -67,19 +68,11 @@ class AssemblerFile:
             bss.add_element(AssemblerBssElement(ELFLING_WORK, elfling.get_work_size()))
         bss_size = bss.get_size()
         if 0 < bss.get_alignment():
-            pt_load_string = ", second PT_LOAD required"
+            pt_load_string = "second PT_LOAD required"
         else:
-            pt_load_string = ", one PT_LOAD sufficient"
+            pt_load_string = "one PT_LOAD sufficient"
         if is_verbose():
-            outstr = "Constructed fake .bss segement: "
-            if 1073741824 < bss_size:
-                print("%s%1.1f Gbytes%s" % (outstr, float(bss_size) / 1073741824.0, pt_load_string))
-            elif 1048576 < bss_size:
-                print("%s%1.1f Mbytes%s" % (outstr, float(bss_size) / 1048576.0, pt_load_string))
-            elif 1024 < bss_size:
-                print("%s%1.1f kbytes%s" % (outstr, float(bss_size) / 1024.0, pt_load_string))
-            else:
-                print("%s%u bytes%s" % (outstr, bss_size, pt_load_string))
+            print("Constructed fake .bss segement: %s, %s" % (human_readable_bytes(bss_size), pt_load_string))
         self.add_sections(bss)
         return bss
 
@@ -126,7 +119,6 @@ class AssemblerFile:
         # Gather global names that cannot be renamed.
         for ii in other.__sections:
             globls = globls.union(ii.gather_globals())
-            print(str(globls))
         # Gather all labels.
         for ii in other.__sections:
             if jump_point_name:

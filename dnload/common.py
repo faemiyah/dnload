@@ -93,6 +93,16 @@ def get_indent(op):
         ret += "  "
     return ret
 
+def human_readable_bytes(op):
+    """Create a human-readable byte count from an integer."""
+    if 1073741824 < op:
+        return "%1.1f Gbytes" % (float(op) / 1073741824.0)
+    if 1048576 < op:
+        return "%1.1f Mbytes" % (float(op) / 1048576.0)
+    if 1024 < op:
+        return "%1.1f kbytes" % (float(op) / 1024.0)
+    return "%u bytes%s" % (op)
+
 def is_listing(op):
     """Tell if given parameter is a listing."""
     return isinstance(op, (list, tuple))

@@ -89,14 +89,14 @@ g_symbol_sources = SymbolSourceDatabase((
         quotient_mul = -1;
         den = -den;
     }\n
-    int ret = __aeabi_uidivmod(static_cast<unsigned>(num), static_cast<unsigned>(den)) * quotient_mul;
+    int ret = (int)__aeabi_uidivmod(static_cast<unsigned>(num), static_cast<unsigned>(den)) * quotient_mul;
     volatile register int r1 asm("r1");
     r1 *= remainder_mul;
     asm("" : /**/ : "r"(r1) : /**/); // output: remainder
     return ret;
 }"""),
-    ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned __aeabi_uidivmod(unsigned, unsigned);",
-        """unsigned __aeabi_uidivmod(unsigned num, unsigned den)
+    ("__aeabi_uidivmod", None, None, "extern \"C\" unsigned long long __aeabi_uidivmod(unsigned, unsigned);",
+        """unsigned long long __aeabi_uidivmod(unsigned num, unsigned den)
 {
     unsigned shift = 1;
     unsigned quotient = 0;\n
@@ -120,9 +120,7 @@ g_symbol_sources = SymbolSourceDatabase((
         den >>= 1;
         shift >>= 1;
     }\n
-    volatile register int r1 asm("r1") = num;
-    asm("" : /**/ : "r"(r1) : /**/); // output: remainder
-    return quotient; // r0
+    return (unsigned long long)quotient | ((unsigned long long)num << 32);
 }"""),
     ("memset", None, ("cinttypes", "cstring"), None,
         """void* memset(void *ptr, int value, size_t num)
