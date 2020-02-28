@@ -259,8 +259,8 @@ static const void* elf_transform_dynamic_address(const struct link_map *lmap, co
 #if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
 /** \\brief Get address of one dynamic section corresponding to given library.
  *
- * \param lmap Link map.
- * \param tag Tag to look for.
+ * \\param lmap Link map.
+ * \\param tag Tag to look for.
  * \\return Pointer to given section or NULL.
  */
 static const void* elf_get_library_dynamic_section(const struct link_map *lmap, dnload_elf_tag_t tag)
@@ -335,9 +335,9 @@ static void dnload(void)
     }
 }""")
 
-g_template_loader_vanilla = Template("""/** \cond */
+g_template_loader_vanilla = Template("""/** \\cond */
 #define dnload()
-/** \endcond */""")
+/** \\endcond */""")
 
 g_template_symbol_table = Template("""
 /** \\brief Symbol table structure.

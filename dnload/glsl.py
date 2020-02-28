@@ -536,16 +536,11 @@ def inline_instances(parent, block, names):
 
 def is_glsl_block_global(op):
     """Tell if block is somehting of a global concern."""
-    return (is_glsl_block_inout(op) or
-            is_glsl_block_uniform(op))
+    return (is_glsl_block_inout(op) or is_glsl_block_uniform(op))
 
 def is_glsl_block_precision_relevant(op):
     """Tell if block is something to which precision directive matters."""
-    return (is_glsl_block_declaration(op) or
-            is_glsl_block_function(op) or
-            is_glsl_block_member(op) or
-            is_glsl_block_inout(op) or
-            is_glsl_block_uniform(op))
+    return (is_glsl_block_declaration(op) or is_glsl_block_function(op) or is_glsl_block_member(op) or is_glsl_block_inout(op) or is_glsl_block_uniform(op))
 
 def is_inline_name(op):
     """Tell if given name is viable for inlining."""
