@@ -106,17 +106,10 @@ class Linker:
                 continue
             # Check if the supposed shared library is a linker script.
             if file_is_ascii_text(current_libname):
-                fd = open(current_libname, "r")
-                contents = fd.read()
-                match = re.search(r'GROUP\s*\(\s*(\S+)\s+', contents, re.MULTILINE)
-                fd.close()
-                if match:
-                    return os.path.basename(match.group(1))
-                match = re.search(r'INPUT\(\s*(\S+)(\s*-l(\S+))?\)', contents, re.MULTILINE)
-                if match:
-                    ret = os.path.basename(match.group(1))
-                    # if match.group(2):
-                    #     return [ret, "lib%s.so" % (match.group(3))]
+                ret = read_linker_script_library_name(current_libname)
+                if ret:
+                    if is_verbose():
+                        print("'%s' is a linker script, actual library name: '%s'" % (libname, ret))
                     return ret
             # Stop at first match.
             break
@@ -227,3 +220,20 @@ class Linker:
         self.__rpath_directories = []
         for ii in lst:
             self.__rpath_directories += [ii]
+
+########################################
+# Functions ############################
+########################################
+
+def read_linker_script_library_name(op):
+    """Read the actual library name from a linker script file."""
+    fd = open(op, "r")
+    contents = fd.read()
+    fd.close()
+    match = re.search(r'GROUP\s*\(\s*(\S+)\s+', contents, re.MULTILINE)
+    if match:
+        return os.path.basename(match.group(1))
+    match = re.search(r'INPUT\(\s*(\S+)(\s*-l(\S+))?\)', contents, re.MULTILINE)
+    if match:
+        return os.path.basename(match.group(1))
+    return None
