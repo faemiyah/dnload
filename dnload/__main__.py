@@ -345,8 +345,7 @@ static void asm_exit(void)
 #elif defined(__aarch64__)
     asm("brk #1000" : /* no output */ : /* no input */ : /* no clobber */);
 #elif defined(__arm__)
-    __builtin_trap();
-    //asm(".inst 0xe7f001f0" : /* no output */ : /* no input */ : /* no clobber */);
+    asm(".inst 0xdeff" : /* no output */ : /* no input */ : /* no clobber */);
 #else
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
