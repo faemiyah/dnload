@@ -3,6 +3,7 @@
 #include "glsl_wave.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/throw_exception.hpp>
 
 #include <fstream>
 #include <iostream>
