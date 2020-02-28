@@ -1259,10 +1259,15 @@ def main():
         replace_platform_variable("march", args.march)
     # Cross-compile OS arguments.
     if args.linux:
-        replace_osname("linux", "Cross-compile:")
+        if args.operating_system:
+            print("WARNING: overriding cross operating system choice with 'linux'")
+        args.operating_system = "linux"
     if args.operating_system:
         new_osname = platform_map(args.operating_system.lower())
         replace_osname(new_osname, "Cross-compile:")
+    elif osname_is_linux():
+        # Linux does not care about ei_osabi - systems emulating Linux do.
+        replace_platform_variable("ei_osabi", 0)
 
     # Select interpreter.
     filedrop_interp = None
