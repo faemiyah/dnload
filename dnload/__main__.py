@@ -37,7 +37,7 @@ from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osname_is_freebsd
 from dnload.platform_var import osname_is_linux
 from dnload.platform_var import PlatformVar
-from dnload.platform_var import platform_map_iterate
+from dnload.platform_var import platform_map
 from dnload.platform_var import replace_osarch
 from dnload.platform_var import replace_osname
 from dnload.platform_var import replace_platform_variable
@@ -552,10 +552,11 @@ def compress_file(compression, filedrop_interp, pretty, src, dst):
     str_chmod = ""
     str_ld = ""
     str_cleanup = ";exit"
-    # If we're calling LD directly, we need to refer to it, but CHMOD is not needed.
+    # If we're calling LD directly, we need to refer to it.
     if filedrop_interp:
         str_ld = filedrop_interp + " "
-    else:
+    # Some platforms need chmod even with explicit interp.
+    if (not filedrop_interp) or osname_is_freebsd():
         str_chmod = ";chmod +x $I"
     # 'pretty' script will also remove the file.
     if pretty:
@@ -1059,7 +1060,7 @@ def main():
     parser.add_argument("-D", "--define", default=[], action="append", help="Additional preprocessor definition.")
     parser.add_argument("-e", "--elfling", action="store_true", help="Use elfling packer if available.")
     parser.add_argument("-E", "--preprocess-only", action="store_true", help="Preprocess only, do not generate compiled output.")
-    parser.add_argument("-F", "--filedrop-mode", default="auto", choices=("header", "native", "cross", "auto"), help="File dropping and interpreter calling mode.\n\theader:\n\t\tAdd explicit PT_INTERP header into the binary.\n\tnative:\n\t\tCall dynamic linker for the native architecture.\n\tcross:\n\t\tCall dynamic linker assuming cross-architecture emulation.\n\tauto:\n\t\tTry to autodetect and create the smallest binary to be ran on current machine.")
+    parser.add_argument("-F", "--filedrop-mode", default="auto", choices=("header", "native", "cross", "auto"), help="File dropping and interpreter calling mode.\n\theader:\n\t\tAdd explicit PT_INTERP header into the binary.\n\tnative:\n\t\tCall dynamic linker for the native platform.\n\tcross:\n\t\tCall dynamic linker assuming cross-platform emulation.\n\tauto:\n\t\tTry to autodetect and create the smallest binary to be ran on current machine.\n(default: %(default)s)")
     parser.add_argument("-h", "--help", action="store_true", help="Print this help string and exit.")
     parser.add_argument("-I", "--include-directory", default=[], action="append", help="Add an include directory to be searched for header files.")
     parser.add_argument("--interp", default=None, type=str, help="Use given interpreter as opposed to platform default.")
@@ -1071,8 +1072,8 @@ def main():
     parser.add_argument("--nice-exit", action="store_true", help="Do not use debugger trap, exit with proper system call.")
     parser.add_argument("--nice-filedump", action="store_true", help="Do not use dirty tricks in compression header, also remove filedumped binary when done.")
     parser.add_argument("--no-glesv2", action="store_true", help="Do not probe for OpenGL ES 2.0, always assume regular GL.")
-    parser.add_argument("--no-merge-segments", default=False, action="store_true", help="Do not try to merge ELF header segments.")
-    parser.add_argument("--glsl-mode", default="full", choices=("none", "nosquash", "full"), help="GLSL crunching mode.\n(default: %(default)s)")
+    parser.add_argument("--merge-headers", default="auto", choices=("yes", "no", "auto"), help="ELF header merging policy:\n\tno:\n\t\tHeaders concatenated sequentially.\n\tyes:\n\t\tTry to interleave headers to decrease file size.\n\tauto:\n\t\tUse interleaving if target platform allows.\n(default: %(default)s)")
+    parser.add_argument("--glsl-mode", default="full", choices=("none", "nosquash", "full"), help="GLSL crunching mode.\n\tnone:\n\t\tJust remove whitespace.\n\tnosquash:\n\t\tRefrain from squashing statements together, otherwise same as full.\n\tfull:\n\t\tTry to minimize file size by any means necessary.\n(default: %(default)s)")
     parser.add_argument("--glsl-inlines", default=-1, type=int, help="Maximum number of inline operations to do for GLSL.\n(default: unlimited)")
     parser.add_argument("--glsl-renames", default=-1, type=int, help="Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
     parser.add_argument("--glsl-simplifys", default=-1, type=int, help="Maximum number of simplify operations to do for GLSL.\n(default: unlimited)")
@@ -1083,7 +1084,7 @@ def main():
     parser.add_argument("--preprocessor", default=None, help="Try to use given preprocessor executable as opposed to autodetect.")
     parser.add_argument("--rand", default="bsd", choices=("bsd", "gnu"), help="rand() implementation to use.\n(default: %(default)s)")
     parser.add_argument("--rpath", default=[], action="append", help="Extra rpath locations for linking.")
-    parser.add_argument("--safe-symtab", action="store_true", help="Handle DT_SYMTAB in a safe manner.")
+    parser.add_argument("--symtab-mode", default="auto", choices=("auto", "safe", "unsafe"), help="Method for scouring DT_SYMTAB:\n\tsafe:\n\t\tMake less assumptions about header layout.\n\tunsafe:\n\t\tAssume optimal header layout to decrease code size.\n\tauto:\n\t\tTry to autodetect based on target platform.\n(default: %(default)s)")
     parser.add_argument("-s", "--search-path", default=[], action="append", help="Directory to search for the header file to generate. May be specified multiple times. If not given, searches paths of source files to compile. If not given and no source files to compile, current path will be used.")
     parser.add_argument("-S", "--strip-binary", default=None, help="Try to use given strip executable as opposed to autodetect.")
     parser.add_argument("-t", "--target", default="dnload.h", help="Target header file to look for.\n(default: %(default)s)")
@@ -1121,7 +1122,6 @@ def main():
     libraries = args.library
     library_directories += args.library_directory
     linker = args.linker
-    merge_segments_allowed = not args.no_merge_segments
     nice_filedump = args.nice_filedump
     no_glesv2 = args.no_glesv2
     objcopy = args.objcopy
@@ -1140,8 +1140,6 @@ def main():
     # Definitions.
     if args.nice_exit:
         definitions += ["DNLOAD_NO_DEBUGGER_TRAP"]
-    if args.safe_symtab:
-        definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
 
     # Custom interpreter.
     if args.interp:
@@ -1238,6 +1236,8 @@ def main():
             args.filedrop_mode = "cross"
         else:
             args.filedrop_mode = "native"
+        if is_verbose():
+            print("Autodetected filedrop mode: '%s'" % (args.filedrop_mode))
 
     # Cross-compile 32-bit arguments.
     if args.m32:
@@ -1285,6 +1285,30 @@ def main():
         interp_needed = True
     if filedrop_interp:
         filedrop_interp = filedrop_interp.strip("\"")
+
+    # Symtab handling depends on selected operating system.
+    if args.symtab_mode == "auto":
+        if osname_is_freebsd():
+            args.symtab_mode = "safe"
+        else:
+            args.symtab_mode = "unsafe"
+        if is_verbose():
+            print("Autodetected symtab mode: '%s'" % (args.symtab_mode))
+    if args.symtab_mode == "safe":
+        definitions += ["DNLOAD_SAFE_SYMTAB_HANDLING"]
+
+    # Header merging depends on target platform.
+    if args.merge_headers == "auto":
+        if osname_is_freebsd() and args.filedrop_mode == "header":
+            args.merge_headers = "no"
+        else:
+            args.merge_headers = "yes"
+        if is_verbose():
+            print("Autodetected header merge mode: '%s'" % (args.merge_headers))
+    if args.merge_headers == "yes":
+        args.merge_headers = True
+    else:
+        args.merge_headers = False
 
     if compilation_mode not in ("vanilla", "dlfcn", "hash", "maximum"):
         raise RuntimeError("unknown method '%s'" % (compilation_mode))
@@ -1350,7 +1374,7 @@ def main():
     # Filter real symbols (as separate from implicit).
     real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
     if is_verbose():
-        symbol_strings = map(lambda x: str(x), symbols)
+        symbol_strings = list(map(lambda x: str(x), symbols))
         print("%i symbols found: %s" % (len(symbols), str(symbol_strings)))
         verbatim_symbols = list(set(symbols) - set(real_symbols))
         if verbatim_symbols and output_file:
@@ -1473,14 +1497,14 @@ def main():
     if "maximum" == compilation_mode:
         objcopy = executable_find(objcopy, default_objcopy_list, "objcopy")
         generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                                source_files_additional, interp_needed, merge_segments_allowed)
+                                source_files_additional, interp_needed, args.merge_headers)
         # Now have complete binary, may need to reprocess.
         if elfling:
             output_file_stripped = generate_temporary_filename(output_file + ".stripped")
             output_file_extracted = generate_temporary_filename(output_file + ".extracted")
             elfling.compress(output_file_stripped, output_file_extracted)
             generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                                    source_files_additional, interp_needed, merge_segments_allowed)
+                                    source_files_additional, interp_needed, args.merge_headers)
     elif "hash" == compilation_mode:
         output_file_s = generate_temporary_filename(output_file + ".S")
         output_file_final_s = generate_temporary_filename(output_file + ".final.S")

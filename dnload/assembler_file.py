@@ -46,7 +46,7 @@ class AssemblerFile:
         if not current_section.empty():
             self.add_sections(current_section)
         if is_verbose():
-            section_names = map(lambda x: x.get_name(), self.__sections)
+            section_names = list(map(lambda x: x.get_name(), self.__sections))
             print("%i sections in '%s': %s" % (len(self.__sections), fname, str(section_names)))
 
     def crunch(self):
