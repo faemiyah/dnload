@@ -4,6 +4,7 @@ from dnload.assembler_bss_element import AssemblerBssElement
 from dnload.common import is_verbose
 from dnload.elfling import ELFLING_UNCOMPRESSED
 from dnload.platform_var import g_osarch
+from dnload.platform_var import osarch_is_aarch64
 from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osarch_is_ia32
 from dnload.platform_var import osarch_is_amd64
@@ -371,7 +372,7 @@ def can_minimize_align(op):
 
 def get_align_bytes(op):
     """Due to GNU AS compatibility modes, .align may mean different things."""
-    if osarch_is_amd64() or osarch_is_ia32():
+    if osarch_is_aarch64() or osarch_is_amd64() or osarch_is_ia32():
         return op
     return 1 << op
 

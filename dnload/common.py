@@ -101,7 +101,7 @@ def human_readable_bytes(op):
         return "%1.1f Mbytes" % (float(op) / 1048576.0)
     if 1024 < op:
         return "%1.1f kbytes" % (float(op) / 1024.0)
-    return "%u bytes%s" % (op)
+    return "%u bytes" % (op)
 
 def is_listing(op):
     """Tell if given parameter is a listing."""

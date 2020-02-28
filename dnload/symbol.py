@@ -214,7 +214,7 @@ static const void* elf_get_dynamic_address_by_tag(const void *dyn, dnload_elf_ta
 #endif
 #if !defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
 /** Link map address, fixed location in ELF headers. */
-extern const struct r_debug *dynamic_r_debug;
+extern const struct r_debug *dynamic_r_debug __attribute__((aligned(1)));
 #endif
 /** \\brief Get the program link map.
  *

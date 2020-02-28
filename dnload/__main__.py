@@ -29,6 +29,7 @@ from dnload.linker import Linker
 from dnload.platform_var import g_osarch
 from dnload.platform_var import g_osname
 from dnload.platform_var import g_osversion
+from dnload.platform_var import osarch_is_aarch64
 from dnload.platform_var import osarch_is_amd64
 from dnload.platform_var import osarch_is_arm32l
 from dnload.platform_var import osarch_is_32_bit
@@ -72,7 +73,7 @@ g_assembler_ehdr = (
     ("e_ident[EI_ABIVERSION], always 0", 1, 0),
     ("e_indent[EI_MAG10 to EI_MAG15], unused", 1, (0, 0, 0, 0, 0, 0, 0)),
     ("e_type, ET_EXEC = 2", 2, 2),
-    ("e_machine, EM_386 = 3, EM_ARM = 40, EM_X86_64 = 62", 2, PlatformVar("e_machine")),
+    ("e_machine, EM_386 = 3, EM_ARM = 40, EM_X86_64 = 62, EM_AARCH64 = 183", 2, PlatformVar("e_machine")),
     ("e_version, EV_CURRENT = 1", 4, 1),
     ("e_entry, execution starting point", PlatformVar("addr"), PlatformVar("start")),
     ("e_phoff, offset from start to program headers", PlatformVar("addr"), "phdr_load - ehdr"),
@@ -301,9 +302,8 @@ g_template_header = Template("""#ifndef DNLOAD_H
 /** Perform exit syscall in assembler. */
 static void asm_exit(void)
 {
-#if !defined(DNLOAD_NO_DEBUGGER_TRAP) && (defined(__x86_64__) || defined(__i386__))
-    asm("int $0x3" : /* no output */ : /* no input */ : /* no clobber */);
-#elif defined(__x86_64__)
+#if defined(DNLOAD_NO_DEBUGGER_TRAP)
+#if defined(__x86_64__)
 #if defined(__FreeBSD__)
     asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
 #elif defined(__linux__)
@@ -319,6 +319,14 @@ static void asm_exit(void)
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
 #endif
+#elif defined(__aarch64__)
+#if defined(__linux__)
+    register int x8 asm("x8") = 93;
+    asm("svc #0" : /* no output */ : "r"(x8) : /* no clobber */);
+#else
+#pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
+#error
+#endif
 #elif defined(__arm__)
 #if defined(__linux__)
     register int r7 asm("r7") = 1;
@@ -330,6 +338,19 @@ static void asm_exit(void)
 #else
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
+#endif
+#else
+#if defined(__x86_64__) || defined(__i386__)
+    asm("int $0x3" : /* no output */ : /* no input */ : /* no clobber */);
+#elif defined(__aarch64__)
+    asm("brk #1000" : /* no output */ : /* no input */ : /* no clobber */);
+#elif defined(__arm__)
+    __builtin_trap();
+    //asm(".inst 0xe7f001f0" : /* no output */ : /* no input */ : /* no clobber */);
+#else
+#pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
+#error
+#endif
 #endif
     __builtin_unreachable();
 }
@@ -606,7 +627,7 @@ def find_symbols(lst):
     return ret
 
 def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                            additional_sources=[], interp_needed=False):
+                            additional_sources=[], interp_needed=False, merge_allowed=True):
     """Generate a binary using all possible tricks. Return whether or not reprocess is necessary."""
     output_file_s = generate_temporary_filename(output_file + ".S")
     if source_file:
@@ -709,12 +730,15 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     if interp_needed:
         segments_tail += [segment_interp]
     segments_tail += [segment_strtab]
-    # Merge all segments.
-    replace_platform_variable("phdr_count", phdr_count)
-    replace_platform_variable("e_shentsize", 1)  # Merges with PT_LOAD.
-    if osarch_is_64_bit():
-        replace_platform_variable("e_shstrndx", 7)  # Merges with rwx flags.
-    segments = merge_segments(segments_head) + segments_mid + merge_segments(segments_tail)
+    # Merge all segments if allowed.
+    if merge_allowed:
+        replace_platform_variable("phdr_count", phdr_count)
+        replace_platform_variable("e_shentsize", 1)  # Merges with PT_LOAD.
+        if osarch_is_64_bit():
+            replace_platform_variable("e_shstrndx", 7)  # Merges with rwx flags.
+        segments = merge_segments(segments_head) + segments_mid + merge_segments(segments_tail)
+    else:
+        segments = segments_head + segments_mid + segments_tail
     # Create content of earlier sections and write source when done.
     if asm.hasSectionAlignment():
         asm.getSectionAlignment().create_content(assembler)
@@ -742,7 +766,7 @@ def generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, e
     linker.generate_linker_script(output_file_ld, True)
     linker.set_linker_script(output_file_ld)
     # Some platforms cannot skip the extra objcopy step. Reason unknown.
-    if not osarch_is_arm32l():
+    if (not osarch_is_aarch64()) and (not osarch_is_arm32l()):
         objcopy = None
     linker.link_binary(objcopy, link_files, output_file_unprocessed)
     if bss_section.get_alignment():
@@ -1048,6 +1072,7 @@ def main():
     parser.add_argument("--nice-exit", action="store_true", help="Do not use debugger trap, exit with proper system call.")
     parser.add_argument("--nice-filedump", action="store_true", help="Do not use dirty tricks in compression header, also remove filedumped binary when done.")
     parser.add_argument("--no-glesv2", action="store_true", help="Do not probe for OpenGL ES 2.0, always assume regular GL.")
+    parser.add_argument("--no-merge-segments", default=False, action="store_true", help="Do not try to merge ELF header segments.")
     parser.add_argument("--glsl-mode", default="full", choices=("none", "nosquash", "full"), help="GLSL crunching mode.\n(default: %(default)s)")
     parser.add_argument("--glsl-inlines", default=-1, type=int, help="Maximum number of inline operations to do for GLSL.\n(default: unlimited)")
     parser.add_argument("--glsl-renames", default=-1, type=int, help="Maximum number of rename operations to do for GLSL.\n(default: unlimited)")
@@ -1097,6 +1122,7 @@ def main():
     libraries = args.library
     library_directories += args.library_directory
     linker = args.linker
+    merge_segments_allowed = not args.no_merge_segments
     nice_filedump = args.nice_filedump
     no_glesv2 = args.no_glesv2
     objcopy = args.objcopy
@@ -1443,14 +1469,14 @@ def main():
     if "maximum" == compilation_mode:
         objcopy = executable_find(objcopy, default_objcopy_list, "objcopy")
         generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                                source_files_additional, interp_needed)
+                                source_files_additional, interp_needed, merge_segments_allowed)
         # Now have complete binary, may need to reprocess.
         if elfling:
             output_file_stripped = generate_temporary_filename(output_file + ".stripped")
             output_file_extracted = generate_temporary_filename(output_file + ".extracted")
             elfling.compress(output_file_stripped, output_file_extracted)
             generate_binary_minimal(None, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
-                                    source_files_additional, interp_needed)
+                                    source_files_additional, interp_needed, merge_segments_allowed)
     elif "hash" == compilation_mode:
         output_file_s = generate_temporary_filename(output_file + ".S")
         output_file_final_s = generate_temporary_filename(output_file + ".final.S")
