@@ -101,9 +101,8 @@
 /** Perform exit syscall in assembler. */
 static void asm_exit(void)
 {
-#if !defined(DNLOAD_NO_DEBUGGER_TRAP) && (defined(__x86_64__) || defined(__i386__))
-    asm("int $0x3" : /* no output */ : /* no input */ : /* no clobber */);
-#elif defined(__x86_64__)
+#if defined(DNLOAD_NO_DEBUGGER_TRAP)
+#if defined(__x86_64__)
 #if defined(__FreeBSD__)
     asm("syscall" : /* no output */ : "a"(1) : /* no clobber */);
 #elif defined(__linux__)
@@ -119,6 +118,14 @@ static void asm_exit(void)
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
 #endif
+#elif defined(__aarch64__)
+#if defined(__linux__)
+    register int x8 asm("x8") = 93;
+    asm("svc #0" : /* no output */ : "r"(x8) : /* no clobber */);
+#else
+#pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
+#error
+#endif
 #elif defined(__arm__)
 #if defined(__linux__)
     register int r7 asm("r7") = 1;
@@ -130,6 +137,18 @@ static void asm_exit(void)
 #else
 #pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
 #error
+#endif
+#else
+#if defined(__x86_64__) || defined(__i386__)
+    asm("int $0x3" : /* no output */ : /* no input */ : /* no clobber */);
+#elif defined(__aarch64__)
+    asm("brk #1000" : /* no output */ : /* no input */ : /* no clobber */);
+#elif defined(__arm__)
+    asm(".inst 0xdeff" : /* no output */ : /* no input */ : /* no clobber */);
+#else
+#pragma message DNLOAD_MACRO_STR(DNLOAD_ASM_EXIT_ERROR)
+#error
+#endif
 #endif
     __builtin_unreachable();
 }
@@ -323,7 +342,7 @@ static const void* elf_get_dynamic_address_by_tag(const void *dyn, dnload_elf_ta
 #endif
 #if !defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
 /** Link map address, fixed location in ELF headers. */
-extern const struct r_debug *dynamic_r_debug;
+extern const struct r_debug *dynamic_r_debug __attribute__((aligned(1)));
 #endif
 /** \brief Get the program link map.
  *
