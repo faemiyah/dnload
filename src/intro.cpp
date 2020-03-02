@@ -20,8 +20,6 @@
 #include <sstream>
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
-#include <boost/scoped_array.hpp>
-#include <boost/tuple/tuple.hpp>
 namespace po = boost::program_options;
 #endif
 
@@ -417,7 +415,7 @@ static void draw(int ticks)
 ///
 /// \param op Resolution string.
 /// \return Tuple of width and height.
-boost::tuple<unsigned, unsigned> parse_resolution(const std::string &op)
+std::pair<unsigned, unsigned> parse_resolution(const std::string &op)
 {
     size_t cx = op.find("x");
 
@@ -438,13 +436,13 @@ boost::tuple<unsigned, unsigned> parse_resolution(const std::string &op)
         unsigned rw = (rh * 16) / 9;
         unsigned rem4 = rw % 4;
 
-        return boost::make_tuple(rw - rem4, rh);
+        return std::make_pair(rw - rem4, rh);
     }
 
     std::string sw = op.substr(0, cx);
     std::string sh = op.substr(cx + 1);
 
-    return boost::make_tuple(boost::lexical_cast<int>(sw), boost::lexical_cast<int>(sh));
+    return std::make_pair(boost::lexical_cast<int>(sw), boost::lexical_cast<int>(sh));
 }
 
 /// \brief Audio writing callback.
@@ -1010,7 +1008,9 @@ int DNLOAD_MAIN(int argc, char **argv)
             }
             if(vmap.count("resolution"))
             {
-                boost::tie(screen_w, screen_h) = parse_resolution(vmap["resolution"].as<std::string>());
+                std::pair<unsigned, unsigned> resolution = parse_resolution(vmap["resolution"].as<std::string>());
+                screen_w = resolution.first;
+                screen_h = resolution.second;
             }
             if(vmap.count("window"))
             {
