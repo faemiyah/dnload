@@ -449,25 +449,25 @@ std::pair<unsigned, unsigned> parse_resolution(const std::string &op)
 ///
 /// \param data Raw audio data.
 /// \param size Audio data size (in samples).
-void write_audio(void *data, size_t size)
+void write_audio(std::string_view basename, void *data, size_t size)
 {
-    FILE *fd = fopen("intro.raw", "wb");
-
-    if(fd != NULL)
+    std::string filename = std::string(basename) + ".raw";
+    FILE *fd = fopen(filename.c_str(), "wb");
+    if(!fd)
     {
-        fwrite(data, size, 1, fd);
+        BOOST_THROW_EXCEPTION(std::runtime_error("could not open '" + filename + "' for writing"));
     }
-
+    fwrite(data, size, 1, fd);
     fclose(fd);
-    return;
 }
 
 /// \brief Image writing callback.
 ///
+/// \param basename Base name of the image.
 /// \param screen_w Screen width.
 /// \param screen_h Screen height.
 /// \param idx Frame index to write.
-void write_frame(unsigned screen_w, unsigned screen_h, unsigned idx)
+void write_frame(std::string_view basename, unsigned screen_w, unsigned screen_h, unsigned idx)
 {
     std::unique_ptr<uint8_t[]> image(new uint8_t[screen_w * screen_h * 3]);
     std::ostringstream sstr;
@@ -475,7 +475,7 @@ void write_frame(unsigned screen_w, unsigned screen_h, unsigned idx)
     glReadPixels(0, 0, static_cast<GLsizei>(screen_w), static_cast<GLsizei>(screen_h), GL_RGB, GL_UNSIGNED_BYTE,
             image.get());
 
-    sstr << "intro_" << std::setfill('0') << std::setw(4) << idx << ".png";
+    sstr << basename << "_" << std::setfill('0') << std::setw(4) << idx << ".png";
 
     gfx::image_png_save(sstr.str(), screen_w, screen_h, 24, image.get());
     return;
@@ -486,6 +486,7 @@ void write_frame(unsigned screen_w, unsigned screen_h, unsigned idx)
 /// May be NOP depending on platform.
 void update_window_position()
 {
+#if defined(DNLOAD_VIDEOCORE)
     static int window_x = INT_MIN;
     static int window_y = INT_MIN;
     static int window_width = INT_MIN;
@@ -504,10 +505,9 @@ void update_window_position()
         window_y = current_window_y;
         window_width = current_window_width;
         window_height = current_window_height;
-#if defined(DNLOAD_VIDEOCORE)
         videocore_move_native_window(window_x, window_y, window_width, window_height);
-#endif
     }
+#endif
 }
 
 #endif
@@ -649,7 +649,7 @@ void _start()
         // audio
         SDL_PauseAudio(1);
 
-        write_audio(g_audio_buffer, INTRO_LENGTH);
+        write_audio("intro", g_audio_buffer, INTRO_LENGTH);
 
         // video
         for(;;)
@@ -667,7 +667,7 @@ void _start()
             }
 
             draw(ticks);
-            write_frame(screen_w, screen_h, frame_idx);
+            write_frame("intro", screen_w, screen_h, frame_idx);
             swap_buffers();
             ++frame_idx;
         }
