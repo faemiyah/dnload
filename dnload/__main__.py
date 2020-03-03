@@ -1164,6 +1164,18 @@ def main():
         else:
             raise RuntimeError("unknown source file: '%s'" % (ii))
 
+    # Additinonal include and source directories files based on source files.
+    if not target_search_path:
+        for ii in source_files:
+            source_path, source_file = os.path.split(os.path.normpath(ii))
+            if source_path:
+                if source_path not in target_search_path:
+                    target_search_path += [source_path]
+                if source_path not in include_directories:
+                    include_directories += [source_path]
+    if not target_search_path:
+        target_search_path = ["."]
+
     # Temporary directory.
     if not set_temporary_directory(args.temporary_directory):
         if args.temporary_directory:
@@ -1315,14 +1327,6 @@ def main():
     elif "hash" == compilation_mode:
         definitions += ["DNLOAD_NO_FIXED_R_DEBUG_ADDRESS"]
 
-    if 0 >= len(target_search_path):
-        for ii in source_files:
-            source_path, source_file = os.path.split(os.path.normpath(ii))
-            if source_path and (source_path not in target_search_path):
-                target_search_path += [source_path]
-    if 0 >= len(target_search_path):
-        target_search_path = ["."]
-
     target_path, target_file = os.path.split(os.path.normpath(target))
     if target_path:
         if is_verbose():
@@ -1338,11 +1342,6 @@ def main():
             raise RuntimeError("no information where to put header file '%s' - not found in path(s) %s" % (target, str(target_search_path)))
     # Erase contents of the header after it has been found.
     touch(target)
-
-    # Find linker.
-    linker = Linker(executable_find(linker, default_linker_list, "linker"))
-    if extra_linker_flags:
-        linker.addExtraFlags(extra_linker_flags)
 
     # Clear target header before parsing to avoid problems.
     fd = open(target, "w")
@@ -1457,6 +1456,11 @@ def main():
     assembler = Assembler(executable_find(assembler, default_assembler_list, "assembler"))
     if extra_assembler_flags:
         assembler.addExtraFlags(extra_assembler_flags)
+
+    # Find linker.
+    linker = Linker(executable_find(linker, default_linker_list, "linker"))
+    if extra_linker_flags:
+        linker.addExtraFlags(extra_linker_flags)
 
     # Determine abstraction layer if it's not been set.
     if not abstraction_layer:
