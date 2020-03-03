@@ -71,10 +71,9 @@ class Compiler(Linker):
     def generate_standard(self):
         """Generate C++ standard string."""
         if self.is_gcc():
-            # TODO: For older g++ versions: -std=gnu11 ?
-            self.__standard = ["-std=c++11"]
+            self.__standard = ["-std=c++17"]
         elif self.is_clang():
-            self.__standard = ["-std=c++11"]
+            self.__standard = ["-std=c++17"]
         else:
             self.__standard = []
 
