@@ -26,7 +26,7 @@ For compiling without size optimizations, GLEW and SDL development files are nee
 
 **Note:** Cross-compilation support is limited. You should be able to compile 32-bit binaries on a 64-bit host by using the ``--32`` -command line argument. You will still need 32-bit libraries or chroot/jail environment to run the generated binary though.
 
-Supported (last updated: 2017-10-12)
+Supported (last updated: 2020-03-11)
 ----
 
 * ``FreeBSD``
@@ -35,18 +35,23 @@ Supported (last updated: 2017-10-12)
 * ``amd64`` (x86_64)
 * ``ia32`` (i386)
 * ``arm32l`` (armel)
+* ``aarch64`` (arm64)
 * ``clang++``
 * ``g++``
 * ``cl.exe`` (preprocessing only)
-* ``python2.7``
 * ``python3``
+* ``GLSL 4.60`` (minification)
+* ``GLSL ES 3.20`` (minification)
 
-Unsupported but should be supportable (last updated: 2017-10-12)
+Unsupported, but should be supportable (last updated: 2020-03-11)
 ----
 
-* ``Linux-ia32`` (crashes in linked libraries)
-* ``arm64`` (AArch64)
-* ``ES2 GLSL support``
+* ``GLSL structs``
+
+Dropped and no longer supported (last updated: 2020-03-11)
+----
+
+* ``python2.7``
 
 ****
 
@@ -1145,7 +1150,7 @@ TODO
 References
 ====
 
-.. [ref1] http://www.pouet.net/user.php?who=4078 Marq/Fit in Pouet]
+.. [ref1] http://www.pouet.net/user.php?who=4078 Marq/Fit in Pouet
 .. [ref2] http://www.muppetlabs.com/~breadbox/software/tiny/teensy.html A Whirlwind Tutorial on Creating Really Teensy ELF Executables for Linux
 .. [ref3] http://www.pouet.net/user.php?who=9348 parcelshit in Pouet
 .. [ref4] http://www.pouet.net/user.php?who=4548 las/Mercury in Pouet
