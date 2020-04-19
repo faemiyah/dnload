@@ -92,6 +92,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
     ("void", "glBlendFunc", "GLenum", "GLenum"),
     ("void", "glBlendFuncSeparate", "GLenum", "GLenum", "GLenum", "GLenum"),
     ("void", "glBufferData", "GLenum", "GLsizeiptr", "const GLvoid*", "GLenum"),
+    ("void", "glBufferSubData", "GLenum", "GLintptr", "GLsizeiptr", "GLenum"),
     ("void", "glClear", "GLbitfield"),
     ("void", "glClearColor", "GLfloat", "GLfloat", "GLfloat", "GLfloat"),
     ("void", "glClearDepthf", "GLfloat"),
@@ -271,6 +272,7 @@ g_library_definition_sdl = LibraryDefinition("SDL", (
     ("SDL_cond*", "SDL_CreateCond"),
     ("SDL_mutex*", "SDL_CreateMutex"),
     ("SDL_Thread*", "SDL_CreateThread", "int (*)(void*)", "void*"),
+    ("int", "SDL_CondBroadcast", "SDL_cond*"),
     ("int", "SDL_CondSignal", "SDL_cond*"),
     ("int", "SDL_CondWait", "SDL_cond*", "SDL_mutex*"),
     ("void", "SDL_Delay", "Uint32"),
@@ -278,6 +280,8 @@ g_library_definition_sdl = LibraryDefinition("SDL", (
     ("void", "SDL_DestroyMutex", "SDL_mutex*"),
     ("int", "SDL_mutexP", "SDL_mutex*"),
     ("int", "SDL_mutexV", "SDL_mutex*"),
+    ("SDL_threadID", "SDL_ThreadID"),
+    ("SDL_threadID", "SDL_GetThreadID", "SDL_Thread*"),
     ("uint32_t", "SDL_GetTicks"),
     ("void", "SDL_GL_SwapBuffers"),
     ("int", "SDL_Init", "Uint32"),
@@ -287,6 +291,8 @@ g_library_definition_sdl = LibraryDefinition("SDL", (
     ("void", "SDL_Quit"),
     ("SDL_Surface*", "SDL_SetVideoMode", "int", "int", "int", "Uint32"),
     ("int", "SDL_ShowCursor", "int"),
+    ("void*", "SDL_TLSGet", "SDL_TLSID"),
+    ("int", "SDL_TLSSet", "SDL_TLSID", "const void*", "void (*)(void*)"),
     ("void", "SDL_WaitThread", "SDL_Thread*", "int*"),
     ))
 
