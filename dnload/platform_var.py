@@ -102,6 +102,8 @@ g_platform_variables = {
     "memory_page": {"32-bit": 0x1000, "64-bit": 0x200000},
     "mpreferred-stack-boundary": {"aarch64": 0, "arm32l": 0, "ia32": 2, "64-bit": 4},
     "phdr_count": {"default": 3},
+    "phdr32_dynamic_p_flags": {"default": 0},
+    "phdr64_dynamic_p_align": {"default": 0},
     "shelldrop_header": {"Arch": "!/bin/sh\n", "default": ""},
     "shelldrop_tail": {"Arch": "sed 1,2d", "default": "sed 1d"},
     "start": {"default": "_start"},
