@@ -2,6 +2,7 @@ from dnload.common import is_verbose
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_type import is_glsl_precision_type_string
+from dnload.platform_var import platform_is_gles
 
 ########################################
 # GlslBlockPrecision ###################
@@ -23,7 +24,9 @@ class GlslBlockPrecision(GlslBlock):
 
     def format(self, force):
         """Return formatted output."""
-        return "precision %s;" % (self.__typeid.format(force))
+        if (not force) or platform_is_gles():
+            return "precision %s;" % (self.__typeid.format(force))
+        return ""
 
     def getPrecision(self):
         """Return the precision from type identifier."""

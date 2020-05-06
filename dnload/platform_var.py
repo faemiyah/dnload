@@ -177,6 +177,10 @@ def osname_is_linux():
     """Check if the operating system name maps to Linux."""
     return ("Linux" == g_osname)
 
+def platform_is_gles():
+    """Check if compiling for the GLES platform (as opposed to regular 'desktop' GL)."""
+    return PlatformVar("gl_library").get() in ("GLESv2",)
+
 def platform_map_iterate(op):
     """Follow platform mapping chain once."""
     if op in g_platform_mapping:

@@ -1,5 +1,7 @@
 import re
 
+from dnload.platform_var import platform_is_gles
+
 ########################################
 # GlslType #############################
 ########################################
@@ -21,9 +23,9 @@ class GlslType:
         if self.__pseudo_type:
             raise RuntimeError("trying to format a pseudo type '%s'" % (self.__type))
         ret = ""
-        if self.__modifier and (not force or (self.__modifier != "const")):
+        if self.__modifier and ((not force) or (self.__modifier != "const")):
             ret += self.__modifier + " "
-        if self.__precision and (not force or (self.__precision != self.__implied_precision)):
+        if self.__precision and ((not force) or ((self.__precision != self.__implied_precision) and platform_is_gles())):
             ret += self.__precision + " "
         return ret + self.__type
 
