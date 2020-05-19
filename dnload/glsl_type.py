@@ -115,7 +115,7 @@ g_type_to_precision_type = {
     "void": None,
     }
 
-g_precision_type_strings = filter(lambda x: x, g_type_to_precision_type.values())
+g_precision_type_strings = [x for x in set(g_type_to_precision_type.values()) if x]
 
 ########################################
 # Functions ############################

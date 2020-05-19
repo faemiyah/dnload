@@ -154,16 +154,20 @@ def locate(pth, fn, previous_paths=None):
         return None
     # Recurse, expect filesystem errors.
     try:
+        # Prefer to return from immediate level, recurse only if needed.
+        recurses = []
         for ii in os.listdir(pth):
             ret = os.path.normpath(pth + "/" + ii)
             if (isinstance(fn, str) and (ii == fn)) or ((not isinstance(fn, str)) and fn.match(ii)):
                 return ret
             elif os.path.isdir(ret):
-                real_path = os.path.realpath(ret)
-                if real_path not in previous_paths:
-                    ret = locate(ret, fn, previous_paths + [real_path])
-                    if ret:
-                        return ret
+                recurses += [os.path.realpath(ret)]
+        # Recurse down if not already found.
+        for ii in recurses:
+            if ii not in previous_paths:
+                ret = locate(ii, fn, previous_paths + [ii])
+                if ret:
+                    return ret
     except OSError as ee:  # Permission denied or the like.
         if 13 == ee.errno:
             return None
