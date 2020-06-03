@@ -247,13 +247,13 @@ class AssemblerSection:
             first_line = lst[0]
             name = lst[1]
             idx = first_line + 1
+            lst = self.want_line(r'\s*(%s)\:' % (name), idx, 2)
             if not lst:
                 continue
-            lst = self.want_line(r'\s*(%s)\:' % (name), lst[0] + 1, 2)
-            if not lst:
-                continue
-            lst = self.want_line(r'\s*\.(?:space|zero)\s+(\d+)', lst[0] + 1, 2)
-            if not lst:
+            # .space or .zero must be found, but must also immediately follow the label.
+            idx = lst[0] + 1
+            lst = self.want_line(r'\s*\.(?:space|zero)\s+(\d+)', idx, 2)
+            if (not lst) or (lst[0] != idx):
                 continue
             last_line = lst[0] + 1
             bss_size = int(lst[1])

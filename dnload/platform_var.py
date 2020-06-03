@@ -83,7 +83,7 @@ g_platform_mapping = {
 
 g_platform_variables = {
     "addr": {"32-bit": 4, "64-bit": 8},
-    "align": {"default": 4, "aarch64": 8, "amd64": 1, "ia32": 1},
+    "align": {"default": 4, "amd64": 1, "ia32": 1},
     "bom": {"aarch64": "<", "amd64": "<", "arm32l": "<", "ia32": "<"},
     "compression": {"default": "lzma"},
     "e_flags": {"default": 0, "arm32l": 0x5000400},
