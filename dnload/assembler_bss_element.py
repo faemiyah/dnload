@@ -1,3 +1,5 @@
+from dnload.platform_var import PlatformVar
+
 ########################################
 # AssemblerBssElement ##################
 ########################################
@@ -17,6 +19,11 @@ class AssemblerBssElement:
 
     def get_size(self):
         """Get size of this."""
+        platform_align = int(PlatformVar("align"))
+        excess_align = self.__size % platform_align
+        if excess_align > 0:
+            ret = self.__size + (platform_align - excess_align)
+            return ret
         return self.__size
 
     def is_und_symbol(self):
