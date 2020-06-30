@@ -114,10 +114,9 @@ class Symbol:
 g_template_loader_dlfcn = Template("""#include <dlfcn.h>
 static const char g_dynstr[] = \"\"
 [[DLFCN_STRING]];
-/** \\brief Perform init.
- *
- * dlopen/dlsym -style.
- */
+/// Perform init.
+///
+/// dlopen/dlsym -style.
 static void dnload(void)
 {
     char *src = (char*)g_dynstr;
@@ -137,11 +136,10 @@ static void dnload(void)
 }""")
 
 g_template_loader_hash = Template("""#include <stdint.h>
-/** \\brief SDBM hash function.
- *
- * \\param op String to hash.
- * \\return Full hash.
- */
+/// SDBM hash function.
+///
+/// \\param op String to hash.
+/// \\return Full hash.
 static uint32_t sdbm_hash(const uint8_t *op)
 {
     uint32_t ret = 0;
@@ -163,34 +161,33 @@ static uint32_t sdbm_hash(const uint8_t *op)
 #error "no elf header location known for current platform"
 #endif
 #if (8 == DNLOAD_POINTER_SIZE)
-/** Elf header type. */
+/// Elf header type.
 typedef Elf64_Ehdr dnload_elf_ehdr_t;
-/** Elf program header type. */
+/// Elf program header type.
 typedef Elf64_Phdr dnload_elf_phdr_t;
-/** Elf dynamic structure type. */
+/// Elf dynamic structure type.
 typedef Elf64_Dyn dnload_elf_dyn_t;
-/** Elf symbol table entry type. */
+/// Elf symbol table entry type.
 typedef Elf64_Sym dnload_elf_sym_t;
-/** Elf dynamic structure tag type. */
+/// Elf dynamic structure tag type.
 typedef Elf64_Sxword dnload_elf_tag_t;
 #else
-/** Elf header type. */
+/// Elf header type.
 typedef Elf32_Ehdr dnload_elf_ehdr_t;
-/** Elf program header type. */
+/// Elf program header type.
 typedef Elf32_Phdr dnload_elf_phdr_t;
-/** Elf dynamic structure type. */
+/// Elf dynamic structure type.
 typedef Elf32_Dyn dnload_elf_dyn_t;
-/** Elf symbol table entry type. */
+/// Elf symbol table entry type.
 typedef Elf32_Sym dnload_elf_sym_t;
-/** Elf dynamic structure tag type. */
+/// Elf dynamic structure tag type.
 typedef Elf32_Sword dnload_elf_tag_t;
 #endif
-/** \\brief Get dynamic section element by tag.
- *
- * \\param dyn Dynamic section.
- * \\param tag Tag to look for.
- * \\return Pointer to dynamic element.
- */
+/// Get dynamic section element by tag.
+///
+/// \\param dyn Dynamic section.
+/// \\param tag Tag to look for.
+/// \\return Pointer to dynamic element.
 static const dnload_elf_dyn_t* elf_get_dynamic_element_by_tag(const void *dyn, dnload_elf_tag_t tag)
 {
     const dnload_elf_dyn_t *dynamic = (const dnload_elf_dyn_t*)dyn;
@@ -200,12 +197,11 @@ static const dnload_elf_dyn_t* elf_get_dynamic_element_by_tag(const void *dyn, d
     return dynamic;
 }
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS) || defined(DNLOAD_SAFE_SYMTAB_HANDLING)
-/** \\brief Get the address associated with given tag in a dynamic section.
- *
- * \\param dyn Dynamic section.
- * \\param tag Tag to look for.
- * \\return Address matching given tag.
- */
+/// Get the address associated with given tag in a dynamic section.
+///
+/// \\param dyn Dynamic section.
+/// \\param tag Tag to look for.
+/// \\return Address matching given tag.
 static const void* elf_get_dynamic_address_by_tag(const void *dyn, dnload_elf_tag_t tag)
 {
     const dnload_elf_dyn_t *dynamic = elf_get_dynamic_element_by_tag(dyn, tag);
@@ -213,13 +209,12 @@ static const void* elf_get_dynamic_address_by_tag(const void *dyn, dnload_elf_ta
 }
 #endif
 #if !defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
-/** Link map address, fixed location in ELF headers. */
+/// Link map address, fixed location in ELF headers.
 extern const struct r_debug *dynamic_r_debug __attribute__((aligned(1)));
 #endif
-/** \\brief Get the program link map.
- *
- * \\return Link map struct.
- */
+/// Get the program link map.
+///
+/// \\return Link map struct.
 static const struct link_map* elf_get_link_map()
 {
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
@@ -240,11 +235,10 @@ static const struct link_map* elf_get_link_map()
     return dynamic_r_debug->r_map;
 #endif
 }
-/** \\brief Return pointer from link map address.
- *
- * \\param lmap Link map.
- * \\param ptr Pointer in this link map.
- */
+/// Return pointer from link map address.
+///
+/// \\param lmap Link map.
+/// \\param ptr Pointer in this link map.
 static const void* elf_transform_dynamic_address(const struct link_map *lmap, const void *ptr)
 {
 #if defined(__linux__)
@@ -257,26 +251,24 @@ static const void* elf_transform_dynamic_address(const struct link_map *lmap, co
     return (uint8_t*)ptr + (size_t)lmap->l_addr;
 }
 #if defined(DNLOAD_SAFE_SYMTAB_HANDLING)
-/** \\brief Get address of one dynamic section corresponding to given library.
- *
- * \\param lmap Link map.
- * \\param tag Tag to look for.
- * \\return Pointer to given section or NULL.
- */
+/// Get address of one dynamic section corresponding to given library.
+///
+/// \\param lmap Link map.
+/// \\param tag Tag to look for.
+/// \\return Pointer to given section or NULL.
 static const void* elf_get_library_dynamic_section(const struct link_map *lmap, dnload_elf_tag_t tag)
 {
     const void* ptr = elf_get_dynamic_address_by_tag((const dnload_elf_dyn_t*)(lmap->l_ld), tag);
     return elf_transform_dynamic_address(lmap, ptr);
 }
 #endif
-/** \\brief Find a symbol in any of the link maps.
- *
- * Should a symbol with name matching the given hash not be present, this function will happily continue until
- * we crash. Size-minimal code has no room for error checking.
- *
- * \\param hash Hash of the function name string.
- * \\return Symbol found.
- */
+/// Find a symbol in any of the link maps.
+///
+/// Should a symbol with name matching the given hash not be present, this function will happily continue until
+/// we crash. Size-minimal code has no room for error checking.
+///
+/// \\param hash Hash of the function name string.
+/// \\return Symbol found.
 static void* dnload_find_symbol(uint32_t hash)
 {
     const struct link_map* lmap = elf_get_link_map();
@@ -321,10 +313,9 @@ static void* dnload_find_symbol(uint32_t hash)
         }
     }
 }
-/** \\brief Perform init.
- *
- * Import by hash - style.
- */
+/// Perform init.
+///
+/// Import by hash - style.
 static void dnload(void)
 {
     unsigned ii;
@@ -335,15 +326,14 @@ static void dnload(void)
     }
 }""")
 
-g_template_loader_vanilla = Template("""/** \\cond */
+g_template_loader_vanilla = Template("""/// \\cond
 #define dnload()
-/** \\endcond */""")
+/// \\endcond""")
 
 g_template_symbol_table = Template("""
-/** \\brief Symbol table structure.
- *
- * Contains all the symbols required for dynamic linking.
- */
+/// Symbol table structure.
+///
+/// Contains all the symbols required for dynamic linking.
 static struct SymbolTableStruct
 {
 [[SYMBOL_TABLE_DEFINITION]]

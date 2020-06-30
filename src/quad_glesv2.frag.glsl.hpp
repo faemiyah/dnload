@@ -4,7 +4,6 @@ static const char *g_shader_fragment_quad = ""
 #if defined(USE_LD)
 "quad_glesv2.frag.glsl"
 #else
-"precision highp float;"
 "uniform vec3 i[4];"
 "varying vec2 e;"
 "void main()"
