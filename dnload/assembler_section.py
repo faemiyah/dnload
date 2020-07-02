@@ -49,7 +49,7 @@ class AssemblerSection:
         adjustments = []
         for ii in range(len(self.__content)):
             line = self.__content[ii]
-            match = re.match(r'(\s*)\.align\s+(\d+).*', line)
+            match = re.match(r'(\s*)\.align\s+(\d+).*', line, re.I)
             if not match:
                 continue
             # Compiler thinking aligning to less than desired platform alignment is probably ok.
@@ -61,6 +61,12 @@ class AssemblerSection:
                 continue
             self.__content[ii] = "%s.balign %i\n" % (match.group(1), desired)
             adjustments += ["%i -> %i" % (align, desired)]
+        # Data sections may be reshuffled and require minimal align as first line.
+        if self.__name in ["data", "rodata"]:
+            match = re.match(r'(\s*)\.b?align\s.*', self.__content[0], re.I)
+            if not match:
+                first_align = "\t.balign %i\n" % (int(PlatformVar("align")))
+                self.__content.insert(0, first_align)
         if is_verbose() and adjustments:
             print("Alignment adjustment(%s): %s" % (self.get_name(), ", ".join(adjustments)))
 
