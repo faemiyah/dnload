@@ -54,7 +54,7 @@ class Compiler(Linker):
         """Generate compiler flags."""
         self.__compiler_flags = []
         # clang and gcc have some flags in common.
-        common_clang_gcc = ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-exceptions", "-fno-rtti", "-fno-threadsafe-statics", "-fomit-frame-pointer", "-funsafe-math-optimizations", "-fvisibility=hidden", "-march=%s" % (str(PlatformVar("march"))), "-Wall"]
+        common_clang_gcc = ["-Os", "-ffast-math", "-fno-asynchronous-unwind-tables", "-fno-exceptions", "-fno-rtti", "-fno-threadsafe-statics", "-fomit-frame-pointer", "-funsafe-math-optimizations", "-fvisibility=hidden", "-march=%s" % (str(PlatformVar("march"))), "-Wall", "-mthumb"]
         # Select flags based on compiler.
         if self.is_gcc():
             self.__compiler_flags += common_clang_gcc + ["-fno-enforce-eh-specs", "-fno-implicit-templates", "-fno-stack-protector", "-fno-use-cxa-atexit", "-fno-use-cxa-get-exception-ptr", "-fnothrow-opt"]
