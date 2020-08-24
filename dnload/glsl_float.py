@@ -1,4 +1,5 @@
 from dnload.glsl_int import interpret_int
+from dnload.platform_var import platform_is_gles
 
 ########################################
 # GlslInt ##############################
@@ -24,11 +25,11 @@ class GlslFloat:
         """Return formatted output."""
         if self.__integer1.getInt() == 0:
             if self.__integer2.getInt() == 0:
-                if self.__allow_integrify:
+                if self.isIntegrifyAllowed():
                     return "0"
                 return ".0"
             return self.__sign + "." + self.__integer2.getStr().rstrip("0")
-        if (self.__integer2.getInt() == 0) and self.__allow_integrify:
+        if (self.__integer2.getInt() == 0) and self.isIntegrifyAllowed():
             return str(self.__integer1.getInt())
         return "%s.%s" % (str(self.__integer1.getInt()), self.__integer2.getStr().rstrip("0"))
 
@@ -42,7 +43,7 @@ class GlslFloat:
 
     def isIntegrifyAllowed(self):
         """Tell if integrification is allowed?"""
-        return self.__allow_integrify
+        return self.__allow_integrify and (not platform_is_gles())
 
     def setAllowIntegrify(self, flag):
         """Set allow integrify flag."""
