@@ -307,7 +307,15 @@ static void* dnload_find_symbol(uint32_t hash)
                 const char *name = strtab + sym->st_name;
                 if(sdbm_hash((const uint8_t*)name) == hash)
                 {
-                    return (void*)((const uint8_t*)sym->st_value + (size_t)lmap->l_addr);
+                    void* ret_addr = (void*)((const uint8_t*)sym->st_value + (size_t)lmap->l_addr);
+#if defined(__linux__) && (8 == DNLOAD_POINTER_SIZE)
+                    // On 64-bit Linux, need to check IFUNC.
+                    if((sym->st_info & 15) == STT_GNU_IFUNC)
+                    {
+                        ret_addr = ((void*(*)())ret_addr)();
+                    }
+#endif
+                    return ret_addr;
                 }
             }
         }
