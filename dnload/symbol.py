@@ -308,8 +308,8 @@ static void* dnload_find_symbol(uint32_t hash)
                 if(sdbm_hash((const uint8_t*)name) == hash)
                 {
                     void* ret_addr = (void*)((const uint8_t*)sym->st_value + (size_t)lmap->l_addr);
-#if defined(__linux__) && (8 == DNLOAD_POINTER_SIZE)
-                    // On 64-bit Linux, need to check IFUNC.
+#if defined(__linux__) && (defined(__aarch64__) || defined(__i386__) || defined(__x86_64__))
+                    // On Linux and various architectures, need to check for IFUNC.
                     if((sym->st_info & 15) == STT_GNU_IFUNC)
                     {
                         ret_addr = ((void*(*)())ret_addr)();
