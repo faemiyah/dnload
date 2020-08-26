@@ -19,7 +19,6 @@ class Symbol:
             self.__name = lst[1]
             self.__rename = lst[1]
         self.__symbol_table_name = "df_" + self.__name
-        self.__hash = sdbm_hash(self.__name)
         self.__parameters = None
         if 2 < len(lst):
             self.__parameters = lst[2:]
@@ -68,9 +67,13 @@ class Symbol:
         """Generate 'rename' into itself. Used for functions that are inlined by linker."""
         return "#define %s%s %s" % (prefix, self.__name, self.__name)
 
-    def get_hash(self):
+    def get_hash(self, hash_function):
         """Get the hash of symbol name."""
-        return self.__hash
+        if hash_function == "crc32":
+            return hash_crc32(self.__name)
+        elif hash_function == "sdbm":
+            return hash_sdbm(self.__name)
+        raise RuntimeError("cannot hash function name '%s': unknown hash function '%s'" % (self.__name, hash_function))
 
     def get_library(self):
         """Access library reference."""
@@ -135,12 +138,29 @@ static void dnload(void)
     } while(*(++src));
 }""")
 
-g_template_loader_hash = Template("""#include <stdint.h>
-/// SDBM hash function.
+g_template_hash_function_crc32 = Template("""/// CRC32 hash function.
 ///
 /// \\param op String to hash.
 /// \\return Full hash.
-static uint32_t sdbm_hash(const uint8_t *op)
+static uint32_t dnload_hash(const uint8_t *op)
+{
+    uint32_t ret = 0;
+    for(;;)
+    {
+        uint32_t cc = *op++;
+        if(!cc)
+        {
+            return ret;
+        }
+        ret = __builtin_ia32_crc32qi(ret, cc);
+    }
+}""")
+
+g_template_hash_function_sdbm = Template("""/// SDBM hash function.
+///
+/// \\param op String to hash.
+/// \\return Full hash.
+static uint32_t dnload_hash(const uint8_t *op)
 {
     uint32_t ret = 0;
     for(;;)
@@ -152,7 +172,9 @@ static uint32_t sdbm_hash(const uint8_t *op)
         }
         ret = ret * 65599 + cc;
     }
-}
+}""")
+
+g_template_loader_hash = Template("""[[HASH_FUNCTION]]
 #if defined(__FreeBSD__)
 #include <sys/link_elf.h>
 #elif defined(__linux__)
@@ -305,7 +327,7 @@ static void* dnload_find_symbol(uint32_t hash)
             for(const dnload_elf_sym_t *sym = symtab; (sym < symtab_end); ++sym)
             {
                 const char *name = strtab + sym->st_name;
-                if(sdbm_hash((const uint8_t*)name) == hash)
+                if(dnload_hash((const uint8_t*)name) == hash)
                 {
                     void* ret_addr = (void*)((const uint8_t*)sym->st_value + (size_t)lmap->l_addr);
 #if defined(__linux__) && (defined(__aarch64__) || defined(__i386__) || defined(__x86_64__))
@@ -371,9 +393,15 @@ def generate_loader_dlfcn(symbols, linker):
     subst = {"DLFCN_STRING": dlfcn_string + "\"\\0\""}
     return g_template_loader_dlfcn.format(subst)
 
-def generate_loader_hash(symbols):
+def generate_loader_hash(symbols, hash_function):
     """Generate import by hash loader code."""
     subst = {"BASE_ADDRESS": str(PlatformVar("entry")), "SYMBOL_COUNT": str(len(symbols))}
+    if hash_function == "crc32":
+        subst["HASH_FUNCTION"] = g_template_hash_function_crc32.format()
+    elif hash_function == "sdbm":
+        subst["HASH_FUNCTION"] = g_template_hash_function_sdbm.format()
+    else:
+        raise RuntimeError("unknown hash function: '%s'" % (hash_function))
     return g_template_loader_hash.format(subst)
 
 def generate_symbol_definitions_direct(symbols, prefix):
@@ -390,7 +418,7 @@ def generate_symbol_definitions_table(symbols, prefix):
         ret += [ii.generate_rename_tabled(prefix)]
     return "\n".join(ret)
 
-def generate_symbol_table(mode, symbols):
+def generate_symbol_table(mode, symbols, hash_function):
     """Generate the symbol struct definition."""
     definitions = []
     hashes = []
@@ -398,13 +426,60 @@ def generate_symbol_table(mode, symbols):
     symbol_table_content = ""
     for ii in symbols:
         definitions += ["    %s;" % (ii.generate_definition())]
-        hashes += ["    %s%s," % (ii.generate_prototype(), ii.get_hash())]
+        hashes += ["    %s%s," % (ii.generate_prototype(), ii.get_hash(hash_function))]
     if "dlfcn" != mode:
         subst["SYMBOL_TABLE_INITIALIZATION"] = " =\n{\n%s\n}" % ("\n".join(hashes))
     subst["SYMBOL_TABLE_DEFINITION"] = "\n".join(definitions)
     return g_template_symbol_table.format(subst)
 
-def sdbm_hash(name):
+def str_xor(lhs, rhs):
+    """Calculate xor for binary strings."""
+    if len(lhs) != len(rhs):
+        raise RuntimeError("XOR strings '%s' and '%s' are not of same length")
+    ret = ""
+    for ii, jj in zip(lhs, rhs):
+        if ii == jj:
+            ret += "0"
+        else:
+            ret += "1"
+    return ret
+
+def str_mod2_rem(lhs, rhs):
+    """Calculate remainder modulo 2 for binary strings."""
+    if len(lhs) < len(rhs):
+        raise RuntimeError("MOD2 strings '%s' and '%s' are not of same length")
+    while True:
+        diff = len(lhs) - len(rhs)
+        if lhs[0] != "0":
+            lhs = str_xor(lhs, rhs + ("0" * diff))[1:]
+        else:
+            lhs = lhs[1:]
+        if diff <= 0:
+            break
+    return lhs
+
+def hash_crc32(name):
+    """Calculate CRC32 hash over a string."""
+    #CRC32 instruction for 8-bit source operand and 32-bit destination operand:
+    #TEMP1[7-0] ← BIT_REFLECT8(SRC[7-0])
+    #TEMP2[31-0]←BIT_REFLECT32 (DEST[31-0])
+    #TEMP3[39-0]←TEMP1[7-0] « 32
+    #TEMP4[39-0]←TEMP2[31-0] « 8
+    #TEMP5[39-0]←TEMP3[39-0] XOR TEMP4[39-0]
+    #TEMP6[31-0]←TEMP5[39-0] MOD2 11EDC6F41H
+    #DEST[31-0]←BIT_REFLECT (TEMP6[31-0])
+    ret = 0
+    for ii in name:
+        tmp1 = format(ord(ii), 'b')
+        tmp2 = format(ret, 'b')
+        tmp3 = (("0" * (8 - len(tmp1))) + tmp1)[::-1] + ("0" * 32)
+        tmp4 = (("0" * (32 - len(tmp2))) + tmp2)[::-1] + ("0" * 8)
+        tmp5 = str_xor(tmp3, tmp4)
+        tmp6 = str_mod2_rem(tmp5, format(0x11EDC6F41, 'b'))
+        ret = int((tmp6[-32:])[::-1], 2)
+    return "0x%x" % (ret)
+
+def hash_sdbm(name):
     """Calculate SDBM hash over a string."""
     ret = 0
     for ii in name:
