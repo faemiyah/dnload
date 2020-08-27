@@ -29,11 +29,12 @@ from dnload.linker import Linker
 from dnload.platform_var import g_osarch
 from dnload.platform_var import g_osname
 from dnload.platform_var import g_osversion
+from dnload.platform_var import osarch_is_32_bit
+from dnload.platform_var import osarch_is_64_bit
 from dnload.platform_var import osarch_is_aarch64
 from dnload.platform_var import osarch_is_amd64
 from dnload.platform_var import osarch_is_arm32l
-from dnload.platform_var import osarch_is_32_bit
-from dnload.platform_var import osarch_is_64_bit
+from dnload.platform_var import osarch_is_ia32
 from dnload.platform_var import osname_is_freebsd
 from dnload.platform_var import osname_is_linux
 from dnload.platform_var import PlatformVar
