@@ -122,7 +122,16 @@ g_symbol_sources = SymbolSourceDatabase((
     }\n
     return (unsigned long long)quotient | ((unsigned long long)num << 32);
 }"""),
-    ("memset", None, ("cinttypes", "cstring"), None,
+    ("memcpy", None, ("cinttypes", "cstring"), "extern \"C\" void* memcpy(void*, const void*, size_t);",
+        """void* memcpy(void *dst, const void* src, size_t num)
+{
+    for(size_t ii = 0; (ii < num); ++ii)
+    {
+        reinterpret_cast<uint8_t*>(dst)[ii] = reinterpret_cast<const uint8_t*>(src)[ii];
+    }\n
+    return dst;
+}"""),
+    ("memset", None, ("cinttypes", "cstring"), "extern \"C\" void* memset(void*, int, size_t);",
         """void* memset(void *ptr, int value, size_t num)
 {
     for(size_t ii = 0; (ii < num); ++ii)
