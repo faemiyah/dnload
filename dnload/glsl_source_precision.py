@@ -26,7 +26,7 @@ class GlslSourcePrecision:
             if typeid in g_precisions_vertex:
                 return g_precisions_vertex[typeid]
         # No match.
-        return None
+        return {}
 
     def setPrecision(self, typeid, precision):
         """Set precision for given type id."""

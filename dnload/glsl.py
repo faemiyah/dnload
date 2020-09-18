@@ -589,8 +589,8 @@ def precision_pass(chain):
     for ii in chain.getSources():
         # Overwrite initial precision directives from chain precision state.
         precision_state = ii.getPrecisions()
-        for (kk, vv) in chain_precision_state:
-            precison_state.setPrecision(kk, vv)
+        for kk, vv in chain_precision_state.items():
+            precision_state.setPrecision(kk, vv)
         # Loop over child elements of the source file.
         for jj in ii.getChildren():
             # Check whether to alter the chain precision state.
