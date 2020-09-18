@@ -3,6 +3,7 @@ CMakeFiles/
 Debug/
 intro.dir/
 Release/
+/hello_world
 /intro
 /*.exe
 cmake_install.cmake
