@@ -273,7 +273,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #else
 #include <stdint.h>
 #endif
-[[INCLUDE_C]][[INCLUDE_FREETYPE]][[INCLUDE_MATH]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
+[[INCLUDE_C]][[INCLUDE_FREETYPE]][[INCLUDE_MATH]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_OPUSFILE]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
 /// Macro stringification helper (adds indirection).
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /// Macro stringification.
@@ -452,6 +452,10 @@ g_template_include_opengl = Template("""
 #endif
 #endif
 #endif
+""")
+
+g_template_include_opusfile = Template("""
+#include \"opusfile.h\"
 """)
 
 g_template_include_png = Template("""
@@ -1059,7 +1063,7 @@ def main():
     extra_compiler_flags = []
     extra_libraries = []
     extra_linker_flags = []
-    include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/SDL"]
+    include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/opus", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/opus", "/usr/local/include/SDL"]
     library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
     opengl_reason = None
     opengl_version = None
@@ -1427,6 +1431,8 @@ def main():
         subst["INCLUDE_NCURSES"] = g_template_include_ncurses.format()
     if symbols_has_library(symbols, ("GL", "GLESv2")):
         subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({"DEFINITION_LD": definition_ld})
+    if symbols_has_library(symbols, "opusfile"):
+        subst["INCLUDE_OPUSFILE"] = g_template_include_opusfile.format()
     if symbols_has_library(symbols, "png"):
         subst["INCLUDE_PNG"] = g_template_include_png.format()
     if symbols_has_library(symbols, ("SDL", "SDL2")):

@@ -265,6 +265,12 @@ g_library_definition_ncurses = LibraryDefinition("ncurses", (
     ("NCURSES_EXPORT(int)", "wmove", "WINDOW*", "int", "int"),
     ))
 
+g_library_definition_opusfile = LibraryDefinition("opusfile", (
+    ("void", "op_free", "OggOpusFile*"),
+    ("OggOpusFile*", "op_open_memory", "const unsigned char*", "size_t", "int*"),
+    ("int", "op_read_float", "OggOpusFile*", "float*", "int", "int*"),
+    ))
+
 g_library_definition_png = LibraryDefinition("png", (
     ("png_infop", "png_create_info_struct", "png_const_structrp"),
     ("png_structp", "png_create_read_struct", "png_const_charp", "png_voidp", "png_error_ptr", "png_error_ptr"),
@@ -333,6 +339,7 @@ g_library_definitions = (
     g_library_definition_freetype,
     g_library_definition_m,
     g_library_definition_ncurses,
+    g_library_definition_opusfile,
     g_library_definition_png,
     g_library_definition_sdl,
     g_library_definition_sdl2,
