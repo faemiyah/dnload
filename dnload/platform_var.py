@@ -10,16 +10,22 @@ from dnload.common import is_verbose
 class PlatformVar:
     """Platform-dependent variable."""
 
-    def __init__(self, name):
+    def __init__(self, name, osname = None, osarch = None):
         """Initialize platform variable."""
         self.__name = name
+        self.__osname = osname
+        if not self.__osname:
+            self.__osname = g_osname
+        self.__osarch = osarch
+        if not self.__osarch:
+            self.__osarch = g_osarch
 
     def get(self):
         """Get value associated with the name."""
         if self.__name not in g_platform_variables:
             raise RuntimeError("unknown platform variable '%s'" % (self.__name))
         current_var = g_platform_variables[self.__name]
-        combinations = get_platform_combinations()
+        combinations = get_platform_combinations(self.__osname, self.__osarch)
         for ii in combinations:
             if ii in current_var:
                 return current_var[ii]
@@ -113,20 +119,20 @@ g_platform_variables = {
 # Functions ############################
 ########################################
 
-def get_platform_combinations():
+def get_platform_combinations(osname, osarch):
     """Get listing of all possible platform combinations matching current platform."""
     # Gather operating system name path.
-    mapped_osname = platform_map_iterate(g_osname.lower())
+    osname = platform_map_iterate(osname.lower())
     osnames = []
-    while mapped_osname:
-        osnames += [mapped_osname]
-        mapped_osname = platform_map_iterate(mapped_osname)
+    while osname:
+        osnames += [osname]
+        osname = platform_map_iterate(osname)
     # Gather operating system architecture path.
-    mapped_osarch = g_osarch
+    mapped_osarch = osarch
     osarchs = []
-    while mapped_osarch:
-        osarchs += [mapped_osarch]
-        mapped_osarch = platform_map_iterate(mapped_osarch)
+    while osarch:
+        osarchs += [osarch]
+        osarch = platform_map_iterate(osarch)
     # Get permutations.
     ret = []
     for ii in osnames:

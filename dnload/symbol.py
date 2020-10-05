@@ -241,7 +241,18 @@ static const struct link_map* elf_get_link_map()
 {
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
     // ELF header is in a fixed location in memory.
-    const void* ELF_BASE_ADDRESS = (const void*)([[BASE_ADDRESS]]);
+    const void* ELF_BASE_ADDRESS = (const void*)(
+#if defined(__arm__)
+            [[BASE_ADDRESS_ARM32L]]
+#elif defined(__i386__)
+            [[BASE_ADDRESS_IA32]]
+#else
+#if (8 != DNLOAD_POINTER_SIZE)
+#error "no base address known for current platform"
+#endif
+            [[BASE_ADDRESS_64BIT]]
+#endif
+            );
     // First program header is located directly afterwards.
     const dnload_elf_ehdr_t *ehdr = (const dnload_elf_ehdr_t*)ELF_BASE_ADDRESS;
     const dnload_elf_phdr_t *phdr = (const dnload_elf_phdr_t*)((size_t)ehdr + (size_t)ehdr->e_phoff);
@@ -395,7 +406,12 @@ def generate_loader_dlfcn(symbols, linker):
 
 def generate_loader_hash(symbols, hash_function):
     """Generate import by hash loader code."""
-    subst = {"BASE_ADDRESS": str(PlatformVar("entry")), "SYMBOL_COUNT": str(len(symbols))}
+    subst = {
+            "BASE_ADDRESS_64BIT": str(PlatformVar("entry", "", "64-bit")),
+            "BASE_ADDRESS_ARM32L": str(PlatformVar("entry", "", "arm32l")),
+            "BASE_ADDRESS_IA32": str(PlatformVar("entry", "", "ia32")),
+            "SYMBOL_COUNT": str(len(symbols)),
+            }
     if hash_function == "crc32":
         subst["HASH_FUNCTION"] = g_template_hash_function_crc32.format()
     elif hash_function == "sdbm":
