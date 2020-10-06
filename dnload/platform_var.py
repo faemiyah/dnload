@@ -14,18 +14,20 @@ class PlatformVar:
         """Initialize platform variable."""
         self.__name = name
         self.__osname = osname
-        if not self.__osname:
-            self.__osname = g_osname
         self.__osarch = osarch
-        if not self.__osarch:
-            self.__osarch = g_osarch
 
     def get(self):
         """Get value associated with the name."""
         if self.__name not in g_platform_variables:
             raise RuntimeError("unknown platform variable '%s'" % (self.__name))
         current_var = g_platform_variables[self.__name]
-        combinations = get_platform_combinations(self.__osname, self.__osarch)
+        osname = self.__osname
+        if osname is None:
+            osname = g_osname
+        osarch = self.__osarch
+        if osarch is None:
+            osarch = g_osarch
+        combinations = get_platform_combinations(osname, osarch)
         for ii in combinations:
             if ii in current_var:
                 return current_var[ii]
