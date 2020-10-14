@@ -32,6 +32,7 @@ class AssemblerFile:
         current_section = AssemblerSection("text")
         sectionre = re.compile(r'^\s*\.section\s+\"?\.([a-zA-Z0-9_]+)[\.\s]')
         directivere = re.compile(r'^\s*\.(bss|data|rodata|text)')
+        discarded_sections = []
         for ii in lines:
             # Try both expressions first.
             match = sectionre.match(ii)
@@ -39,15 +40,24 @@ class AssemblerFile:
                 match = directivere.match(ii)
             # If match, start new section.
             if match:
-                self.add_sections(current_section)
+                if is_valid_section(current_section):
+                    self.add_sections(current_section)
+                else:
+                    discarded_sections += [current_section]
                 current_section = AssemblerSection(match.group(1), ii)
             else:
                 current_section.add_content(ii)
         if not current_section.empty():
-            self.add_sections(current_section)
+            if is_valid_section(current_section):
+                self.add_sections(current_section)
+            else:
+                discarded_sections += [current_section]
         if is_verbose():
             section_names = list(map(lambda x: x.get_name(), self.__sections))
             print("%i sections in '%s': %s" % (len(self.__sections), fname, str(section_names)))
+            if discarded_sections:
+                section_names = list(map(lambda x: x.get_name(), discarded_sections))
+                print("%i discarded sections in '%s': %s" % (len(discarded_sections), fname, section_names))
 
     def crunch(self):
         """Crunch sections, potentially removing dead code."""
@@ -218,3 +228,11 @@ class AssemblerFile:
     def __str__(self):
         """String representation."""
         return "AssemblerFile('%s')" % (self.__filename)
+
+########################################
+# Functions ############################
+########################################
+
+def is_valid_section(op):
+    """Tells if a section is valid and contributes to the binary."""
+    return not (op.get_name() == "note")
