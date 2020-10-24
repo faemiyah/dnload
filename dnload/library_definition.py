@@ -227,6 +227,7 @@ g_library_definition_m = LibraryDefinition("m", (
     ("double", "cos", "double"),
     ("float", "cosf", "float"),
     ("float", "expf", "float"),
+    ("float", "exp2f", "float"),
     ("float", ("fabsf", None), "float"),
     ("float", ("floorf", None), "float"),
     ("float", ("fmaxf", None), "float", "float"),
