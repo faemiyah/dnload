@@ -80,6 +80,26 @@ g_library_definition_egl = LibraryDefinition("EGL", (
     ("EGLBoolean", "eglTerminate", "EGLDisplay"),
     ))
 
+g_library_definition_fftw = LibraryDefinition("fftw3", (
+    ("void", "fftw_cleanup"),
+    ("void", "fftw_destroy_plan", "fftw_plan"),
+    ("void", "fftw_execute", "const fftw_plan"),
+    ("void", "fftw_free", "void*"),
+    ("void*", "fftw_malloc", "size_t"),
+    ("fftw_plan", "fftw_plan_dft_r2c_1d", "int", "double*", "fftw_complex*", "unsigned"),
+    ("fftw_plan", "fftw_plan_r2r_1d", "int", "double*", "double*", "fftw_r2r_kind", "unsigned"),
+    ))
+
+g_library_definition_freetype = LibraryDefinition("freetype", (
+    ("FT_UInt", "FT_Get_Char_Index", "FT_Face", "FT_ULong"),
+    ("FT_Error", "FT_Get_Kerning", "FT_Face", "FT_UInt", "FT_UInt", "FT_UInt", "FT_Vector*"),
+    ("FT_Error", "FT_Init_FreeType", "FT_Library*"),
+    ("FT_Error", "FT_Load_Glyph", "FT_Face", "FT_UInt", "FT_Int32"),
+    ("FT_Error", "FT_New_Face", "FT_Library", "const char*", "FT_Long", "FT_Face*"),
+    ("FT_Error", "FT_Render_Glyph", "FT_GlyphSlot", "FT_Render_Mode"),
+    ("FT_Error", "FT_Set_Pixel_Sizes", "FT_Face", "FT_UInt", "FT_UInt"),
+    ))
+
 g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
     ("void", "glActiveTexture", "GLenum"),
     ("void", "glAttachShader", "GLuint", "GLuint"),
@@ -206,16 +226,6 @@ g_library_definition_glu = LibraryDefinition("GLU", (
     ("GLint", "gluBuild3DMipmaps", "GLenum", "GLint", "GLsizei", "GLsizei", "GLsizei", "GLenum", "GLenum", "const void*"),
     ))
 
-g_library_definition_freetype = LibraryDefinition("freetype", (
-    ("FT_UInt", "FT_Get_Char_Index", "FT_Face", "FT_ULong"),
-    ("FT_Error", "FT_Get_Kerning", "FT_Face", "FT_UInt", "FT_UInt", "FT_UInt", "FT_Vector*"),
-    ("FT_Error", "FT_Init_FreeType", "FT_Library*"),
-    ("FT_Error", "FT_Load_Glyph", "FT_Face", "FT_UInt", "FT_Int32"),
-    ("FT_Error", "FT_New_Face", "FT_Library", "const char*", "FT_Long", "FT_Face*"),
-    ("FT_Error", "FT_Render_Glyph", "FT_GlyphSlot", "FT_Render_Mode"),
-    ("FT_Error", "FT_Set_Pixel_Sizes", "FT_Face", "FT_UInt", "FT_UInt"),
-    ))
-
 g_library_definition_m = LibraryDefinition("m", (
     ("double", "acos", "double"),
     ("float", "acosf", "float"),
@@ -335,9 +345,10 @@ g_library_definitions = (
     g_library_definition_c,
     g_library_definition_bcm_host,
     g_library_definition_egl,
+    g_library_definition_fftw,
+    g_library_definition_freetype,
     g_library_definition_gl,
     g_library_definition_glu,
-    g_library_definition_freetype,
     g_library_definition_m,
     g_library_definition_ncurses,
     g_library_definition_opusfile,

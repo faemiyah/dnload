@@ -273,7 +273,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #else
 #include <stdint.h>
 #endif
-[[INCLUDE_C]][[INCLUDE_FREETYPE]][[INCLUDE_MATH]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_OPUSFILE]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
+[[INCLUDE_C]][[INCLUDE_FFTW]][[INCLUDE_FREETYPE]][[INCLUDE_MATH]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_OPUSFILE]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
 /// Macro stringification helper (adds indirection).
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /// Macro stringification.
@@ -395,6 +395,10 @@ g_template_include_c = Template("""
 #include <stdio.h>
 #include <stdlib.h>
 #endif
+""")
+
+g_template_include_fftw = Template("""
+#include \"fftw3.h\"
 """)
 
 g_template_include_freetype = Template("""
@@ -1423,6 +1427,8 @@ def main():
     subst = {}
     if symbols_has_library(symbols, "c"):
         subst["INCLUDE_C"] = g_template_include_c.format()
+    if symbols_has_library(symbols, "fftw3"):
+        subst["INCLUDE_FFTW"] = g_template_include_fftw.format()
     if symbols_has_library(symbols, "freetype"):
         subst["INCLUDE_FREETYPE"] = g_template_include_freetype.format()
     if symbols_has_library(symbols, "m"):
