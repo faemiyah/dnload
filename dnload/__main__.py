@@ -1064,7 +1064,7 @@ def main():
     extra_libraries = []
     extra_linker_flags = []
     include_directories = [PATH_VIDEOCORE + "/include", PATH_VIDEOCORE + "/include/interface/vcos/pthreads", PATH_VIDEOCORE + "/include/interface/vmcs_host/linux", "/usr/include/freetype2/", "/usr/include/opus", "/usr/include/SDL", "/usr/local/include", "/usr/local/include/freetype2/", "/usr/local/include/opus", "/usr/local/include/SDL"]
-    library_directories = ["/lib", "/lib/x86_64-linux-gnu", PATH_VIDEOCORE + "/lib", "/usr/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/gcc/arm-linux-gnueabihf/4.9/", "/usr/lib/x86_64-linux-gnu", "/usr/local/lib"]
+    library_directories = ["/lib/x86_64-linux-gnu", "/lib", PATH_VIDEOCORE + "/lib", "/usr/lib/arm-linux-gnueabihf", "/usr/lib/x86_64-linux-gnu", "/usr/lib", "/usr/local/lib"]
     opengl_reason = None
     opengl_version = None
     output_file = None
@@ -1493,8 +1493,8 @@ def main():
     compiler.set_include_dirs(include_directories)
     if extra_compiler_flags:
         compiler.add_extra_compiler_flags(extra_compiler_flags)
-    # Some compilers require extra library dirs.
-    library_directories += compiler.get_extra_library_directories()
+    # Some compilers require extra library dirs (higher priority so inserted in front).
+    library_directories = compiler.get_extra_library_directories() + library_directories
 
     # Find assembler.
     assembler = Assembler(executable_find(assembler, default_assembler_list, "assembler"))
