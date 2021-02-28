@@ -313,7 +313,18 @@ static const struct link_map* elf_get_link_map()
 {
 #if defined(DNLOAD_NO_FIXED_R_DEBUG_ADDRESS)
     // ELF header is in a fixed location in memory.
-    const void* ELF_BASE_ADDRESS = (const void*)(0x400000);
+    const void* ELF_BASE_ADDRESS = (const void*)(
+#if defined(__arm__)
+            0x10000
+#elif defined(__i386__)
+            0x2000000
+#else
+#if (8 != DNLOAD_POINTER_SIZE)
+#error "no base address known for current platform"
+#endif
+            0x400000
+#endif
+            );
     // First program header is located directly afterwards.
     const dnload_elf_ehdr_t *ehdr = (const dnload_elf_ehdr_t*)ELF_BASE_ADDRESS;
     const dnload_elf_phdr_t *phdr = (const dnload_elf_phdr_t*)((size_t)ehdr + (size_t)ehdr->e_phoff);

@@ -442,7 +442,8 @@ def generate_symbol_table(mode, symbols, hash_function):
     symbol_table_content = ""
     for ii in symbols:
         definitions += ["    %s;" % (ii.generate_definition())]
-        hashes += ["    %s%s," % (ii.generate_prototype(), ii.get_hash(hash_function))]
+        if "dlfcn" != mode:
+            hashes += ["    %s%s," % (ii.generate_prototype(), ii.get_hash(hash_function))]
     if "dlfcn" != mode:
         subst["SYMBOL_TABLE_INITIALIZATION"] = " =\n{\n%s\n}" % ("\n".join(hashes))
     subst["SYMBOL_TABLE_DEFINITION"] = "\n".join(definitions)

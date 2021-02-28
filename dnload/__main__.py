@@ -1385,6 +1385,26 @@ def main():
     # Erase contents of the header after it has been found.
     touch(target)
 
+    # Find compiler and linker if necessary.
+    # dlfcn mode needs library directories even if only preprocessing.
+    if (not args.preprocess_only) or ("dlfcn" == compilation_mode):
+        # Find compiler.
+        compiler_list = default_compiler_list
+        if os.name == "nt":
+            compiler_list = ["cl.exe"] + compiler_list
+        compiler = Compiler(executable_find(compiler, compiler_list, "compiler"))
+        compiler.set_definitions(definitions)
+        compiler.set_include_dirs(include_directories)
+        if extra_compiler_flags:
+            compiler.add_extra_compiler_flags(extra_compiler_flags)
+        # Some compilers require extra library dirs (higher priority so inserted in front).
+        library_directories = compiler.get_extra_library_directories() + library_directories
+        # Find linker.
+        linker = Linker(executable_find(linker, default_linker_list, "linker"))
+        if extra_linker_flags:
+            linker.addExtraFlags(extra_linker_flags)
+        linker.set_library_directories(library_directories)
+
     # Clear target header before parsing to avoid problems.
     fd = open(target, "w")
     fd.write("\n")
@@ -1490,27 +1510,10 @@ def main():
         if elfling:
             elfling = Elfling(elfling)
 
-    # Find compiler.
-    compiler_list = default_compiler_list
-    if os.name == "nt":
-        compiler_list = ["cl.exe"] + compiler_list
-    compiler = Compiler(executable_find(compiler, compiler_list, "compiler"))
-    compiler.set_definitions(definitions)
-    compiler.set_include_dirs(include_directories)
-    if extra_compiler_flags:
-        compiler.add_extra_compiler_flags(extra_compiler_flags)
-    # Some compilers require extra library dirs (higher priority so inserted in front).
-    library_directories = compiler.get_extra_library_directories() + library_directories
-
     # Find assembler.
     assembler = Assembler(executable_find(assembler, default_assembler_list, "assembler"))
     if extra_assembler_flags:
         assembler.addExtraFlags(extra_assembler_flags)
-
-    # Find linker.
-    linker = Linker(executable_find(linker, default_linker_list, "linker"))
-    if extra_linker_flags:
-        linker.addExtraFlags(extra_linker_flags)
 
     # Determine abstraction layer if it's not been set.
     if not abstraction_layer:
@@ -1546,7 +1549,6 @@ def main():
     compiler.set_rpath_directories(rpath)
     linker.generate_linker_flags()
     linker.set_libraries(libraries)
-    linker.set_library_directories(library_directories)
     linker.set_rpath_directories(rpath)
     if "maximum" == compilation_mode:
         objcopy = executable_find(objcopy, default_objcopy_list, "objcopy")
