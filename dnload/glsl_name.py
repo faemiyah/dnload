@@ -112,6 +112,7 @@ g_locked = (
     "acos",
     "asin",
     "atan",
+    "binding",
     "break",
     "ceil",
     "clamp",

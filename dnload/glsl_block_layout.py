@@ -36,7 +36,7 @@ def glsl_parse_layout(source):
         return (None, source)
     lst = []
     while scope:
-        (location, assignment, index, intermediate) = extract_tokens(scope, ("?|location", "?=", "?u"))
+        (location, assignment, index, intermediate) = extract_tokens(scope, ("?|binding|location", "?=", "?u"))
         if location and assignment and index:
             lst += [[location, assignment, index]]
             scope = intermediate
