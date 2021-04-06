@@ -739,7 +739,7 @@ From this on, it's all just manual work, instrumenting the dynamic linker and se
 Current compression procedure
 ----
 
-The ``maximum`` compression mode uses certain techniques to decrease binary size, described below.
+This section is a listing of techniques and pitfalls when using the ``maximum`` compression mode. Most of this is only relevant when the header is crafted manually and we have full control over the generated assembly. The listing is probably not comprehensive.
 
 Section headers and sections
 ~~~~
@@ -1138,13 +1138,17 @@ This software has a very narrow usecase, but it's not that unlikely there will a
 TODO
 ====
 
+* Add oneKpaq support if possible. Remove all traces of elfling.
 * Extend cross-compilation support to other operating systems and architectures as opposed to 32-bit / 64-bit switch only.
 * Only SDL/OpenGL supported right now. Should probably also support GLFW.
 * Perhaps there are more efficient ways to interleave the header structs? Perhaps this can be permutated?
 * Perhaps .data segment contents can be sorted and rearranged for better compression?
-* [DOCS] Explain GLSL minification.
+* [DOCS] Reformat the whole document.
+* [DOCS] Usage explanation for GLSL minification without using dnload for anything else.
+* [DOCS] Explain GLSL minification procedure.
 * [DOCS] Explain new, better safe symtab method without symbol counting.
 * [DOCS] Explain PoroCYon's direct interpreter call trick.
+* [DOCS] Explain PoroCYon's IFUNC resolve trick.
 * [DOCS] Explain new, better entry crushing method.
 
 References
