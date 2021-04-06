@@ -1,9 +1,26 @@
-r14 (2017-10-17)
-  * Add GLSL minifier (first public release).
+r14 (2021-03-13)
+  * Add GLSL minifier.
+  * Allow use of GLSL minifier without other aspects of dnload.
+  * Library support for fftw3, libpng, ncurses, opusfile and sndfile.
+  * Full architecture support for armel.
+  * Add 32-bit cross compilation support for amd64 -> ia32.
+  * Fix operating system support for Linux (IFUNC, stack alignment).
+  * Fix operating system support for FreeBSD 12 after the late hardening.
+  * Add support for crc32 hash instruction on x86 and amd64.
+  * Add selectable option switches filedrop, hash, header, rand and symtab.
+  * Add __builtin_unreachable() as needed to aid the compiler.
+  * Use correct library directories based on gcc --version output.
+  * Fix library script detection.
+  * Fix crunching the assembler causing invalid alignment reads an stores.
+  * Fix bugs when using python3 as the python interpreter.
+  * Drop python2 support, but it might still work.
+  * Add pep8 rules.
+  * And a lot of little bugfixes and tweaks too many to list here.
+  * Thanks to lunasorcery, PoroCYon and Shiz.
 
 r13 (2016-11-25)
   * Better LZMA compression parameters.
-  * Add Freetype support.
+  * Library support for Freetype.
   * Add Mali support.
   * Add SDL2 support.
   * Use SDL2 as the default abstraction layer.
