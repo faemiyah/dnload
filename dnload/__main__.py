@@ -273,7 +273,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #else
 #include <stdint.h>
 #endif
-[[INCLUDE_C]][[INCLUDE_FFTW]][[INCLUDE_FREETYPE]][[INCLUDE_MATH]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_OPUSFILE]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
+[[INCLUDE_C]][[INCLUDE_FFTW]][[INCLUDE_FREETYPE]][[INCLUDE_MATH]][[INCLUDE_NCURSES]][[INCLUDE_OPENGL]][[INCLUDE_OPUS]][[INCLUDE_OPUSFILE]][[INCLUDE_PNG]][[INCLUDE_RAND]][[INCLUDE_SDL]][[INCLUDE_SNDFILE]]
 /// Macro stringification helper (adds indirection).
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /// Macro stringification.
@@ -456,6 +456,10 @@ g_template_include_opengl = Template("""
 #endif
 #endif
 #endif
+""")
+
+g_template_include_opus = Template("""
+#include \"opus.h\"
 """)
 
 g_template_include_opusfile = Template("""
@@ -1457,6 +1461,8 @@ def main():
         subst["INCLUDE_NCURSES"] = g_template_include_ncurses.format()
     if symbols_has_library(symbols, ("GL", "GLESv2")):
         subst["INCLUDE_OPENGL"] = g_template_include_opengl.format({"DEFINITION_LD": definition_ld})
+    if symbols_has_library(symbols, "opus"):
+        subst["INCLUDE_OPUS"] = g_template_include_opus.format()
     if symbols_has_library(symbols, "opusfile"):
         subst["INCLUDE_OPUSFILE"] = g_template_include_opusfile.format()
     if symbols_has_library(symbols, "png"):

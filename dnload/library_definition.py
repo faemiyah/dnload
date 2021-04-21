@@ -276,6 +276,22 @@ g_library_definition_ncurses = LibraryDefinition("ncurses", (
     ("NCURSES_EXPORT(int)", "wmove", "WINDOW*", "int", "int"),
     ))
 
+g_library_definition_ogg = LibraryDefinition("ogg", (
+    ("int", "ogg_page_serialno", "ogg_page*"),
+    ("int", "ogg_stream_init", "ogg_stream_state*", "int"),
+    ("int", "ogg_stream_pagein", "ogg_stream_state*", "ogg_page*"),
+    ("int", "ogg_stream_packetout", "ogg_stream_state*", "ogg_packet*"),
+    ("char*", "ogg_sync_buffer", "ogg_sync_state*", "long"),
+    ("int", "ogg_sync_init", "ogg_sync_state*"),
+    ("int", "ogg_sync_pageout", "ogg_sync_state*", "ogg_page*"),
+    ))
+
+g_library_definition_opus = LibraryDefinition("opus", (
+    ("OpusDecoder*", "opus_decoder_create", "opus_int32", "int", "int*"),
+    ("int", "opus_decoder_init", "OpusDecoder*", "opus_int32", "int"),
+    ("int", "opus_decode_float", "OpusDecoder*", "const unsigned char*", "opus_int32", "float*", "int", "int"),
+    ))
+
 g_library_definition_opusfile = LibraryDefinition("opusfile", (
     ("void", "op_free", "OggOpusFile*"),
     ("OggOpusFile*", "op_open_memory", "const unsigned char*", "size_t", "int*"),
@@ -351,7 +367,9 @@ g_library_definitions = (
     g_library_definition_glu,
     g_library_definition_m,
     g_library_definition_ncurses,
+    g_library_definition_ogg,
     g_library_definition_opusfile,
+    g_library_definition_opus,
     g_library_definition_png,
     g_library_definition_sdl,
     g_library_definition_sdl2,
