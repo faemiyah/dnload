@@ -1443,9 +1443,7 @@ def main():
         print("%i symbols found: %s" % (len(symbols), str(symbol_strings)))
         verbatim_symbols = list(set(symbols) - set(real_symbols))
         if verbatim_symbols and output_file:
-            verbatim_symbol_strings = []
-            for ii in verbatim_symbols:
-                verbatim_symbol_strings += [str(ii)]
+            verbatim_symbol_strings = list(map(lambda x: str(x), verbatim_symbols))
             print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
     # Header includes.
     subst = {}
