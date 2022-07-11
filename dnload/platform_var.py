@@ -101,8 +101,8 @@ g_platform_variables = {
     "ei_class": {"32-bit": 1, "64-bit": 2},
     "ei_osabi": {"FreeBSD": 9, "Linux": 3},  # SYSV: 0
     "entry": {"64-bit": 0x400000, "arm32l": 0x10000, "ia32": 0x2000000},  # ia32: 0x8048000
-    "function_ceilf": {"default": None, "arm32l": "ceilf"},
-    "function_floorf": {"default": None, "arm32l": "floorf"},
+    "function_ceilf": {"default": None, "amd64": "floorf", "arm32l": "ceilf"},
+    "function_floorf": {"default": None, "amd64": "floorf", "arm32l": "floorf"},
     "function_rand": {"default": None},
     "function_srand": {"default": None},
     "gl_library": {"default": "GL"},

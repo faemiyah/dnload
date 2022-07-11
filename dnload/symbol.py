@@ -92,7 +92,7 @@ class Symbol:
 
     def is_verbatim(self):
         """Tell if this symbol should never be scoured but instead used verbatim."""
-        return (self.__rename is None)
+        return (self.__rename is None) or (isinstance(self.__rename, PlatformVar) and (self.__rename.get() == None))
 
     def set_library(self, lib):
         """Replace library with given library."""

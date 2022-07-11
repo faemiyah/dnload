@@ -1436,15 +1436,6 @@ def main():
             symbols += [ii[1]]
     # Some libraries cannot co-exist, but have some symbols with identical names.
     symbols = replace_conflicting_library(symbols, "SDL", "SDL2")
-    # Filter real symbols (as separate from implicit).
-    real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
-    if is_verbose():
-        symbol_strings = list(map(lambda x: str(x), symbols))
-        print("%i symbols found: %s" % (len(symbols), str(symbol_strings)))
-        verbatim_symbols = list(set(symbols) - set(real_symbols))
-        if verbatim_symbols and output_file:
-            verbatim_symbol_strings = list(map(lambda x: str(x), verbatim_symbols))
-            print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
     # Header includes.
     subst = {}
     if symbols_has_library(symbols, "c"):
@@ -1472,6 +1463,15 @@ def main():
     # Workarounds for specific symbol implementations - must be done before symbol definitions.
     if symbols_has_symbol(symbols, "rand"):
         subst["INCLUDE_RAND"] = generate_include_rand(args.rand, target_search_path, definition_ld)
+    # Filter real symbols (as separate from implicit).
+    real_symbols = list(filter(lambda x: not x.is_verbatim(), symbols))
+    if is_verbose():
+        symbol_strings = list(map(lambda x: str(x), symbols))
+        print("%i symbols found: %s" % (len(symbols), str(symbol_strings)))
+        verbatim_symbols = list(set(symbols) - set(real_symbols))
+        if verbatim_symbols and output_file:
+            verbatim_symbol_strings = list(map(lambda x: str(x), verbatim_symbols))
+            print("Not loading verbatim symbols: %s" % (str(verbatim_symbol_strings)))
     # Symbol definitions.
     symbol_definitions_direct = generate_symbol_definitions_direct(symbols, symbol_prefix)
     subst["SYMBOL_DEFINITIONS_DIRECT"] = symbol_definitions_direct
