@@ -29,7 +29,7 @@ protected:
     /// Constructor.
     ///
     /// \param type Shader type.
-    GlslShaderSource(GLenum type) :
+    explicit GlslShaderSource(GLenum type) :
         m_type(type)
     {
     }

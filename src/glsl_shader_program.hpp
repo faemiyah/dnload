@@ -21,7 +21,7 @@ private:
     /// Constructor.
     ///
     /// \param type Shader type.
-    GlslShaderProgram(GLenum type) :
+    explicit GlslShaderProgram(GLenum type) :
         GlslShaderSource(type)
     {
     }

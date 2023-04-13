@@ -15,7 +15,7 @@ private:
 
 public:
     /// Constructor.
-    GlslProgram() = default;
+    explicit GlslProgram() = default;
 
     /// Destructor.
     ~GlslProgram();

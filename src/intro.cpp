@@ -974,8 +974,9 @@ int DNLOAD_MAIN(int argc, char **argv)
 {
     unsigned screen_w = SCREEN_W;
     unsigned screen_h = SCREEN_H;
-    bool fullscreen = true;
-    bool record = false;
+    bool flag_fullscreen = false;
+    bool flag_window = false;
+    bool flag_record = false;
 
     try
     {
@@ -984,10 +985,11 @@ int DNLOAD_MAIN(int argc, char **argv)
             po::options_description desc("Options");
             desc.add_options()
                 ("developer,d", "Developer mode.")
+                ("fullscreen,f", "Start in fullscreen mode as opposed to windowed mode.")
                 ("help,h", "Print help text.")
                 ("record,R", "Do not play intro normally, instead save audio as .wav and frames as .png -files.")
                 ("resolution,r", po::value<std::string>(), "Resolution to use, specify as 'WIDTHxHEIGHT' or 'HEIGHTp'.")
-                ("window,w", "Start in window instead of full-screen.");
+                ("window,w", "Start in windowed mode as opposed to fullscreen mode.");
 
             po::variables_map vmap;
             po::store(po::command_line_parser(argc, argv).options(desc).run(), vmap);
@@ -997,6 +999,10 @@ int DNLOAD_MAIN(int argc, char **argv)
             {
                 g_flag_developer = true;
             }
+            if(vmap.count("fullscreen"))
+            {
+                flag_window = true;
+            }
             if(vmap.count("help"))
             {
                 std::cout << usage << desc << std::endl;
@@ -1004,7 +1010,7 @@ int DNLOAD_MAIN(int argc, char **argv)
             }
             if(vmap.count("record"))
             {
-                record = true;
+                flag_record = true;
             }
             if(vmap.count("resolution"))
             {
@@ -1014,11 +1020,17 @@ int DNLOAD_MAIN(int argc, char **argv)
             }
             if(vmap.count("window"))
             {
-                fullscreen = false;
+                flag_window = true;
             }
         }
 
-        intro(screen_w, screen_h, fullscreen, record);
+        if(flag_fullscreen && flag_window)
+        {
+            BOOST_THROW_EXCEPTION(std::runtime_error("both fullscreen and windowed mode specified"));
+        }
+        bool fullscreen = flag_fullscreen || (!flag_window && !g_flag_developer);
+
+        intro(screen_w, screen_h, fullscreen, flag_record);
     }
     catch(const boost::exception &err)
     {
