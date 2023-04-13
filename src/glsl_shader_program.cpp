@@ -49,10 +49,10 @@ GLuint GlslShaderProgram::getStage() const
     switch(m_type)
     {
     case GL_VERTEX_SHADER:
-        return 1;
+        return GL_VERTEX_SHADER_BIT;
 
     case GL_FRAGMENT_SHADER:
-        return 2;
+        return GL_FRAGMENT_SHADER_BIT;
 
     default:
         break;

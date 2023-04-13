@@ -619,8 +619,8 @@ void _start()
 
     dnload_glGenProgramPipelines(1, &pipeline);
     dnload_glBindProgramPipeline(pipeline);
-    dnload_glUseProgramStages(pipeline, 1, program_vert);
-    dnload_glUseProgramStages(pipeline, 2, g_program_fragment);
+    dnload_glUseProgramStages(pipeline, GL_VERTEX_SHADER_BIT, program_vert);
+    dnload_glUseProgramStages(pipeline, GL_FRAGMENT_SHADER_BIT, g_program_fragment);
 #endif
 #endif
 
