@@ -109,6 +109,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
     ("void", "glBindRenderbuffer", "GLenum", "GLuint"),
     ("void", "glBindTexture", "GLenum", "GLuint"),
     ("void", "glBindTextureUnit", "GLuint", "GLuint"),
+    ("void", "glBindTextures", "GLuint", "GLsizei", "const GLuint*"),
     ("void", "glBlendFunc", "GLenum", "GLenum"),
     ("void", "glBlendFuncSeparate", "GLenum", "GLenum", "GLenum", "GLenum"),
     ("void", "glBufferData", "GLenum", "GLsizeiptr", "const GLvoid*", "GLenum"),

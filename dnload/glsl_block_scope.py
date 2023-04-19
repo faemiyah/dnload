@@ -98,6 +98,10 @@ class GlslBlockScope(GlslBlock):
         """Accessor."""
         return self.__explicit
 
+    def isSquashable(self):
+        """Accessor."""
+        return self.__squashable
+
     def setExplicit(self, flag):
         """Set explicit flag."""
         self.__explicit = flag
@@ -158,6 +162,10 @@ def glsl_parse_content(source):
     while True:
         if not merge_control_pass(ret):
             break
+    # After merging all control blocks, prevent potential errors that could arise from squashing.
+    while True:
+        if not prevent_squash_pass(ret):
+            break
     # Expand scopes of size 1. They are not needed after control merge.
     while True:
         if not expand_scope_pass(ret):
@@ -206,6 +214,35 @@ def merge_control_pass(lst):
         vv.setTarget(mm)
         lst.pop(ii + 1)
         return True
+    return False
+
+def is_prevent_squash_inner_if_with_else(first, second):
+    """Check for and prevent squash of preceding scope with one if and following else."""
+    if is_glsl_block_control(first):
+        first = first.getTarget()
+        if not first:
+            return False
+    if not is_glsl_block_scope(first):
+        return False
+    if is_glsl_block_control(second):
+        print(second.getControl())
+    if (not is_glsl_block_control(second)) or (second.getControl().format(False) != "else"):
+        return False
+    last_child = first.getChildren()[-1]
+    if (not is_glsl_block_control(last_child)) or (last_child.getControl().format(False) != "if"):
+        return False
+    if not first.isSquashable():
+        return False
+    first.setSquashable(False)
+    return True
+
+def prevent_squash_pass(lst):
+    """Prevent squash in cases where it would alter semantics."""
+    for ii in range(len(lst) - 1):
+        vv = lst[ii]
+        mm = lst[ii + 1]
+        if is_prevent_squash_inner_if_with_else(vv, mm):
+            return True
     return False
 
 def expand_scope_pass(lst):
