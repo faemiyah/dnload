@@ -224,8 +224,6 @@ def is_prevent_squash_inner_if_with_else(first, second):
             return False
     if not is_glsl_block_scope(first):
         return False
-    if is_glsl_block_control(second):
-        print(second.getControl())
     if (not is_glsl_block_control(second)) or (second.getControl().format(False) != "else"):
         return False
     last_child = first.getChildren()[-1]
