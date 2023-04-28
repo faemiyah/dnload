@@ -89,7 +89,8 @@ def glsl_parse_assignment(source, explicit=True):
     modifiers = []
     while True:
         (index_scope, remaining) = extract_tokens(content, ("?[",))
-        if index_scope:
+        # Index scope may be empty, mut may not be None.
+        if not index_scope is None:
             modifiers += [GlslParen("[")] + index_scope + [GlslParen("]")]
             content = remaining
             continue

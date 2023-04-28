@@ -604,7 +604,7 @@ def precision_pass(chain):
 
 def single_character_alphabet():
     """Returns an alphabet of single characters, lower and upper case."""
-    ret = []
+    ret = ["_"]
     for ii in range(ord("a"), ord("z") + 1):
         ret += [chr(ii)]
     for ii in range(ord("A"), ord("Z") + 1):
