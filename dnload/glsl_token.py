@@ -11,6 +11,14 @@ from dnload.glsl_paren import is_glsl_paren
 from dnload.glsl_type import is_glsl_type
 
 ########################################
+# Globals ##############################
+########################################
+
+g_deny_integrify_function_calls = (
+    "smoothstep",
+    )
+
+########################################
 # GlslToken ############################
 ########################################
 
@@ -329,6 +337,21 @@ class GlslToken:
             ret += ii.format(False)
         return ret
 
+    def getFunctionCallNameIfFunctionCall(self):
+        """Gets the name of a function call if this is a function call construct."""
+        if self.__left or self.__right:
+            return None
+        if len(self.__middle) != 2:
+            return None
+        if (not is_glsl_token(self.__middle[0])) or (not is_glsl_token(self.__middle[1])):
+            return None
+        if self.__middle[1].getSingleChildMiddleNonToken() != "(":
+            return None
+        left = self.__middle[0].getSingleChildMiddleNonToken()
+        if not is_glsl_name(left):
+            return None
+        return left.getName()
+
     def getPrecedenceIfOperator(self):
         """Return precedence if middle element is a single child that is an operator."""
         mid = self.getSingleChildMiddleNonToken()
@@ -384,6 +407,16 @@ class GlslToken:
         left = self.__left[0].getSingleChild()
         right = self.__right[0].getSingleChild()
         return ("(" == left) and (")" == right)
+
+    def isParameterOfNonIntegrifyFunctionCall(self):
+        """Tells if is a parameter of a function call that does not allow integrification of parameters."""
+        if self.__parent:
+            left = self.__parent.getSingleChildLeft()
+            functionName = left.getFunctionCallNameIfFunctionCall()
+            print(functionName)
+            if functionName and (functionName in g_deny_integrify_function_calls):
+                return True
+        return False
 
     def isTypeOpen(self):
         """Tell if is a type opening statement."""
@@ -588,8 +621,10 @@ class GlslToken:
             left = self.findSiblingOperatorLeft()
             right = self.findSiblingOperatorRight()
             if (not left) and (not right):
-                mid.setAllowIntegrify(True)
-                return True
+                # Check if part of a denied function call.
+                if not self.isParameterOfNonIntegrifyFunctionCall():
+                    mid.setAllowIntegrify(True)
+                    return True
             # Alone in vecN() directive.
             left = self.getSingleChildLeft()
             right = self.getSingleChildRight()
