@@ -157,7 +157,7 @@ def glsl_parse_content(source):
             ret += [block]
             source = remaining
             continue
-        raise RuntimeError("cannot parse content: %s" % (str(map(str, source))))
+        raise RuntimeError("cannot parse content: %s" % (str(list(map(str, source)))))
     # Merge control blocks with following blocks.
     while True:
         if not merge_control_pass(ret):
