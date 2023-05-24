@@ -413,7 +413,6 @@ class GlslToken:
         if self.__parent:
             left = self.__parent.getSingleChildLeft()
             functionName = left.getFunctionCallNameIfFunctionCall()
-            print(functionName)
             if functionName and (functionName in g_deny_integrify_function_calls):
                 return True
         return False

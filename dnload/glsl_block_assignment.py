@@ -4,6 +4,7 @@ from dnload.glsl_block_array import glsl_parse_array
 from dnload.glsl_block_statement import glsl_parse_statement
 from dnload.glsl_block_statement import glsl_parse_statements
 from dnload.glsl_paren import GlslParen
+from dnload.glsl_terminator import GlslTerminator
 
 ########################################
 # GlslBlockAssignment ##################
@@ -61,6 +62,11 @@ class GlslBlockAssignment(GlslBlock):
 
     def replaceTerminator(self, op):
         """Replace terminator with given element."""
+        if self.__terminator:
+            self.__terminator = GlslTerminator(op)
+            return
+        if len(self._children) != 1:
+            raise RuntimeError("non-scope assignment with more than one child statement")
         self._children[0].replaceTerminator(op)
 
     def __str__(self):
