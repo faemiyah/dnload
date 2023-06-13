@@ -180,6 +180,24 @@ def generate_temporary_filename(fname):
         return g_temporary_directory + "/" + os.path.basename(fname)
     return fname
 
+def remove_blob(data, blob):
+    """Removes a blob from a larger data blob."""
+    data_len = len(data)
+    blob_len = len(blob)
+    for ii in range(data_len):
+        if (ii + blob_len) > data_len:
+            break
+        match_len = 0
+        for jj in range(blob_len):
+            if data[ii + jj] == blob[jj]:
+                match_len += 1
+            else:
+                break
+        if match_len == blob_len:
+            ret = data[:ii] + data[(ii + blob_len):]
+            return ret
+    raise RuntimeError("data blob of length %i did not contain blob of length %i" % (data_len, blob_len))
+
 def run_command(lst, decode_output=True):
     """Run program identified by list of command line parameters."""
     if is_verbose():

@@ -32,21 +32,22 @@ class Glsl:
         self.__chains = []
         self.__sources = []
 
-    def count(self):
+    def count(self, freqs):
         """Count instances of alpha letters within the code."""
+        ret = copy.deepcopy(freqs)
+        alphabet = single_character_alphabet()
         source = "".join(map(lambda x: x.format(False), self.__sources))
-        ret = {}
         for ii in source:
-            if ii.isalpha():
+            if ii in alphabet:
                 if ii in ret:
                     ret[ii] += 1
                 else:
                     ret[ii] = 1
         return ret
 
-    def countSorted(self):
+    def countSorted(self, freqs):
         """Get sorted listing of counted alpha letters within the code."""
-        counted = self.count()
+        counted = self.count(freqs)
         lst = []
         # Sort by instance count, length of name, string comparison.
         for kk in counted.keys():
@@ -54,7 +55,7 @@ class Glsl:
         ret = sorted(lst, reverse=True)
         return list(map(lambda x: x[2], ret))
 
-    def crunch(self, mode="full", max_inlines=-1, max_renames=-1, max_simplifys=-1):
+    def crunch(self, mode="full", freqs=None, max_inlines=-1, max_renames=-1, max_simplifys=-1):
         """Crunch the source code to smaller state."""
         combines = None
         inlines = None
@@ -88,7 +89,7 @@ class Glsl:
             for ii in self.__chains:
                 precision_pass(ii)
             # After all names have been collected, it's possible to select the best swizzle.
-            swizzle = self.selectSwizzle()
+            swizzle = self.selectSwizzle(freqs)
             for ii in self.__sources:
                 ii.selectSwizzle(swizzle)
             # Print number of block merges.
@@ -115,17 +116,17 @@ class Glsl:
             for ii in merged:
                 if (0 <= max_renames) and (renames >= max_renames):
                     break
-                self.renamePass(ii)
+                self.renamePass(freqs, ii)
                 renames += 1
             # Run member rename passes until done.
             for ii in merged:
                 block = ii.getBlock()
                 if not is_glsl_block_inout_struct(block):
                     continue
-                renames += self.renameMembers(block, max_renames - renames)
+                renames += self.renameMembers(freqs, block, max_renames - renames)
                 # Also rename block type.
                 if (0 > max_renames) or (renames < max_renames):
-                    self.renameBlockType(ii.getBlockList())
+                    self.renameBlockType(freqs, ii.getBlockList())
                     renames += 1
             # Perform recombine passes.
             for ii in self.__sources:
@@ -158,6 +159,10 @@ class Glsl:
             if not ii.hasOutputName():
                 ret += [ii.generatePrintOutput(plain).strip()]
         return "\n".join(ret)
+
+    def getBlobs(self):
+        """Gets the binary blobs of the source files."""
+        return map(lambda x: x.getBlob(), self.__sources)
 
     def getChainLength(self, op):
         """Gets the length of source chain with given name."""
@@ -368,11 +373,11 @@ class Glsl:
         src = glsl_read_source(preprocessor, definition_ld, filename, output_name, varname)
         self.__sources += [src]
 
-    def renameBlockType(self, block):
+    def renameBlockType(self, freqs, block):
         """Rename block type for given name strip."""
         # Select name to rename to.
         if not target_name:
-            counted = self.countSorted()
+            counted = self.countSorted(freqs)
             # Single-character names first.
             for letter in counted:
                 if not self.hasNameConflict(block, letter):
@@ -389,10 +394,10 @@ class Glsl:
         # Just select first name.
         block.getTypeName().lock(target_name)
 
-    def renameMembers(self, block, max_renames):
+    def renameMembers(self, freqs, block, max_renames):
         """Rename all members in given block."""
         lst = block.getMemberAccesses()
-        counted = self.countSorted()
+        counted = self.countSorted(freqs)
         if len(counted) < len(lst):
             raise RuntimeError("having more members than used letters should be impossible")
         renames = len(lst)
@@ -404,10 +409,10 @@ class Glsl:
                 name.lock(letter)
         return renames
 
-    def renamePass(self, op):
+    def renamePass(self, freqs, op):
         """Perform rename pass for given name strip."""
         block_list = op.getBlockList()
-        counted = self.countSorted()
+        counted = self.countSorted(freqs)
         for letter in counted:
             if not self.hasNameConflict(op, letter):
                 op.lockNames(letter)
@@ -416,9 +421,9 @@ class Glsl:
         target_name = self.inventName(op, counted)
         op.lockNames(target_name)
 
-    def selectSwizzle(self):
+    def selectSwizzle(self, freqs):
         """Select the swizzle to be used."""
-        counted = self.count()
+        counted = self.count(freqs)
         rgba = 0
         if "r" in counted:
             rgba += counted["r"]

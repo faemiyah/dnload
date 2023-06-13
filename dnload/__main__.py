@@ -1,5 +1,6 @@
 import argparse
 import copy
+import json
 import os
 import re
 import shutil
@@ -18,12 +19,14 @@ from dnload.common import is_listing
 from dnload.common import is_verbose
 from dnload.common import listify
 from dnload.common import locate
+from dnload.common import remove_blob
 from dnload.common import run_command
 from dnload.common import set_temporary_directory
 from dnload.common import set_verbose
 from dnload.compiler import Compiler
 from dnload.custom_help_formatter import CustomHelpFormatter
 from dnload.glsl import Glsl
+from dnload.glsl import single_character_alphabet
 from dnload.library_definition import g_library_definitions
 from dnload.linker import Linker
 from dnload.platform_var import g_osarch
@@ -824,7 +827,25 @@ def generate_elfling(output_file, compiler, elfling, definition_ld):
     asm.incorporate(additional_asm, "_incorporated", ELFLING_UNCOMPRESSED)
     return asm
 
-def generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames, simplifys):
+def generate_glsl_frequency_analysis(filename, blobs):
+    """Generate GLSL frequency analysis from a given file, discounting given binary blobs."""
+    rfd = open(filename, "rb")
+    data = rfd.read()
+    rfd.close()
+    for blob in blobs:
+        data = remove_blob(data, blob)
+    alphabet = list(map(lambda x: ord(x), single_character_alphabet()))
+    ret = {}
+    for ii in data:
+        if ii in alphabet:
+            cc = chr(ii)
+            if cc in ret:
+                ret[cc] += 1
+            else:
+                ret[cc] = 1
+    return ret
+
+def generate_glsl(filenames, preprocessor, definition_ld, mode, freqs, inlines, renames, simplifys):
     """Generate GLSL, processing given GLSL source files."""
     glsl_db = Glsl()
     for ii in filenames:
@@ -840,10 +861,10 @@ def generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames
         else:
             glsl_db.read(preprocessor, definition_ld, ii)
     glsl_db.parse()
-    glsl_db.crunch(mode, inlines, renames, simplifys)
+    glsl_db.crunch(mode, freqs, inlines, renames, simplifys)
     return glsl_db
 
-def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, renames, simplifys):
+def generate_glsl_extract(fname, preprocessor, definition_ld, mode, freqs, inlines, renames, simplifys):
     """Generate GLSL, extracting from source file."""
     src_path, src_basename = os.path.split(fname)
     if src_path:
@@ -871,8 +892,9 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, inlines, ren
             else:
                 filenames += [[glsl_filename, glsl_output_name]]
     if filenames:
-        glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, inlines, renames, simplifys)
+        glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, freqs, inlines, renames, simplifys)
         glsl_db.write()
+    return glsl_db.getBlobs()
 
 def generate_include_rand(implementation_rand, target_search_path, definition_ld):
     """Generates the rand()/srand() include."""
@@ -1251,7 +1273,7 @@ def main():
             raise RuntimeError("specified output files '%s' must match input glsl files '%s'" % (str(output_file_list), str(source_files_glsl)))
         if output_file_list:
             source_files_glsl = zip(source_files_glsl, output_file_list)
-        glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, glsl_inlines, glsl_renames, glsl_simplifys)
+        glsl_db = generate_glsl(source_files_glsl, preprocessor, definition_ld, glsl_mode, None, glsl_inlines, glsl_renames, glsl_simplifys)
         if output_file_list:
             glsl_db.write()
         else:
@@ -1416,8 +1438,17 @@ def main():
     if is_verbose():
         print("Analyzing source files: %s" % (str(source_files)))
     # Prepare GLSL headers before preprocessing.
+    glsl_blobs = []
+    output_file_freq = None
     for ii in source_files:
-        generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, glsl_inlines, glsl_renames, glsl_simplifys)
+        output_file_freq = generate_temporary_filename(output_file + ".freq")
+        try:
+            with open(output_file_freq, "r") as rfd:
+                freqs = json.load(rfd)
+                print("Using character frequency data: " + str(freqs))
+        except FileNotFoundError:
+            freqs = {}
+        glsl_blobs = generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, freqs, glsl_inlines, glsl_renames, glsl_simplifys)
     # Search symbols from source files.
     symbols = set()
     for ii in source_files:
@@ -1554,6 +1585,7 @@ def main():
     linker.generate_linker_flags()
     linker.set_libraries(libraries)
     linker.set_rpath_directories(rpath)
+
     if "maximum" == compilation_mode:
         objcopy = executable_find(objcopy, default_objcopy_list, "objcopy")
         generate_binary_minimal(source_file, compiler, assembler, linker, objcopy, elfling, libraries, output_file,
@@ -1585,12 +1617,20 @@ def main():
         compiler.compile_and_link(source_file, output_file_unprocessed)
     else:
         raise RuntimeError("unknown compilation mode: %s" % str(compilation_mode))
+
     # Potentially perform last strip, then compress.
     output_file_stripped = generate_temporary_filename(output_file + ".stripped")
     if compilation_mode in ("vanilla", "dlfcn", "hash"):
         strip = executable_find(strip, default_strip_list, "strip")
         shutil.copy(output_file_unprocessed, output_file_stripped)
         run_command([strip, "-K", ".bss", "-K", ".text", "-K", ".data", "-R", ".comment", "-R", ".eh_frame", "-R", ".eh_frame_hdr", "-R", ".fini", "-R", ".gnu.hash", "-R", ".gnu.version", "-R", ".jcr", "-R", ".note", "-R", ".note.ABI-tag", "-R", ".note.tag", output_file_stripped])
+
+    # If GLSL blobs exist, generate frequency analysis of the output while disregarding the blobs.
+    if glsl_blobs:
+        freqs = generate_glsl_frequency_analysis(output_file_stripped, glsl_blobs)
+        with open(output_file_freq, "w") as wfd:
+            json.dump(freqs, wfd)
+
     compress_file(compression, filedrop_interp, nice_filedump, output_file_stripped, output_file)
 
     return 0

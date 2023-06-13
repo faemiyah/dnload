@@ -94,7 +94,7 @@ class GlslBlockSource(GlslBlock):
     def generateHeaderOutput(self):
         """Generate output to be written into a file."""
         source = self.format(True)
-        source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(source)))
+        source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_to_cstr_readable(source)))
         renames = self.generateRenames(True)
         subst = {"DEFINITION_LD": self.__definition_ld, "FILE_NAME": self.__basename, "SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused}
         return g_template_glsl_header.format(subst)
@@ -106,7 +106,7 @@ class GlslBlockSource(GlslBlock):
             return self.format(True)
         # Header-like output.
         source = self.format(True)
-        source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_cstr_readable(source)))
+        source = "\n".join(map(lambda x: "\"%s\"" % (x), glsl_to_cstr_readable(source)))
         renames = self.generateRenames(False)
         subst = {"SOURCE": source, "VARIABLE_NAME": self.getVariableName(), "RENAMES": renames, "UNUSED": g_rename_unused}
         return g_template_glsl_print.format(subst)
@@ -131,6 +131,11 @@ class GlslBlockSource(GlslBlock):
                     name = ii.getName()
                     ret += self.generateRename("uniform", name.getName(), name.resolveName(), header_mode)
         return ret
+
+    def getBlob(self):
+        """Gets source contents as binary blob."""
+        source = self.format(True)
+        return glsl_to_blob(source)
 
     def getChainName(self):
         """Accessor."""
@@ -272,7 +277,11 @@ def detect_shader_type(op):
     # Could not determine anything -> generic header shader.
     return (None, None)
 
-def glsl_cstr_readable(op):
+def glsl_to_blob(op):
+    """Make GLSL source string into a binary blob."""
+    return op.encode("utf-8")
+
+def glsl_to_cstr_readable(op):
     """Make GLSL source string into a 'readable' C string array."""
     line = ""
     ret = []
