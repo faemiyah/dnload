@@ -196,7 +196,8 @@ def remove_blob(data, blob):
         if match_len == blob_len:
             ret = data[:ii] + data[(ii + blob_len):]
             return ret
-    raise RuntimeError("data blob of length %i did not contain blob of length %i" % (data_len, blob_len))
+    # Blob was not found.
+    return data
 
 def run_command(lst, decode_output=True):
     """Run program identified by list of command line parameters."""

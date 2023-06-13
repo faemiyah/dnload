@@ -832,8 +832,15 @@ def generate_glsl_frequency_analysis(filename, blobs):
     rfd = open(filename, "rb")
     data = rfd.read()
     rfd.close()
+    failed_blobs = 0
     for blob in blobs:
-        data = remove_blob(data, blob)
+        new_data = remove_blob(data, blob)
+        if new_data == data:
+            failed_blobs += 1
+        else:
+            data = new_data
+    if failed_blobs:
+        print("WARNING: %i GLSL binary blobs were not included in output file" % (failed_blobs))
     alphabet = list(map(lambda x: ord(x), single_character_alphabet()))
     ret = {}
     for ii in data:
