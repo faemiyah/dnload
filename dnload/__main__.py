@@ -901,7 +901,8 @@ def generate_glsl_extract(fname, preprocessor, definition_ld, mode, freqs, inlin
     if filenames:
         glsl_db = generate_glsl(filenames, preprocessor, definition_ld, mode, freqs, inlines, renames, simplifys)
         glsl_db.write()
-    return glsl_db.getBlobs()
+        return glsl_db.getBlobs()
+    return []
 
 def generate_include_rand(implementation_rand, target_search_path, definition_ld):
     """Generates the rand()/srand() include."""
@@ -1455,7 +1456,7 @@ def main():
                 print("Using character frequency data: " + str(freqs))
         except FileNotFoundError:
             freqs = {}
-        glsl_blobs = generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, freqs, glsl_inlines, glsl_renames, glsl_simplifys)
+        glsl_blobs += generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, freqs, glsl_inlines, glsl_renames, glsl_simplifys)
     # Search symbols from source files.
     symbols = set()
     for ii in source_files:
