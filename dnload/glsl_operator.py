@@ -71,7 +71,7 @@ class GlslOperator:
         if self.__operator in ("?", ":"):
             return ret
         ret += 1
-        if self.__operator in ("=", "+=", "-=", "*=", "/=", "|=", "&="):
+        if self.__operator in ("=", "+=", "-=", "*=", "/=", "|=", "&=", "^="):
             return ret
         ret += 1
         if self.__operator in (",",):
@@ -84,12 +84,12 @@ class GlslOperator:
 
     def isAssignment(self):
         """Tell if this is an assignment operator of any kind."""
-        return self.__operator in ("=", "+=", "-=", "*=", "/=", "|=", "&=")
+        return self.__operator in ("=", "+=", "-=", "*=", "/=", "|=", "&=", "^=")
 
     def incorporate(self, operator):
         """Try to incorporate another operator."""
         if operator.getOperator() == "=":
-            if self.__operator in ("+", "-", "*", "/", "<", ">", "=", "!", "|", "&"):
+            if self.__operator in ("+", "-", "*", "/", "<", ">", "=", "!", "|", "&", "^"):
                 self.__operator += operator.getOperator()
                 return True
         elif operator.getOperator() == "+":
