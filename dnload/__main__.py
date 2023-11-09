@@ -1447,16 +1447,17 @@ def main():
         print("Analyzing source files: %s" % (str(source_files)))
     # Prepare GLSL headers before preprocessing.
     glsl_blobs = []
-    output_file_freq = None
-    for ii in source_files:
-        output_file_freq = generate_temporary_filename(output_file + ".freq")
-        try:
-            with open(output_file_freq, "r") as rfd:
-                freqs = json.load(rfd)
-                print("Using character frequency data: " + str(freqs))
-        except FileNotFoundError:
-            freqs = {}
-        glsl_blobs += generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, freqs, glsl_inlines, glsl_renames, glsl_simplifys)
+    if output_file:
+        output_file_freq = None
+        for ii in source_files:
+            output_file_freq = generate_temporary_filename(output_file + ".freq")
+            try:
+                with open(output_file_freq, "r") as rfd:
+                    freqs = json.load(rfd)
+                    print("Using character frequency data: " + str(freqs))
+            except FileNotFoundError:
+                freqs = {}
+            glsl_blobs += generate_glsl_extract(ii, preprocessor, definition_ld, glsl_mode, freqs, glsl_inlines, glsl_renames, glsl_simplifys)
     # Search symbols from source files.
     symbols = set()
     for ii in source_files:
