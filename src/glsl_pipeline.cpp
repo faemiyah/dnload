@@ -26,7 +26,7 @@ std::string get_pipeline_info_log(GLuint op)
     glGetProgramPipelineiv(op, GL_INFO_LOG_LENGTH, &len);
     if(len)
     {
-        GLchar *log = new GLchar[len];
+        GLchar *log = new GLchar[static_cast<unsigned>(len)];
         GLsizei acquired;
 
         glGetProgramPipelineInfoLog(op, len, &acquired, log);

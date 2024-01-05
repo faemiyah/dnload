@@ -23,7 +23,7 @@ std::string get_shader_info_log(GLuint op)
     glGetShaderiv(op, GL_INFO_LOG_LENGTH, &len);
     if(len)
     {
-        GLchar *log = new GLchar[len];
+        GLchar *log = new GLchar[static_cast<unsigned>(len)];
         GLsizei acquired;
 
         glGetShaderInfoLog(op, len, &acquired, log);

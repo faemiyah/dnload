@@ -82,7 +82,7 @@ std::string get_program_info_log(GLuint op)
     glGetProgramiv(op, GL_INFO_LOG_LENGTH, &len);
     if(len)
     {
-        GLchar *log = new GLchar[len];
+        GLchar *log = new GLchar[static_cast<unsigned>(len)];
         GLsizei acquired;
 
         glGetProgramInfoLog(op, len, &acquired, log);

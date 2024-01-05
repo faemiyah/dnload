@@ -627,15 +627,13 @@ void _start()
     g_uniform_array[10] = static_cast<float>(screen_w) / static_cast<float>(screen_h);
 
     {
-        unsigned ii;
-
         // Example by "bst", taken from "Music from very short programs - the 3rd iteration" by viznut.
-        for(ii = 0; (INTRO_LENGTH / sizeof(sample_t) > ii); ++ii)
+        for(int ii = 0; (static_cast<int>(INTRO_LENGTH / sizeof(sample_t)) > ii); ++ii)
         {
             g_audio_buffer[ii] =
                 static_cast<uint8_t>(
-                        static_cast<int>(ii / 70000000 * ii * ii + ii) % 127 |
-                        ii >> 4 | ii >> 5 | (ii % 127 + (ii >> 17)) | ii
+                        ((ii / 70000000 * ii * ii + ii) % 127) |
+                        (ii >> 4) | (ii >> 5) | (ii % 127 + (ii >> 17)) | ii
                         );
         }
     }
