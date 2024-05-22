@@ -176,6 +176,10 @@ def glsl_parse_inout(source):
         (size, remaining) = extract_tokens(intermediate, ("[", "?u", "]", ";"))
         if size:
             return (GlslBlockInOutStruct(layout, inout, type_name, members, name, size), remaining)
+        # May have an unsized array.
+        (block, remaining) = extract_tokens(intermediate, ("?[", ";"))
+        if not (block is None):
+            return (GlslBlockInOutStruct(layout, inout, type_name, members, name, None), remaining)
         # Did not have an array.
         (terminator, remaining) = extract_tokens(intermediate, "?|;")
         if terminator:

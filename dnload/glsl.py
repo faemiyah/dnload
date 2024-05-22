@@ -9,6 +9,7 @@ from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_function import is_glsl_block_function
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
+from dnload.glsl_block_inout import is_glsl_block_inout_typed
 from dnload.glsl_block_member import is_glsl_block_member
 from dnload.glsl_block_precision import is_glsl_block_precision
 from dnload.glsl_block_scope import is_glsl_block_scope
@@ -375,21 +376,19 @@ class Glsl:
 
     def renameBlockType(self, freqs, block):
         """Rename block type for given name strip."""
-        # Select name to rename to.
+        counted = self.countSorted(freqs)
+        # Single-character names first.
+        for letter in counted:
+            if not self.hasNameConflict(block, letter):
+                target_name = letter
+                break
+        # None of the letters was free, invent new one.
         if not target_name:
-            counted = self.countSorted(freqs)
-            # Single-character names first.
-            for letter in counted:
-                if not self.hasNameConflict(block, letter):
-                    target_name = letter
-                    break
-            # None of the letters was free, invent new one.
-            if not target_name:
-                target_name = self.inventName(block, counted)
+            target_name = self.inventName(block, counted)
         # Listing case.
         if is_listing(block):
             for ii in block:
-                self.renameBlock(ii, target_name)
+                ii.getTypeName().lock(target_name)
             return
         # Just select first name.
         block.getTypeName().lock(target_name)
@@ -411,7 +410,6 @@ class Glsl:
 
     def renamePass(self, freqs, op):
         """Perform rename pass for given name strip."""
-        block_list = op.getBlockList()
         counted = self.countSorted(freqs)
         for letter in counted:
             if not self.hasNameConflict(op, letter):
@@ -545,7 +543,7 @@ def is_glsl_block_global(op):
 
 def is_glsl_block_precision_relevant(op):
     """Tell if block is something to which precision directive matters."""
-    return (is_glsl_block_declaration(op) or is_glsl_block_function(op) or is_glsl_block_member(op) or is_glsl_block_inout(op) or is_glsl_block_uniform(op))
+    return (is_glsl_block_declaration(op) or is_glsl_block_function(op) or is_glsl_block_member(op) or is_glsl_block_inout_typed(op) or is_glsl_block_uniform(op))
 
 def is_inline_name(op):
     """Tell if given name is viable for inlining."""
