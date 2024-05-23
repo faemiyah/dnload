@@ -277,7 +277,6 @@ class GlslBlock:
             typeid = ii.getSourceType()
             if typeid:
                 if is_glsl_type(typeid):
-                    print(str(typeid))
                     if (not typeid.isVectorType()) and (ii.getSwizzleLength() == 1):
                         print("WARNING: redundant or invalid access %s on type %s" % (str(ii), str(typeid)))
                     ii.selectSwizzle(op)
