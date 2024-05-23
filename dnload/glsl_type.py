@@ -123,7 +123,7 @@ g_precision_type_strings = [x for x in set(g_type_to_precision_type.values()) if
 
 def match_pseudo_type_id(op):
     """Tell if given string matches a pseudo type."""
-    if re.match(r'(mat|struct|vec)$', op):
+    if re.match(r'(mat|vec)$', op):
         return True
     return False
 
