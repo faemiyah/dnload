@@ -149,6 +149,7 @@ g_library_definition_gl = LibraryDefinition(PlatformVar("gl_library"), (
     ("void", "glGenTextures", "GLsizei", "GLuint*"),
     ("void", "glGenRenderbuffers", "GLsizei", "GLuint*"),
     ("void", "glDeleteTextures", "GLsizei", "GLuint*"),
+    ("void", "glDrawMeshTasksNV", "GLuint", "GLuint"),
     ("GLint", "glGetAttribLocation", "GLuint", "const GLchar*"),
     ("GLenum", "glGetError", "void"),
     ("void", "glGetProgramInfoLog", "GLuint", "GLsizei", "GLsizei*", "GLchar*"),

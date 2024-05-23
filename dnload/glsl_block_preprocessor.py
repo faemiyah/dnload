@@ -27,7 +27,10 @@ class GlslBlockPreprocessor(GlslBlock):
 # Globals ##############################
 ########################################
 
-g_directives = ("version",)
+g_directives = (
+        "extension",
+        "version",
+        )
 
 ########################################
 # Functions ############################
