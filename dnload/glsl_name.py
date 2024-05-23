@@ -20,16 +20,16 @@ class GlslName:
         if self.__name in get_list_locked():
             self.__rename = self.__name
         # Some locked variables have implicit types, set them right away.
-        if self.__name in g_uint:
-            self.setType(interpret_type("uint"))
+        if self.__name in g_mat:
+            self.setType(interpret_pseudo_type("mat"))
+        elif self.__name in g_uvec3:
+            self.setType(interpret_type("uvec3"))
+        elif self.__name in g_vec:
+            self.setType(interpret_pseudo_type("vec"))
         elif self.__name in g_vec2:
             self.setType(interpret_type("vec2"))
         elif self.__name in g_vec4:
             self.setType(interpret_type("vec4"))
-        elif self.__name in g_mat:
-            self.setType(interpret_pseudo_type("mat"))
-        elif self.__name in g_vec:
-            self.setType(interpret_pseudo_type("vec"))
 
     def format(self, force):
         """Return formatted output."""
@@ -134,8 +134,8 @@ g_locked = (
         "gl_InstanceID",
         "gl_MeshVerticesNV",
         "gl_PerVertex",
+        "gl_PrimitiveCountNV",
         "gl_PrimitiveIndicesNV",
-        "gl_WorkGroupID",
         "layout",
         "length",
         "local_size_x",
@@ -176,8 +176,13 @@ g_mat = (
         "transpose",
         )
 
-g_uint = (
-        "gl_PrimitiveCountNV",
+g_uvec3 = (
+        "gl_WorkGroupID",
+        )
+
+g_vec = (
+        "normalize",
+        "reflect",
         )
 
 g_vec2 = (
@@ -194,18 +199,13 @@ g_vec4 = (
         "textureGrad",
         )
 
-g_vec = (
-        "normalize",
-        "reflect",
-        )
-
 ########################################
 # Functions ############################
 ########################################
 
 def get_list_locked():
     """Get list of all locked words."""
-    return g_locked + g_primitives + g_mat + g_vec2 + g_vec4 + g_vec
+    return g_locked + g_primitives + g_mat + g_uvec3 + g_vec + g_vec2 + g_vec4
 
 def get_list_primitives():
     """Get list of primitive words."""

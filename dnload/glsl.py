@@ -3,6 +3,7 @@ import re
 
 from dnload.common import is_listing
 from dnload.common import is_verbose
+from dnload.common import listify
 from dnload.glsl_block_assignment import is_glsl_block_assignment
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import is_glsl_block_declaration
@@ -378,20 +379,34 @@ class Glsl:
         """Rename block type for given name strip."""
         counted = self.countSorted(freqs)
         # Single-character names first.
+        target_name = None
         for letter in counted:
-            if not self.hasNameConflict(block, letter):
+            has_name_conflict = False
+            for ii in listify(block):
+                if self.hasNameConflict(ii, letter):
+                    has_name_conflict = True
+            if not has_name_conflict:
                 target_name = letter
                 break
-        # None of the letters was free, invent new one.
+        # None of the letters was free, invent new name.
         if not target_name:
-            target_name = self.inventName(block, counted)
-        # Listing case.
-        if is_listing(block):
-            for ii in block:
-                ii.getTypeName().lock(target_name)
-            return
-        # Just select first name.
-        block.getTypeName().lock(target_name)
+            invented_names = []
+            for ii in listify(block):
+                invented_names += [self.inventName(ii, counted)]
+            for ii in invented_names:
+                has_name_conflict = False
+                for jj in listify(block):
+                    if self.hasNameConflict(jj, ii):
+                        has_name_conflict = True
+                        break
+                if not has_name_conflict:
+                    target_name = ii
+                    break
+        if not target_name:
+            raise RuntimeError("inventing block name failed, this is extremely unprobable")
+        # Lock name.
+        for ii in listify(block):
+            ii.getTypeName().lock(target_name)
 
     def renameMembers(self, freqs, block, max_renames):
         """Rename all members in given block."""
