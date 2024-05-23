@@ -336,7 +336,7 @@ def get_shader_type(op):
         return "fragment"
     elif shader_type in ("geom", "geometry"):
         return "geometry"
-    elif shader_type in ("mesh", "mesh"):
+    elif shader_type in ("mesh",):
         return "mesh"
     elif shader_type in ("vert", "vertex"):
         return "vertex"
