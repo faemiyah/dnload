@@ -103,11 +103,15 @@ def glsl_parse_assignment(source, explicit=True):
     while True:
         (index_scope, remaining) = extract_tokens(content, ("?[",))
         # Index scope may be empty, mut may not be None.
-        if not index_scope is None:
-            (index_scope_statements, discard) = glsl_parse_statements(index_scope)
-            if not index_scope_statements:
-                raise RuntimeError("parsing indexing scope statements failed")
-            modifiers += [GlslParen("[")] + index_scope_statements + [GlslParen("]")]
+        if not (index_scope is None):
+            # Non-empty scope must be parsed into statements.
+            if index_scope:
+                (index_scope_statements, discard) = glsl_parse_statements(index_scope)
+                if not index_scope_statements:
+                    raise RuntimeError("parsing indexing scope statements failed")
+                modifiers += [GlslParen("[")] + index_scope_statements + [GlslParen("]")]
+            else:
+                modifiers += [GlslParen("[")] + [GlslParen("]")]
             content = remaining
             continue
         (access, remaining) = extract_tokens(content, ("?a",))
