@@ -1,5 +1,7 @@
+from dnload.common import listify
 from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
+from dnload.glsl_block import is_glsl_block
 from dnload.glsl_block_array import glsl_parse_array
 from dnload.glsl_block_statement import glsl_parse_statement
 from dnload.glsl_block_statement import glsl_parse_statements
@@ -13,28 +15,33 @@ from dnload.glsl_terminator import GlslTerminator
 class GlslBlockAssignment(GlslBlock):
     """Assignment block."""
 
-    def __init__(self, name, lst, assign, children, terminator):
+    def __init__(self, name, modifiers, assign, statements, terminator):
         """Constructor."""
         GlslBlock.__init__(self)
         self.__name = name
-        self.__modifiers = lst
+        self.__modifiers = modifiers
         self.__assign = assign
+        self.__statements = listify(statements)
         self.__terminator = terminator
         # Error cases.
-        if self.__assign and (not children):
+        if self.__assign and (not statements):
             raise RuntimeError("if assigning, must have child statements")
         # Hierarchy.
         self.addNamesUsed(name)
-        self.addAccesses(lst)
-        if children:
-            self.addChildren(children)
+        self.addAccesses(modifiers)
+        if modifiers:
+            for ii in modifiers:
+                if is_glsl_block(ii):
+                    self.addChildren(ii)
+        if statements:
+            self.addChildren(statements)
 
     def format(self, force):
         """Return formatted output."""
         ret = self.__name.format(force)
         if self.__modifiers:
             ret += "".join(map(lambda x: x.format(force), self.__modifiers))
-        statements = "".join(map(lambda x: x.format(force), self._children))
+        statements = "".join(map(lambda x: x.format(force), self.__statements))
         if self.__assign:
             # Having an explicit terminator means there was a listing scope.
             if self.__terminator:
@@ -48,26 +55,26 @@ class GlslBlockAssignment(GlslBlock):
 
     def getStatement(self):
         """Accessor."""
-        if len(self._children) != 1:
-            raise RuntimeError("GlslBlockAssignment::getStatement(), child count != 1")
-        return self._children[0]
+        if len(self.__statements) != 1:
+            raise RuntimeError("child count must be 1 for getStatement()")
+        return self.__statements[0]
 
     def getTerminator(self):
         """Accessor."""
         if self.__terminator:
             return self.__terminator
-        if len(self._children) != 1:
-            raise RuntimeError("GlslBlockAssignment::getTerminator(), child count not 1")
-        return self._children[0].getTerminator()
+        if len(self.__statements) != 1:
+            raise RuntimeError("child count must be 1 for getTerminator()")
+        return self.__statements[0].getTerminator()
 
     def replaceTerminator(self, op):
         """Replace terminator with given element."""
         if self.__terminator:
             self.__terminator = GlslTerminator(op)
             return
-        if len(self._children) != 1:
-            raise RuntimeError("non-scope assignment with more than one child statement")
-        self._children[0].replaceTerminator(op)
+        if len(self.__statements) != 1:
+            raise RuntimeError("child count must be 1 for replaceTerminator()")
+        self.__statements[0].replaceTerminator(op)
 
     def __str__(self):
         """String representation."""
@@ -97,7 +104,10 @@ def glsl_parse_assignment(source, explicit=True):
         (index_scope, remaining) = extract_tokens(content, ("?[",))
         # Index scope may be empty, mut may not be None.
         if not index_scope is None:
-            modifiers += [GlslParen("[")] + index_scope + [GlslParen("]")]
+            (index_scope_statements, discard) = glsl_parse_statements(index_scope)
+            if not index_scope_statements:
+                raise RuntimeError("parsing indexing scope statements failed")
+            modifiers += [GlslParen("[")] + index_scope_statements + [GlslParen("]")]
             content = remaining
             continue
         (access, remaining) = extract_tokens(content, ("?a",))
