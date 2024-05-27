@@ -3,12 +3,14 @@ import re
 
 from dnload.common import is_listing
 from dnload.common import is_verbose
+from dnload.common import listify
 from dnload.glsl_block_assignment import is_glsl_block_assignment
 from dnload.glsl_block_control import is_glsl_block_control
 from dnload.glsl_block_declaration import is_glsl_block_declaration
 from dnload.glsl_block_function import is_glsl_block_function
 from dnload.glsl_block_inout import is_glsl_block_inout
 from dnload.glsl_block_inout import is_glsl_block_inout_struct
+from dnload.glsl_block_inout import is_glsl_block_inout_typed
 from dnload.glsl_block_member import is_glsl_block_member
 from dnload.glsl_block_precision import is_glsl_block_precision
 from dnload.glsl_block_scope import is_glsl_block_scope
@@ -375,24 +377,36 @@ class Glsl:
 
     def renameBlockType(self, freqs, block):
         """Rename block type for given name strip."""
-        # Select name to rename to.
+        counted = self.countSorted(freqs)
+        # Single-character names first.
+        target_name = None
+        for letter in counted:
+            has_name_conflict = False
+            for ii in listify(block):
+                if self.hasNameConflict(ii, letter):
+                    has_name_conflict = True
+            if not has_name_conflict:
+                target_name = letter
+                break
+        # None of the letters was free, invent new name.
         if not target_name:
-            counted = self.countSorted(freqs)
-            # Single-character names first.
-            for letter in counted:
-                if not self.hasNameConflict(block, letter):
-                    target_name = letter
+            invented_names = []
+            for ii in listify(block):
+                invented_names += [self.inventName(ii, counted)]
+            for ii in invented_names:
+                has_name_conflict = False
+                for jj in listify(block):
+                    if self.hasNameConflict(jj, ii):
+                        has_name_conflict = True
+                        break
+                if not has_name_conflict:
+                    target_name = ii
                     break
-            # None of the letters was free, invent new one.
-            if not target_name:
-                target_name = self.inventName(block, counted)
-        # Listing case.
-        if is_listing(block):
-            for ii in block:
-                self.renameBlock(ii, target_name)
-            return
-        # Just select first name.
-        block.getTypeName().lock(target_name)
+        if not target_name:
+            raise RuntimeError("inventing block name failed, this is extremely unprobable")
+        # Lock name.
+        for ii in listify(block):
+            ii.getTypeName().lock(target_name)
 
     def renameMembers(self, freqs, block, max_renames):
         """Rename all members in given block."""
@@ -411,7 +425,6 @@ class Glsl:
 
     def renamePass(self, freqs, op):
         """Perform rename pass for given name strip."""
-        block_list = op.getBlockList()
         counted = self.countSorted(freqs)
         for letter in counted:
             if not self.hasNameConflict(op, letter):
@@ -545,7 +558,7 @@ def is_glsl_block_global(op):
 
 def is_glsl_block_precision_relevant(op):
     """Tell if block is something to which precision directive matters."""
-    return (is_glsl_block_declaration(op) or is_glsl_block_function(op) or is_glsl_block_member(op) or is_glsl_block_inout(op) or is_glsl_block_uniform(op))
+    return (is_glsl_block_declaration(op) or is_glsl_block_function(op) or is_glsl_block_member(op) or is_glsl_block_inout_typed(op) or is_glsl_block_uniform(op))
 
 def is_inline_name(op):
     """Tell if given name is viable for inlining."""

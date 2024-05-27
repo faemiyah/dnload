@@ -36,25 +36,20 @@ def glsl_parse_layout(source):
         return (None, source)
     lst = []
     while scope:
-        (location, assignment, index, intermediate) = extract_tokens(scope, ("?|binding|location", "?=", "?u"))
-        if location and assignment and index:
-            lst += [[location, assignment, index]]
-            scope = intermediate
-            continue
         primitive_selector = "?" + "|".join(get_list_primitives())
         (primitive, intermediate) = extract_tokens(scope, (primitive_selector,))
         if primitive:
             lst += [[primitive]]
             scope = intermediate
             continue
-        (max_vertices, assignment, amount, intermediate) = extract_tokens(scope, ("?|max_vertices", "?=", "?u"))
-        if max_vertices and assignment and amount:
-            lst += [[max_vertices, assignment, amount]]
+        (name, assignment, value, intermediate) = extract_tokens(scope, ("?|binding|local_size_x|local_size_y|local_size_z|location|max_primitives|max_vertices", "?=", "?u"))
+        if name and assignment and value:
+            lst += [[name, assignment, value]]
             scope = intermediate
             continue
         (comma, intermediate) = extract_tokens(scope, "?|,")
         if comma:
             scope = intermediate
             continue
-        raise RuntimeError("unknown layout directive %s" % (str(map(str, scope))))
+        raise RuntimeError("unknown layout directive %s" % (str(list(map(str, scope)))))
     return (GlslBlockLayout(lst), remaining)

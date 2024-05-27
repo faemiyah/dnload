@@ -313,12 +313,14 @@ def glsl_to_cstr_readable(op):
 
 def glsl_file_type_value(op):
     """Gets file type value for given file type."""
-    if op == "vertex":
+    if op == "mesh":
         return 0
-    elif op == "geometry":
+    elif op == "vertex":
         return 1
-    elif op == "fragment":
+    elif op == "geometry":
         return 2
+    elif op == "fragment":
+        return 3
     raise RuntimeError("unknown GLSL file type: %s" % (op))
 
 def glsl_read_source(preprocessor, definition_ld, filename, output_name, varname):
@@ -334,6 +336,8 @@ def get_shader_type(op):
         return "fragment"
     elif shader_type in ("geom", "geometry"):
         return "geometry"
+    elif shader_type in ("mesh",):
+        return "mesh"
     elif shader_type in ("vert", "vertex"):
         return "vertex"
     # No type could be detected.

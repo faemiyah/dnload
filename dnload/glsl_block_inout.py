@@ -46,7 +46,7 @@ class GlslBlockInOut(GlslBlock):
 class GlslBlockInOutStruct(GlslBlockInOut):
     """Input (attribute / varying) struct declaration block."""
 
-    def __init__(self, layout, inout, type_name, members, name, size=0):
+    def __init__(self, layout, inout, type_name, members, name, size=None):
         """Constructor."""
         GlslBlockInOut.__init__(self, layout, inout)
         self.__type_name = type_name
@@ -64,8 +64,11 @@ class GlslBlockInOutStruct(GlslBlockInOut):
         ret = self.formatBase(force)
         lst = "".join(map(lambda x: x.format(force), self.__members))
         ret += (" %s{%s}%s" % (self.__type_name.format(force), lst, self.__name.format(force)))
-        if self.__size:
-            ret += "[%s]" % (self.__size.format(force))
+        if not (self.__size is None):
+            if self.__size:
+                ret += "[%s]" % (self.__size.format(force))
+            else:
+                ret += "[]"
         return ret + ";"
 
     def getMembers(self):
@@ -176,8 +179,12 @@ def glsl_parse_inout(source):
         (size, remaining) = extract_tokens(intermediate, ("[", "?u", "]", ";"))
         if size:
             return (GlslBlockInOutStruct(layout, inout, type_name, members, name, size), remaining)
+        # May have an unsized array.
+        (terminator, remaining) = extract_tokens(intermediate, ("[", "]", "?;"))
+        if terminator:
+            return (GlslBlockInOutStruct(layout, inout, type_name, members, name, 0), remaining)
         # Did not have an array.
-        (terminator, remaining) = extract_tokens(intermediate, "?|;")
+        (terminator, remaining) = extract_tokens(intermediate, "?;")
         if terminator:
             return (GlslBlockInOutStruct(layout, inout, type_name, members, name), remaining)
     # Regular inout.
