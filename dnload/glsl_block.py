@@ -1,5 +1,6 @@
 import re
 
+from dnload.common import listify
 from dnload.common import is_listing
 from dnload.glsl_access import interpret_access
 from dnload.glsl_access import is_glsl_access
@@ -52,7 +53,7 @@ class GlslBlock:
     def addChildren(self, lst, prepend=False):
         """Add another block as a child of this."""
         if not is_listing(lst):
-            self.addChildren([lst], prepend)
+            self.addChildren(listify(lst), prepend)
             return
         for ii in lst:
             if not is_glsl_block(ii):

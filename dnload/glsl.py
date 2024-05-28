@@ -105,12 +105,17 @@ class Glsl:
                     elem = "%s(%i)" % (block.getName().getName(), ii.getBlockCount())
                     if is_glsl_block_function(block):
                         function_merges += [elem]
-                    elif is_glsl_block_inout(block):
+                    elif is_glsl_block_inout(block) and (not is_glsl_block_inout_struct(block)):
                         inout_merges += [elem]
-                    else:
+                    elif not is_glsl_block_inout_struct(block):
                         raise RuntimeError("unknown merge: %s" % (str(block)))
                 if function_merges:
                     print("GLSL function overloads found: %s" % (str(function_merges)))
+                # Inout struct connections may be compatible without being merged.
+                for ii in collect_compatible_inout_structs(merged):
+                    names = list(set(map(lambda x: x.getBlock().getName().getName(), ii)))
+                    num_merges = sum(map(lambda x: x.getBlockCount(), ii))
+                    inout_merges += ["%s(%i)" % (",".join(names), num_merges)]
                 if inout_merges:
                     print("GLSL inout connections found: %s" % (str(inout_merges)))
             # Run rename passes until done.
@@ -260,10 +265,13 @@ class Glsl:
         # Collect all member accesses for members and set them to the blocks.
         for ii in ret:
             block = ii.getBlock()
-            if not (is_glsl_block_inout_struct(block) or is_glsl_block_struct(block)):
-                continue
-            lst = ii.collectMemberAccesses()
-            block.setMemberAccesses(lst)
+            if is_glsl_block_struct(block):
+                lst = collect_member_accesses(ii)
+                block.setMemberAccesses(lst)
+        for ii in collect_compatible_inout_structs(ret):
+            lst = collect_member_accesses(ii)
+            # Fist name strip associated with an inout struct gets the accesses.
+            ii[0].getBlock().setMemberAccesses(lst)
         # If inlining is not allowed, just return.
         if not allow_inline:
             return ret
@@ -492,6 +500,77 @@ class Glsl:
 ########################################
 # Functions ############################
 ########################################
+
+def collect_compatible_inout_structs(lst):
+    """Collect listings of compatible inout structs from given name strips."""
+    ret = []
+    for ii in lst:
+        if not is_glsl_name_strip(ii):
+            raise RuntimeError("can only collect inout structs from name strip(s)")
+        block = ii.getBlock()
+        if is_glsl_block_inout_struct(block):
+           appended = False
+           for jj in ret:
+               if jj[0].getBlock().isCompatibleWith(block):
+                   jj += [ii]
+                   appended = True
+                   break
+           if not appended:
+               ret += [[ii]]
+    return ret
+
+def collect_member_uses(block, uses):
+    """Collect member uses from inout struct block."""
+    for ii in block.getMembers():
+        name_object = ii.getName()
+        name_string = name_object.getName()
+        if name_string in uses:
+            uses[name_string] += [name_object]
+        else:
+            uses[name_string] = [name_object]
+
+def collect_member_accesses(op):
+    """Collect all member name accesses from given name strip(s)."""
+    # First, collect all uses from members.
+    lst = listify(op)
+    uses = {}
+    for ii in lst:
+        if not is_glsl_name_strip(ii):
+            raise RuntimeError("can only collect member accesses from name strip(s)")
+        for jj in ii.getBlockList():
+            collect_member_uses(jj, uses)
+    # Then collect all uses from names.
+    for ii in lst:
+        for jj in ii.getNameList():
+            aa = jj.getAccess()
+            # Might be just declaration.
+            if not aa:
+                continue
+            aa.disableSwizzle()
+            name_object = aa.getName()
+            name_string = name_object.getName()
+            if not (name_string in uses):
+                raise RuntimeError("access '%s' not present outside members" % (str(aa)))
+            uses[name_string] += [name_object]
+    # Expand uses, set types and sort.
+    ret = []
+    for name_list in uses.values():
+        if 1 >= len(name_list):
+            print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))
+        typeid = name_list[0].getType()
+        if not typeid:
+            raise RuntimeError("name '%s' has no type" % (name_list[0]))
+        for ii in name_list[1:]:
+            current_typeid = ii.getType()
+            # Check that there is no conflicting type.
+            if current_typeid:
+                if current_typeid != typeid:
+                    raise RuntimeError("member access %s type %s does not match base type %s" % (str(ii), str(current_typeid), str(typeid)))
+                continue
+            # No existing type, fill it in.
+            ii.setType(typeid)
+        ret += [name_list]
+    return sorted(ret, key=len, reverse=True)
 
 def flatten(block):
     """Flattens a block and its children to a sequential array."""

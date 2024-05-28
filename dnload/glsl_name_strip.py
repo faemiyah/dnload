@@ -38,45 +38,6 @@ class GlslNameStrip:
         for ii in self.__names:
             op.addName(ii)
 
-    def collectMemberAccesses(self):
-        """Collect all member name accesses from the blocks."""
-        # First, collect all uses from members.
-        uses = {}
-        for ii in self.__blocks:
-            collect_member_uses(ii, uses)
-        # Then collect all uses from names.
-        for ii in self.__names:
-            aa = ii.getAccess()
-            # Might be just declaration.
-            if not aa:
-                continue
-            aa.disableSwizzle()
-            name_object = aa.getName()
-            name_string = name_object.getName()
-            if not (name_string in uses):
-                raise RuntimeError("access '%s' not present outside members" % (str(aa)))
-            uses[name_string] += [name_object]
-        # Expand uses, set types and sort.
-        ret = []
-        for kk in uses.keys():
-            name_list = uses[kk]
-            if 1 >= len(name_list):
-                print("WARNING: member '%s' of '%s' not accessed" % (name_list[0].getName(), str(block)))
-            typeid = name_list[0].getType()
-            if not typeid:
-                raise RuntimeError("name '%s' has no type" % (name_list[0]))
-            for ii in name_list[1:]:
-                current_typeid = ii.getType()
-                # Check that there is no conflicting type.
-                if current_typeid:
-                    if current_typeid != typeid:
-                        raise RuntimeError("member access %s type %s does not match base type %s" % (str(ii), str(current_typeid), str(typeid)))
-                    continue
-                # No existing type, fill it in.
-                ii.setType(typeid)
-            ret += [name_list]
-        return sorted(ret, key=len, reverse=True)
-
     def getBlock(self):
         """Gets the block that declared the original name."""
         return self.__blocks[0]
@@ -134,16 +95,6 @@ class GlslNameStrip:
 ########################################
 # Functions ############################
 ########################################
-
-def collect_member_uses(block, uses):
-    """Collect member uses from inout struct block."""
-    for ii in block.getMembers():
-        name_object = ii.getName()
-        name_string = name_object.getName()
-        if name_string in uses:
-            uses[name_string] += [name_object]
-        else:
-            uses[name_string] = [name_object]
 
 def is_glsl_name_strip(op):
     """Tells if given object is a GLSL name strip."""
