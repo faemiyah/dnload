@@ -5,10 +5,10 @@ static const char *g_shader_vertex_quad = ""
 "quad_glesv2.vert.glsl"
 #else
 "attribute vec2 i;"
-"varying vec2 o;"
+"varying vec2 e;"
 "void main()"
 "{"
-"o=i,gl_Position=vec4(i,.0,1.);"
+"e=i,gl_Position=vec4(i,.0,1.);"
 "}"
 #endif
 "";

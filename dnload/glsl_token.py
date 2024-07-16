@@ -90,22 +90,30 @@ class GlslToken:
         else:
             left_number = left.getInt()
             right_number = right.getInt()
+            print("both sides int")
         if (left_number is None) or (right_number is None):
             raise RuntimeError("error getting number values")
         # Perform operation.
         result_number = oper.applyOperator(left_number, right_number)
+        print("operator applied, result: " + str(result_number))
         # Replace content of this with the result number
         if is_glsl_float(left) or is_glsl_float(right):
             number_string = str(float(result_number))
             (integer_part, decimal_part) = number_string.split(".")
             result_number = interpret_float(integer_part, decimal_part)
         else:
-            result_number = interpret_int(str(result_number))
+            int_number = interpret_int(str(result_number))
+            if int_number is None:
+                result_number = interpret_int(str(int(float(result_number))))
+            else:
+                result_number = int_number
+        print("replaced with interpretion: " + str(result_number))
         # Not all operations require truncation afterwards.
-        if oper.requiresTruncation():
+        if oper.requiresTruncation():# and (left.requiresTruncation() or right.requiresTruncation()):
             lower_precision = min(left.getPrecision(), right.getPrecision()) + 1
             precision = max(max(left.getPrecision(), right.getPrecision()), lower_precision)
             result_number.truncatePrecision(precision)
+        print("truncated, result: " + str(result_number))
         return result_number
 
     def collapse(self):
@@ -495,57 +503,8 @@ class GlslToken:
         """Perform any simple simplification and stop."""
         # Remove parens.
         if self.isSurroundedByParens():
-            middle_lst = self.flattenMiddle()
-            # Single expression.
-            if len(middle_lst) == 1:
-                if self.removeParens():
-                    return True
-            # Number or name with access.
-            elif len(middle_lst) == 2:
-                mid_lt = middle_lst[0]
-                mid_rt = middle_lst[1]
-                if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
-                    if self.removeParens():
-                        return True
-            # Single function call or indexing (with potential access).
-            elif len(middle_lst) >= 3:
-                mid_name = middle_lst[0]
-                mid_opening = middle_lst[1]
-                last_index = -1
-                mid_ending = middle_lst[last_index]
-                # If last part is access, try the element before that instead.
-                if is_glsl_access(mid_ending) and (len(middle_lst) >= 4):
-                    last_index = -2
-                    mid_ending = middle_lst[last_index]
-                # Check for function call or indexing format.
-                if (is_glsl_name(mid_name) or is_glsl_type(mid_name)) and is_glsl_paren(mid_opening) and mid_opening.matches(mid_ending):
-                    if is_single_call_or_access_list(middle_lst[2:last_index], mid_opening):
-                        if self.removeParens():
-                            return True
-            # Only contains lower-priority operators compared to outside.
-            paren_rt = self.__right[0].getSingleChild()
-            elem_rt = self.findRightSiblingElementFromParentTree(paren_rt)
-            prio = self.findHighestPrioOperatorMiddle()
-            # Right element cannot be access or bracket.
-            if (prio >= 0) and (not is_glsl_access(elem_rt)) and (elem_rt != "["):
-                left = self.findSiblingOperatorLeft()
-                right = self.findSiblingOperatorRight()
-                if left:
-                    if left.getPrecedence() > prio:
-                        if right:
-                            if right.getPrecedence() >= prio:
-                                if self.removeParens():
-                                    return True
-                        else:
-                            if self.removeParens():
-                                return True
-                elif right:
-                    if right.getPrecedence() >= prio:
-                        if self.removeParens():
-                            return True
-                else:
-                    if self.removeParens():
-                        return True
+            if self.simplifyRemoveParens():
+                return True
         # Recurse down.
         for ii in self.__left:
             if ii.simplify():
@@ -569,6 +528,7 @@ class GlslToken:
                 if left_parent and left_token and right_parent and right_token:
                     # Trivial case - leaf entry that can just be applied.
                     if left_parent is right_parent:
+                        print("trivial case")
                         if not (left_parent is self):
                             raise RuntimeError("left and right operator resolve as '%s' not matching self '%s'" %
                                                (str(left_parent), str(self)))
@@ -634,6 +594,62 @@ class GlslToken:
             if mid.getPrecision() > 6:
                 mid.truncatePrecision(6)
                 return True
+        return False
+
+    def simplifyRemoveParens(self):
+        """Simplify by removing parens (if possible)."""
+        middle_lst = self.flattenMiddle()
+        # Single expression.
+        if len(middle_lst) == 1:
+            if self.removeParens():
+                return True
+        # Number or name with access.
+        elif len(middle_lst) == 2:
+            mid_lt = middle_lst[0]
+            mid_rt = middle_lst[1]
+            if (is_glsl_name(mid_lt) or is_glsl_number(mid_lt)) and is_glsl_access(mid_rt):
+                if self.removeParens():
+                    return True
+        # Single function call or indexing (with potential access).
+        elif len(middle_lst) >= 3:
+            mid_name = middle_lst[0]
+            mid_opening = middle_lst[1]
+            last_index = -1
+            mid_ending = middle_lst[last_index]
+            # If last part is access, try the element before that instead.
+            if is_glsl_access(mid_ending) and (len(middle_lst) >= 4):
+                last_index = -2
+                mid_ending = middle_lst[last_index]
+            # Check for function call or indexing format.
+            if (is_glsl_name(mid_name) or is_glsl_type(mid_name)) and is_glsl_paren(mid_opening) and mid_opening.matches(mid_ending):
+                if is_single_call_or_access_list(middle_lst[2:last_index], mid_opening):
+                    if self.removeParens():
+                        return True
+        # Only contains lower-priority operators compared to outside.
+        paren_rt = self.__right[0].getSingleChild()
+        elem_rt = self.findRightSiblingElementFromParentTree(paren_rt)
+        prio = self.findHighestPrioOperatorMiddle()
+        # Right element cannot be access or bracket.
+        if (prio >= 0) and (not is_glsl_access(elem_rt)) and (elem_rt != "["):
+            left = self.findSiblingOperatorLeft()
+            right = self.findSiblingOperatorRight()
+            if left:
+                if left.getPrecedence() > prio:
+                    if right:
+                        if right.getPrecedence() >= prio:
+                            if self.removeParens():
+                                return True
+                    else:
+                        if self.removeParens():
+                            return True
+            elif right:
+                if right.getPrecedence() >= prio:
+                    if self.removeParens():
+                        return True
+            else:
+                if self.removeParens():
+                    return True
+        # Parens not removed.
         return False
 
     def __str__(self):
@@ -788,6 +804,7 @@ def token_tree_build(lst):
 def token_tree_simplify(op):
     """Perform first found simplify operation for given tree."""
     op.collapse()
+    print(", ".join(map(str, op.flatten())))
     if op.simplify():
         return True
     return False
