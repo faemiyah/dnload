@@ -6,7 +6,7 @@ static const char *g_shader_vertex_quad = ""
 #else
 "#version 430\n"
 "in vec2 i;"
-"out vec2 o;"
+"out vec2 e;"
 "out gl_PerVertex"
 "{"
 "vec4 gl_Position;"
@@ -14,7 +14,7 @@ static const char *g_shader_vertex_quad = ""
 ";"
 "void main()"
 "{"
-"o=i,gl_Position=vec4(i,.0,1.);"
+"e=i,gl_Position=vec4(i,.0,1.);"
 "}"
 #endif
 "";

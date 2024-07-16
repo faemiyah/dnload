@@ -44,6 +44,10 @@ class GlslInt:
         """Access actual string."""
         return self.__sign + self.__string
 
+    def requiresTruncation(self):
+        """Does this number require truncation?"""
+        return False
+
     def truncatePrecision(self, op):
         """Truncate numeric precision to some value of expressed numbers."""
         # If the number is 0, it has no precision.

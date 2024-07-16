@@ -49,6 +49,10 @@ class GlslFloat:
         """Set allow integrify flag."""
         self.__allow_integrify = flag
 
+    def requiresTruncation(self):
+        """Does this number require truncation?"""
+        return True
+
     def truncatePrecision(self, op):
         """Truncate numeric precision to some value of expressed numbers."""
         used = self.__integer1.truncatePrecision(op)
