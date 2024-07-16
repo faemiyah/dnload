@@ -106,7 +106,7 @@ class GlslToken:
             else:
                 result_number = int_number
         # Not all operations require truncation afterwards.
-        if oper.requiresTruncation():# and (left.requiresTruncation() or right.requiresTruncation()):
+        if oper.requiresTruncation() and (left.requiresTruncation() or right.requiresTruncation()):
             lower_precision = min(left.getPrecision(), right.getPrecision()) + 1
             precision = max(max(left.getPrecision(), right.getPrecision()), lower_precision)
             result_number.truncatePrecision(precision)
