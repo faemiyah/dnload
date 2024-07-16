@@ -90,12 +90,10 @@ class GlslToken:
         else:
             left_number = left.getInt()
             right_number = right.getInt()
-            print("both sides int")
         if (left_number is None) or (right_number is None):
             raise RuntimeError("error getting number values")
         # Perform operation.
         result_number = oper.applyOperator(left_number, right_number)
-        print("operator applied, result: " + str(result_number))
         # Replace content of this with the result number
         if is_glsl_float(left) or is_glsl_float(right):
             number_string = str(float(result_number))
@@ -107,13 +105,11 @@ class GlslToken:
                 result_number = interpret_int(str(int(float(result_number))))
             else:
                 result_number = int_number
-        print("replaced with interpretion: " + str(result_number))
         # Not all operations require truncation afterwards.
         if oper.requiresTruncation():# and (left.requiresTruncation() or right.requiresTruncation()):
             lower_precision = min(left.getPrecision(), right.getPrecision()) + 1
             precision = max(max(left.getPrecision(), right.getPrecision()), lower_precision)
             result_number.truncatePrecision(precision)
-        print("truncated, result: " + str(result_number))
         return result_number
 
     def collapse(self):
@@ -528,7 +524,6 @@ class GlslToken:
                 if left_parent and left_token and right_parent and right_token:
                     # Trivial case - leaf entry that can just be applied.
                     if left_parent is right_parent:
-                        print("trivial case")
                         if not (left_parent is self):
                             raise RuntimeError("left and right operator resolve as '%s' not matching self '%s'" %
                                                (str(left_parent), str(self)))
@@ -804,7 +799,6 @@ def token_tree_build(lst):
 def token_tree_simplify(op):
     """Perform first found simplify operation for given tree."""
     op.collapse()
-    print(", ".join(map(str, op.flatten())))
     if op.simplify():
         return True
     return False
