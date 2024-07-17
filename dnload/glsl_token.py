@@ -18,6 +18,7 @@ from dnload.glsl_type import is_glsl_type
 ########################################
 
 g_deny_integrify_function_calls = (
+    "mix",
     "smoothstep",
     )
 
@@ -91,9 +92,7 @@ class GlslToken:
             raise RuntimeError("error getting number values")
         both_are_int = is_glsl_int(left) and is_glsl_int(right)
         # Perform operation.
-        print(str(left_number) + " " + oper.getOperator() + " " + str(right_number))
         result_number = oper.applyOperator(left_number, right_number)
-        print(str(result_number) + ": " + str(both_are_int))
         # Replace content of this with the result number
         if isinstance(result_number, bool):
             result_number = interpret_bool(str(result_number).lower())
@@ -368,7 +367,7 @@ class GlslToken:
     def getRecursiveStringRepresentation(self, indent, indent_increment = 4):
         """Gets a recursive string representation from the current token subtree."""
         ret = get_indent(indent) + str(self) + "\n"
-        if len(self.__middle) > 1:
+        if (len(self.__middle) > 1) or ((len(self.__middle) == 1) and is_glsl_token(self.__middle[0])):
             ret += get_indent(indent) + "Middle:\n"
             for ii in self.__middle:
                 if is_glsl_token(ii):
@@ -443,6 +442,11 @@ class GlslToken:
     def isParameterOfNonIntegrifyFunctionCall(self):
         """Tells if is a parameter of a function call that does not allow integrification of parameters."""
         if self.__parent:
+            # Might not be the first parameter, in which case the parent is a comma and we must recurse.
+            mid = self.__parent.getSingleChildMiddleNonToken()
+            if mid and is_glsl_operator(mid) and (mid.getOperator() == ","):
+                return self.__parent.isParameterOfNonIntegrifyFunctionCall()
+            # Check function call.
             left = self.__parent.getSingleChildLeft()
             functionName = left.getFunctionCallNameIfFunctionCall()
             if functionName and (functionName in g_deny_integrify_function_calls):
@@ -550,6 +554,11 @@ class GlslToken:
             # No operators, left or right.
             left = self.findSiblingOperatorLeft()
             right = self.findSiblingOperatorRight()
+            # Comma is not an operator.
+            if left and (left.getOperator() == ","):
+                left = None
+            if right and (right.getOperator() == ","):
+                right = None
             if (not left) and (not right):
                 # Check if part of a denied function call.
                 if not self.isParameterOfNonIntegrifyFunctionCall():
@@ -797,7 +806,7 @@ def token_list_collapse_negative_numbers(lst):
         # Can only collapse if middle operator is minus.
         if is_minus_collapsible(prev2_content, prev1_content, curr_content):
             ret = lst[:ii - 1] + [GlslToken(curr_content.getNegatedNumber())] + lst[ii + 1:]
-            #print(str(list(map(str, ret))))
+            #print(str(list(map(str, lst))))
             return token_list_collapse_negative_numbers(ret)
         # Continue.
         prev2 = prev1
@@ -816,7 +825,6 @@ def token_list_create(lst):
         elif ii:
             ret += [ii]
     # Collapse extra minus operators into negative numbers.
-    return ret
     return token_list_collapse_negative_numbers(ret)
 
 def token_tree_build(lst):
