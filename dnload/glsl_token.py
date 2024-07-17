@@ -793,7 +793,7 @@ def token_descend(token):
     return token
 
 def token_list_collapse_negative_numbers(lst):
-    """Collapse negative numbers out from a token list."""
+    """Collapse minuses with numbers into a proper negative numbers as necessary."""
     prev2 = None
     prev2_content = None
     prev1 = None
@@ -824,7 +824,6 @@ def token_list_create(lst):
             ret += [GlslToken(ii)]
         elif ii:
             ret += [ii]
-    # Collapse extra minus operators into negative numbers.
     return token_list_collapse_negative_numbers(ret)
 
 def token_tree_build(lst):
