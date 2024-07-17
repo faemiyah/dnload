@@ -22,21 +22,21 @@ class GlslOperator:
         elif self.__operator == "%":
             return lhs % rhs
         elif self.__operator == "==":
-            return int(lhs == rhs)
+            return lhs == rhs
         elif self.__operator == "!=":
-            return int(lhs != rhs)
+            return lhs != rhs
         elif self.__operator == "<":
-            return int(lhs < rhs)
+            return lhs < rhs
         elif self.__operator == "<=":
-            return int(lhs <= rhs)
+            return lhs <= rhs
         elif self.__operator == ">":
-            return int(lhs > rhs)
+            return lhs > rhs
         elif self.__operator == ">=":
-            return int(lhs >= rhs)
+            return lhs >= rhs
         elif self.__operator == "&&":
-            return int((lhs != 0) and (rhs != 0))
+            return (lhs != 0) and (rhs != 0)
         elif self.__operator == "||":
-            return int((lhs != 0) and (rhs != 0))
+            return (lhs != 0) and (rhs != 0)
         raise RuntimeError("don't know how to apply operator '%s'" % (self.__operator))
 
     def format(self, force):

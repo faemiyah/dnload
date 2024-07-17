@@ -1,6 +1,8 @@
 from dnload.common import is_listing
 from dnload.glsl_access import is_glsl_access
 from dnload.common import get_indent
+from dnload.glsl_bool import interpret_bool
+from dnload.glsl_bool import is_glsl_bool
 from dnload.glsl_float import interpret_float
 from dnload.glsl_float import is_glsl_float
 from dnload.glsl_int import interpret_int
@@ -82,31 +84,29 @@ class GlslToken:
         """Apply operator, collapsing into one number if possible."""
         left = left_token.getSingleChild()
         right = right_token.getSingleChild()
-        if (not is_glsl_number(left)) or (not is_glsl_number(right)):
-            return None
-        # Resolve to float if either is a float.
-        either_is_float = is_glsl_float(left) or is_glsl_float(right)
-        if either_is_float:
-            left_number = left.getFloat()
-            right_number = right.getFloat()
-        else:
-            left_number = left.getInt()
-            right_number = right.getInt()
+        # Numbers must be valid
+        left_number = get_contained_glsl_number(left)
+        right_number = get_contained_glsl_number(right)
         if (left_number is None) or (right_number is None):
             raise RuntimeError("error getting number values")
+        both_are_int = is_glsl_int(left) and is_glsl_int(right)
         # Perform operation.
+        print(str(left_number) + " " + oper.getOperator() + " " + str(right_number))
         result_number = oper.applyOperator(left_number, right_number)
+        print(str(result_number) + ": " + str(both_are_int))
         # Replace content of this with the result number
-        if either_is_float:
-            number_string = str(float(result_number))
-            (integer_part, decimal_part) = number_string.split(".")
-            result_number = interpret_float(integer_part, decimal_part)
-        else:
+        if isinstance(result_number, bool):
+            result_number = interpret_bool(str(result_number).lower())
+        elif both_are_int:
             int_number = interpret_int(str(result_number))
             if int_number is None:
                 result_number = interpret_int(str(int(float(result_number))))
             else:
                 result_number = int_number
+        else:
+            number_string = str(float(result_number))
+            (integer_part, decimal_part) = number_string.split(".")
+            result_number = interpret_float(integer_part, decimal_part)
         # Not all operations require truncation afterwards.
         if oper.requiresTruncation() and (left.requiresTruncation() or right.requiresTruncation()):
             lower_precision = min(left.getPrecision(), right.getPrecision()) + 1
@@ -633,7 +633,7 @@ class GlslToken:
             #    mid = self.__parent.getSingleChildMiddleNonToken()
             #    if is_glsl_operator(mid) and mid.getOperator() == ":":
             #    and self.__parent.getM
-            print(self.__parent.getRecursiveStringRepresentation(0))
+            #print(self.__parent.getRecursiveStringRepresentation(0))
             #(left_parent, left_token) = self.findEqualTokenLeft(self)
             #(right_parent, right_token) = self.findEqualTokenRight(self)
             #print("left parent: " + str(left_parent))
@@ -716,7 +716,7 @@ class GlslToken:
 
 def is_glsl_number(op):
     """Tell if given object is a number."""
-    if is_glsl_float(op) or is_glsl_int(op):
+    if is_glsl_bool(op) or is_glsl_float(op) or is_glsl_int(op):
         return True
     return False
 
@@ -753,6 +753,16 @@ def is_single_call_or_access_list(lst, opening_paren):
             parens -= 1
     return (0 < parens)
 
+def get_contained_glsl_number(op):
+    """Gets internal contained GLSL number or None."""
+    if is_glsl_bool(op):
+        return op.getBool()
+    if is_glsl_float(op):
+        return op.getFloat()
+    if is_glsl_int(op):
+        return op.getInt()
+    return None
+
 def token_descend(token):
     """Descend token or token list."""
     # Single element case.
@@ -787,7 +797,7 @@ def token_list_collapse_negative_numbers(lst):
         # Can only collapse if middle operator is minus.
         if is_minus_collapsible(prev2_content, prev1_content, curr_content):
             ret = lst[:ii - 1] + [GlslToken(curr_content.getNegatedNumber())] + lst[ii + 1:]
-            print(str(list(map(str, ret))))
+            #print(str(list(map(str, ret))))
             return token_list_collapse_negative_numbers(ret)
         # Continue.
         prev2 = prev1
@@ -806,6 +816,7 @@ def token_list_create(lst):
         elif ii:
             ret += [ii]
     # Collapse extra minus operators into negative numbers.
+    return ret
     return token_list_collapse_negative_numbers(ret)
 
 def token_tree_build(lst):

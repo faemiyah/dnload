@@ -127,7 +127,6 @@ g_locked = (
         "EmitVertex",
         "EndPrimitive",
         "exp",
-        "false",
         "floor",
         "fract",
         "gl_FragDepth",
@@ -160,7 +159,6 @@ g_locked = (
         "step",
         "tan",
         "tanh",
-        "true",
         "uniform",
         )
 
