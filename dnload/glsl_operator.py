@@ -11,14 +11,32 @@ class GlslOperator:
 
     def applyOperator(self, lhs, rhs):
         """Apply mathematical operator for given left and right operand."""
-        if self.__operator == "*":
-            return lhs * rhs
-        elif self.__operator == "/":
-            return lhs / rhs
-        elif self.__operator == "+":
+        if self.__operator == "+":
             return lhs + rhs
         elif self.__operator == "-":
             return lhs - rhs
+        elif self.__operator == "*":
+            return lhs * rhs
+        elif self.__operator == "/":
+            return lhs / rhs
+        elif self.__operator == "%":
+            return lhs % rhs
+        elif self.__operator == "==":
+            return int(lhs == rhs)
+        elif self.__operator == "!=":
+            return int(lhs != rhs)
+        elif self.__operator == "<":
+            return int(lhs < rhs)
+        elif self.__operator == "<=":
+            return int(lhs <= rhs)
+        elif self.__operator == ">":
+            return int(lhs > rhs)
+        elif self.__operator == ">=":
+            return int(lhs >= rhs)
+        elif self.__operator == "&&":
+            return int((lhs != 0) and (rhs != 0))
+        elif self.__operator == "||":
+            return int((lhs != 0) and (rhs != 0))
         raise RuntimeError("don't know how to apply operator '%s'" % (self.__operator))
 
     def format(self, force):
@@ -28,6 +46,14 @@ class GlslOperator:
     def getOperator(self):
         """Get content string."""
         return self.__operator
+
+    def getParamCount(self):
+        """Get the parameter count for operators that can be applied compile-time or None."""
+        if self.__operator in ("-", "+", "*", "/", "%", "==", "!=", "<", "<=", ">", ">=", "&&", "||"):
+            return 2
+        elif self.__operator in ("?",):
+            return 3
+        return None
 
     def getPrecedence(self):
         """Get operator precedence. Lower happens first."""
@@ -68,7 +94,7 @@ class GlslOperator:
         if self.__operator in ("||",):
             return ret
         ret += 1
-        if self.__operator in ("?", ":"):
+        if self.__operator in ("?",":"):
             return ret
         ret += 1
         if self.__operator in ("=", "+=", "-=", "*=", "/=", "|=", "&=", "^="):
@@ -77,10 +103,6 @@ class GlslOperator:
         if self.__operator in (",",):
             return ret
         raise RuntimeError("operator '%s' has no precedence" % (str(self)))
-
-    def isApplicable(self):
-        """Tell if operator can be applied on compile-time."""
-        return self.__operator in ("-", "+", "*", "/", "%")
 
     def isAssignment(self):
         """Tell if this is an assignment operator of any kind."""

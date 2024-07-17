@@ -1,5 +1,6 @@
 from dnload.common import is_listing
 from dnload.glsl_access import is_glsl_access
+from dnload.common import get_indent
 from dnload.glsl_float import interpret_float
 from dnload.glsl_float import is_glsl_float
 from dnload.glsl_int import interpret_int
@@ -84,7 +85,8 @@ class GlslToken:
         if (not is_glsl_number(left)) or (not is_glsl_number(right)):
             return None
         # Resolve to float if either is a float.
-        if is_glsl_float(left) or is_glsl_float(right):
+        either_is_float = is_glsl_float(left) or is_glsl_float(right)
+        if either_is_float:
             left_number = left.getFloat()
             right_number = right.getFloat()
         else:
@@ -95,7 +97,7 @@ class GlslToken:
         # Perform operation.
         result_number = oper.applyOperator(left_number, right_number)
         # Replace content of this with the result number
-        if is_glsl_float(left) or is_glsl_float(right):
+        if either_is_float:
             number_string = str(float(result_number))
             (integer_part, decimal_part) = number_string.split(".")
             result_number = interpret_float(integer_part, decimal_part)
@@ -363,6 +365,32 @@ class GlslToken:
             return mid.getPrecedence()
         return None
 
+    def getRecursiveStringRepresentation(self, indent, indent_increment = 4):
+        """Gets a recursive string representation from the current token subtree."""
+        ret = get_indent(indent) + str(self) + "\n"
+        if len(self.__middle) > 1:
+            ret += get_indent(indent) + "Middle:\n"
+            for ii in self.__middle:
+                if is_glsl_token(ii):
+                    ret += ii.getRecursiveStringRepresentation(indent + indent_increment, indent_increment)
+                else:
+                    ret += get_indent(indent + indent_increment) + str(ii) + "\n"
+        if len(self.__left) > 0:
+            ret += get_indent(indent) + "Left:\n"
+            for ii in self.__left:
+                if is_glsl_token(ii):
+                    ret += ii.getRecursiveStringRepresentation(indent + indent_increment, indent_increment)
+                else:
+                    ret += get_indent(indent + indent_increment) + str(ii) + "\n"
+        if len(self.__right) > 0:
+            ret += get_indent(indent) + "Right:\n"
+            for ii in self.__right:
+                if is_glsl_token(ii):
+                    ret += ii.getRecursiveStringRepresentation(indent + indent_increment, indent_increment)
+                else:
+                    ret += get_indent(indent + indent_increment) + str(ii) + "\n"
+        return ret
+
     def getSingleChild(self):
         """Degeneration preventation. If token only has a single child, return that instead."""
         lr = len(self.__left) + len(self.__right)
@@ -513,64 +541,12 @@ class GlslToken:
                 if ii.simplify():
                     return True
         # Perform operations only after removing any possible parens.
-        if (len(self.__middle) == 1):
-            oper = self.__middle[0]
-            if is_glsl_operator(oper) and oper.isApplicable():
-                # Try to remove trivial cases.
-                if self.collapseIdentity():
-                    return True
-                (left_parent, left_token) = self.findEqualTokenLeft(self)
-                (right_parent, right_token) = self.findEqualTokenRight(self)
-                if left_parent and left_token and right_parent and right_token:
-                    # Trivial case - leaf entry that can just be applied.
-                    if left_parent is right_parent:
-                        if not (left_parent is self):
-                            raise RuntimeError("left and right operator resolve as '%s' not matching self '%s'" %
-                                               (str(left_parent), str(self)))
-                        result = self.applyOperator(oper, left_token, right_token)
-                        if not (result is None):
-                            # Remove sides from parent.
-                            left_token.removeFromParent()
-                            right_token.removeFromParent()
-                            self.__middle = [result]
-                            return True
-                    # Nontrivial cases.
-                    left_oper = left_parent.getSingleChildMiddleNonToken()
-                    right_oper = right_parent.getSingleChildMiddleNonToken()
-                    result = None
-                    # Double divide -> multiply.
-                    if (left_oper == "/") and (right_oper == "/") and left_token.isSingleChildRight():
-                        result = self.applyOperator(interpret_operator("*"), left_token, right_token)
-                    # Same operation -> can be just applied.
-                    elif left_parent == right_parent:
-                        result = self.applyOperator(left_oper, left_token, right_token)
-                    # Substract addition: <something> - a + b => <something> + (b - a)
-                    elif (left_oper == "-") and (oper == "+") and (oper is right_oper):
-                        result = self.applyOperator(left_oper, right_token, left_token)
-                        # If b - a is negative, replace it with its absolute value which is going to get subtracted.
-                        if result.getFloat() < 0.0:
-                            right_oper.setOperator("-")
-                            if is_glsl_int(result):
-                                result = interpret_int(str(abs(result.getInt())))
-                            elif is_glsl_float(result):
-                                number_string = str(abs(result.getFloat()))
-                                (integer_part, decimal_part) = number_string.split(".")
-                                result = interpret_float(integer_part, decimal_part)
-                            else:
-                                raise RuntimeError("unknown result object '%s'" % (str(result)))
-                    # TODO: further cases.
-                    # On success, eliminate upper token (left only if necessary) and replace other token with result.
-                    if result:
-                        if left_parent is self:
-                            right_token.collapseUp()
-                            left_token.replaceMiddle(result)
-                        else:
-                            left_token.collapseUp()
-                            right_token.replaceMiddle(result)
-                        return True
-        # Operations are done. Allow simplification of remaining constans, if possible.
         mid = self.getSingleChildMiddleNonToken()
-        if mid and is_glsl_float(mid) and (abs(mid.getFloat()) <= 2147483647.0) and (not mid.isIntegrifyAllowed()):
+        if is_glsl_operator(mid):
+            if self.simplifyApplyOperator(mid):
+                return True
+        # Was not an operator. Allow simplification of remaining constans, if possible.
+        if is_glsl_float(mid) and (abs(mid.getFloat()) <= 2147483647.0) and (not mid.isIntegrifyAllowed()):
             # No operators, left or right.
             left = self.findSiblingOperatorLeft()
             right = self.findSiblingOperatorRight()
@@ -589,6 +565,87 @@ class GlslToken:
             if mid.getPrecision() > 6:
                 mid.truncatePrecision(6)
                 return True
+        return False
+
+    def simplifyApplyOperator(self, oper):
+        """Simplify by applying an operator."""
+        param_count = oper.getParamCount()
+        # Binary operators.
+        if param_count == 2:
+           # Try to remove trivial cases.
+           if self.collapseIdentity():
+               return True
+           (left_parent, left_token) = self.findEqualTokenLeft(self)
+           (right_parent, right_token) = self.findEqualTokenRight(self)
+           if left_parent and left_token and right_parent and right_token:
+               # Trivial case - leaf entry that can just be applied.
+               if left_parent is right_parent:
+                   if not (left_parent is self):
+                       raise RuntimeError("left and right operator resolve as '%s' not matching self '%s'" %
+                                          (str(left_parent), str(self)))
+                   result = self.applyOperator(oper, left_token, right_token)
+                   if not (result is None):
+                       # Remove sides from parent.
+                       left_token.removeFromParent()
+                       right_token.removeFromParent()
+                       self.__middle = [result]
+                       return True
+               # Nontrivial cases.
+               left_oper = left_parent.getSingleChildMiddleNonToken()
+               right_oper = right_parent.getSingleChildMiddleNonToken()
+               result = None
+               # Double divide -> multiply.
+               if (left_oper == "/") and (right_oper == "/") and left_token.isSingleChildRight():
+                   result = self.applyOperator(interpret_operator("*"), left_token, right_token)
+               # Same operation -> can be just applied.
+               elif left_parent == right_parent:
+                   result = self.applyOperator(left_oper, left_token, right_token)
+               # Substract addition: <something> - a + b => <something> + (b - a)
+               elif (left_oper == "-") and (oper == "+") and (oper is right_oper):
+                   result = self.applyOperator(left_oper, right_token, left_token)
+                   # If b - a is negative, replace it with its absolute value which is going to get subtracted.
+                   if result.getFloat() < 0.0:
+                       right_oper.setOperator("-")
+                       if is_glsl_int(result):
+                           result = interpret_int(str(abs(result.getInt())))
+                       elif is_glsl_float(result):
+                           number_string = str(abs(result.getFloat()))
+                           (integer_part, decimal_part) = number_string.split(".")
+                           result = interpret_float(integer_part, decimal_part)
+                       else:
+                           raise RuntimeError("unknown result object '%s'" % (str(result)))
+               # TODO: further cases.
+               # On success, eliminate upper token (left only if necessary) and replace other token with result.
+               if result:
+                   if left_parent is self:
+                       right_token.collapseUp()
+                       left_token.replaceMiddle(result)
+                   else:
+                       left_token.collapseUp()
+                       right_token.replaceMiddle(result)
+                   return True
+        # Trinary operators.
+        elif param_count == 3:
+            if oper.getOperator() != "?":
+                return False
+            # ? and : have the same precedence. Check if the parent is colon.
+            #if self.__parent:
+            #    mid = self.__parent.getSingleChildMiddleNonToken()
+            #    if is_glsl_operator(mid) and mid.getOperator() == ":":
+            #    and self.__parent.getM
+            print(self.__parent.getRecursiveStringRepresentation(0))
+            #(left_parent, left_token) = self.findEqualTokenLeft(self)
+            #(right_parent, right_token) = self.findEqualTokenRight(self)
+            #print("left parent: " + str(left_parent))
+            #print("left token: " + str(left_token))
+            #print("right parent: " + str(right_parent))
+            #print("right token: " + str(right_token))
+            #print("parent: " + str(self.__parent))
+            #(righter_parent, righter_token) = right_token.findEqualTokenRight(self)
+            #print("righter parent: " + str(righter_parent))
+            #print("righter token: " + str(righter_token))
+            return False
+            raise RuntimeError("TODO")
         return False
 
     def simplifyRemoveParens(self):
@@ -667,6 +724,16 @@ def is_glsl_token(op):
     """Tell if given object is a GLSL token."""
     return isinstance(op, GlslToken)
 
+def is_minus_collapsible(left, mid, right):
+    """Tell if given triplet of elements is minus-collapsible."""
+    if not (is_glsl_float(right) or is_glsl_int(right)):
+        return False
+    if not (is_glsl_operator(mid) and (mid.getOperator() == "-")):
+        return False
+    if is_glsl_paren(left):
+        return left.isOpening()
+    return is_glsl_operator(left)
+
 def is_single_call_or_access_list(lst, opening_paren):
     """Tell if given list is a single call or access."""
     parens = 1
@@ -706,6 +773,30 @@ def token_descend(token):
     # Could not descend.
     return token
 
+def token_list_collapse_negative_numbers(lst):
+    """Collapse negative numbers out from a token list."""
+    prev2 = None
+    prev2_content = None
+    prev1 = None
+    prev1_content = None
+    for ii in range(len(lst)):
+        curr = lst[ii]
+        curr_content = curr.getSingleChildMiddleNonToken()
+        if curr_content is None:
+            raise RuntimeError("complex token structure detected in list collapse phase")
+        # Can only collapse if middle operator is minus.
+        if is_minus_collapsible(prev2_content, prev1_content, curr_content):
+            ret = lst[:ii - 1] + [GlslToken(curr_content.getNegatedNumber())] + lst[ii + 1:]
+            print(str(list(map(str, ret))))
+            return token_list_collapse_negative_numbers(ret)
+        # Continue.
+        prev2 = prev1
+        prev2_content = prev1_content
+        prev1 = curr
+        prev1_content = curr_content
+    # No modifications.
+    return lst
+
 def token_list_create(lst):
     """Build a token list from a given listing, ensuring every element is a token."""
     ret = []
@@ -714,15 +805,18 @@ def token_list_create(lst):
             ret += [GlslToken(ii)]
         elif ii:
             ret += [ii]
-    return ret
+    # Collapse extra minus operators into negative numbers.
+    return token_list_collapse_negative_numbers(ret)
 
 def token_tree_build(lst):
     """Builds and balances a token tree from given list."""
-    # Ensure all list elements are tokens.
-    lst = token_list_create(lst)
     # Might be that everything is lost at this point.
     if not lst:
         return None
+    # Ensure all list elements are tokens.
+    for ii in lst:
+        if not is_glsl_token(ii):
+            raise RuntimeError("non-token object '%s' detected while building token tree" % str(ii))
     # Start iteration over tokenized list.
     bracket_count = 0
     paren_count = 0

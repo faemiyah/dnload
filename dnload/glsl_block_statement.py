@@ -5,6 +5,7 @@ from dnload.glsl_block import GlslBlock
 from dnload.glsl_block import extract_tokens
 from dnload.glsl_paren import GlslParen
 from dnload.glsl_paren import is_glsl_paren
+from dnload.glsl_token import token_list_create
 from dnload.glsl_token import token_tree_build
 from dnload.glsl_token import token_tree_simplify
 from dnload.glsl_operator import is_glsl_operator
@@ -149,7 +150,7 @@ def simplify_pass(lst):
     """Run simplification pass on tokens."""
     # Build tree and run simplify pass from there.
     if lst:
-        tree = token_tree_build(lst)
+        tree = token_tree_build(token_list_create(lst))
         if not tree:
             raise RuntimeError("could not build tree from '%s'" % (str(map(str, lst))))
         if token_tree_simplify(tree):
