@@ -425,6 +425,21 @@ class GlslToken:
             return True
         return False
 
+    def getTypeFromOpeningType(self):
+        """Get type of a type opening statement or None."""
+        if self.__left or self.__right:
+            return None
+        if len(self.__middle) != 2:
+            return None
+        if (not is_glsl_token(self.__middle[0])) or (not is_glsl_token(self.__middle[1])):
+            return None
+        if self.__middle[1].getSingleChildMiddleNonToken() != "(":
+            return None
+        left = self.__middle[0].getSingleChildMiddleNonToken()
+        if not is_glsl_type(left):
+            return None
+        return left
+
     def isSurroundedByParens(self):
         """Tell if this is a token surrounded by parens."""
         if (len(self.__left) != 1) or (len(self.__right) != 1):
@@ -446,19 +461,6 @@ class GlslToken:
             if functionName and (functionName in g_deny_integrify_function_calls):
                 return True
         return False
-
-    def isTypeOpen(self):
-        """Tell if is a type opening statement."""
-        if self.__left or self.__right:
-            return False
-        if len(self.__middle) != 2:
-            return False
-        if (not is_glsl_token(self.__middle[0])) or (not is_glsl_token(self.__middle[1])):
-            return False
-        left = self.__middle[0].getSingleChildMiddleNonToken()
-        if (not is_glsl_type(left)) or (not left.isVectorType()):
-            return False
-        return (self.__middle[1].getSingleChildMiddleNonToken() == "(")
 
     def removeChild(self, op):
         """Remove a child from this."""
@@ -564,7 +566,7 @@ class GlslToken:
         self.__parent = op
 
     def simplify(self):
-        """Perform any simple simplification and stop."""
+        """Perform any single simplification and stop."""
         # Remove parens.
         if self.isSurroundedByParens():
             if self.simplifyRemoveParens():
@@ -585,30 +587,13 @@ class GlslToken:
         if is_glsl_operator(mid):
             if self.simplifyApplyOperator(mid):
                 return True
-        # Was not an operator. Allow simplification of remaining constans, if possible.
-        if is_glsl_float(mid) and (abs(mid.getFloat()) <= 2147483647.0) and (not mid.isIntegrifyAllowed()):
-            # No operators, left or right.
-            left = self.findSiblingOperatorLeft()
-            right = self.findSiblingOperatorRight()
-            # Comma is not an operator.
-            if left and (left.getOperator() == ","):
-                left = None
-            if right and (right.getOperator() == ","):
-                right = None
-            if (not left) and (not right):
-                # Check if part of a denied function call.
-                if not self.isParameterOfNonIntegrifyFunctionCall():
-                    mid.setAllowIntegrify(True)
-                    return True
-            # Alone in vecN() directive.
-            left = self.getSingleChildLeft()
-            right = self.getSingleChildRight()
-            if left and left.isTypeOpen() and right and (right.getSingleChildMiddleNonToken() == ")"):
-                mid.setAllowIntegrify(True)
+        # Was not an operator. Check for floating point operations.
+        if is_glsl_float(mid):
+            if self.simplifyIntegrify(mid):
                 return True
-            # If could not be integrified, at least ensure that float precision is not exceeded.
-            if mid.getPrecision() > 6:
-                mid.truncatePrecision(6)
+        # Check for integer operations.
+        if is_glsl_int(mid):
+            if self.simplifyConversion(mid):
                 return True
         return False
 
@@ -683,6 +668,51 @@ class GlslToken:
                     if self.__parent.applyTernary(cmp, left, right):
                         return True
             # TODO: ternary with ? higher than :
+        return False
+
+    def simplifyConversion(self, mid):
+        """Simplify an integer value by allowing conversion to float (if possible)."""
+        # Alone in float() directive.
+        left = self.getSingleChildLeft()
+        right = self.getSingleChildRight()
+        if left and right and (right.getSingleChildMiddleNonToken() == ")"):
+            opening_type = left.getTypeFromOpeningType()
+            if opening_type.getType() == "float":
+                float_value = interpret_float(mid.getStr(), "0")
+                self.clearContents()
+                self.addMiddle(float_value)
+                return True
+        return False
+
+    def simplifyIntegrify(self, mid):
+        """Simplify a float middle element by allowing integrification (if possible)."""
+        if mid.isIntegrifyAllowed() or (abs(mid.getFloat()) > 2147483647.0):
+            return False
+        # No operators, left or right.
+        left = self.findSiblingOperatorLeft()
+        right = self.findSiblingOperatorRight()
+        # Comma is not an operator.
+        if left and (left.getOperator() == ","):
+            left = None
+        if right and (right.getOperator() == ","):
+            right = None
+        if (not left) and (not right):
+            # Check if part of a denied function call.
+            if not self.isParameterOfNonIntegrifyFunctionCall():
+                mid.setAllowIntegrify(True)
+                return True
+        # Alone in vecN() directive.
+        left = self.getSingleChildLeft()
+        right = self.getSingleChildRight()
+        if left and right and (right.getSingleChildMiddleNonToken() == ")"):
+            opening_type = left.getTypeFromOpeningType()
+            if opening_type.isVectorType():
+                mid.setAllowIntegrify(True)
+                return True
+        # If could not be integrified, at least ensure that float precision is not exceeded.
+        if mid.getPrecision() > 6:
+            mid.truncatePrecision(6)
+            return True
         return False
 
     def simplifyRemoveParens(self):
