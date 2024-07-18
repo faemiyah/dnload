@@ -37,6 +37,10 @@ class GlslFloat:
         """Accessor."""
         return self.__number
 
+    def getNegatedNumber(self):
+        """Get negated version of the content."""
+        return GlslFloat(self.__integer1.getNegatedNumber(), self.__integer2)
+
     def getPrecision(self):
         """Get precision - number of numbers to express."""
         return self.__integer1.getPrecision() + self.__integer2.getPrecision()

@@ -32,6 +32,12 @@ class GlslInt:
         """Integer representation."""
         return self.__number
 
+    def getNegatedNumber(self):
+        """Get negated version of the content."""
+        if self.__sign == "-":
+            return GlslInt(str(self.__string))
+        return GlslInt("-" + self.__string)
+
     def getPrecision(self):
         """Get precision - number of numbers to express."""
         return len(self.__string.strip("+-0"))

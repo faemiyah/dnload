@@ -4,6 +4,8 @@ from dnload.common import listify
 from dnload.common import is_listing
 from dnload.glsl_access import interpret_access
 from dnload.glsl_access import is_glsl_access
+from dnload.glsl_bool import interpret_bool
+from dnload.glsl_bool import is_glsl_bool
 from dnload.glsl_control import interpret_control
 from dnload.glsl_control import is_glsl_control
 from dnload.glsl_int import interpret_int
@@ -487,6 +489,12 @@ def tokenize_interpret(tokens):
             ret += [terminator]
             ii += 1
             continue
+        # Booleans look like names.
+        boolean = interpret_bool(element)
+        if boolean:
+            ret += [boolean]
+            ii += 1
+            continue
         # Try name identifier last.
         name = interpret_name(element)
         if name:
@@ -515,13 +523,17 @@ def tokenize_split(source):
 
 def validate_token(token, validation):
     """Validate that token matches given requirement."""
-    # Unsigned int.
-    if "u" == validation:
-        if not is_glsl_int_unsigned(token):
+    # Bool.
+    if "b" == validation:
+        if not is_glsl_bool(token):
             return None
     # Int.
     elif "i" == validation:
         if not is_glsl_int(token):
+            return None
+    # Unsigned int.
+    elif "u" == validation:
+        if not is_glsl_int_unsigned(token):
             return None
     # Float.
     elif "f" == validation:

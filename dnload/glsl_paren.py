@@ -35,6 +35,10 @@ class GlslParen:
         """Tell if this is a curly brace."""
         return self.__paren in ("{", "}")
 
+    def isOpening(self):
+        """Tell if this is an opening paren type."""
+        return self.__paren in ("[", "{", "(")
+
     def isParen(self):
         """Tell if this is a paren."""
         return self.__paren in ("(", ")")
