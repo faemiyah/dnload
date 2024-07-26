@@ -22,6 +22,8 @@ class GlslInt:
 
     def format(self, force):
         """Return formatted output."""
+        if self.__number == 0:
+            return "0"
         return str(self.__number)
 
     def getFloat(self):
