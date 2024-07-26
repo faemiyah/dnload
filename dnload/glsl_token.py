@@ -831,7 +831,9 @@ def is_minus_collapsible(left, mid, right):
         return False
     if is_glsl_paren(left):
         return left.isOpening()
-    return is_glsl_operator(left)
+    if is_glsl_operator(left):
+        return True
+    return left is None
 
 def is_single_call_or_access_list(lst, opening_paren):
     """Tell if given list is a single call or access."""
