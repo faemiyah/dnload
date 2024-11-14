@@ -10,7 +10,7 @@ if [ ! -f "src/dnload.h" ] ; then
   touch src/dnload.h
 fi
 
-python "${DNLOAD}" -v -E src/intro.cpp
+python "${DNLOAD}" -v -E src/intro.cpp $*
 if [ $? -ne 0 ] ; then
   echo "${0}: regenerating symbols failed"
   exit 1
