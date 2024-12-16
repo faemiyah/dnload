@@ -13,6 +13,7 @@
 #else
 #include "glsl_pipeline.hpp"
 #endif
+#include "fps_counter.hpp"
 #include "image_png.hpp"
 #include <cstdio>
 #include <iomanip>
@@ -227,6 +228,29 @@ static SDL_AudioSpec audio_spec =
     audio_callback,
     NULL
 };
+
+#if defined(USE_LD)
+
+/// Set the audio position, avoiding misalignment.
+///
+/// \param ticks Audio position ticks.
+void set_audio_position(int ticks)
+{
+    g_audio_position = ticks - (ticks % static_cast<int>(sizeof(sample_t) * AUDIO_CHANNELS));
+}
+
+/// Get the relative fake "start time" from current time and audio position.
+///
+/// \retuyrn Start ticks.
+int get_start_ticks()
+{
+    auto current_ticks = SDL_GetTicks();
+    double flt_position = static_cast<double>(g_audio_position);
+    return static_cast<int>(current_ticks -
+            static_cast<uint32_t>((flt_position * 1000.0) / static_cast<double>(AUDIO_BYTERATE)));
+}
+
+#endif
 
 //######################################
 // Shaders #############################
@@ -568,6 +592,17 @@ void _start()
     dnload_SDL_ShowCursor(g_flag_developer);
 
 #if defined(USE_LD)
+    {
+        int err = SDL_GL_SetSwapInterval(-1);
+        if (err == -1)
+        {
+            err = SDL_GL_SetSwapInterval(0);
+            if (err)
+            {
+                std::cerr << "SDL_GL_SetSwapInterval(): " << SDL_GetError() << std::endl;
+            }
+        }
+    }
 #if !defined(DNLOAD_GLESV2)
     {
         GLenum err = glewInit();
@@ -673,26 +708,26 @@ void _start()
         teardown();
         return;
     }
-
-    if(!g_flag_developer)
-    {
-        SDL_OpenAudio(&audio_spec, NULL);
-        SDL_PauseAudio(0);
-    }
-#else
-    dnload_SDL_OpenAudio(&audio_spec, NULL);
-    dnload_SDL_PauseAudio(0);
 #endif
 
+    dnload_SDL_OpenAudio(&audio_spec, NULL);
 #if defined(USE_LD)
-    uint32_t start_ticks = SDL_GetTicks();
+    if(!g_flag_developer)
+#endif
+    {
+        dnload_SDL_PauseAudio(0);
+    }
+
+#if defined(USE_LD)
+    FpsCounter fps_counter;
+    int start_ticks = static_cast<int>(SDL_GetTicks());
+    int last_ticks = start_ticks;
+    int curr_ticks = 0;
 #endif
 
     for(;;)
     {
 #if defined(USE_LD)
-        static float move_speed = 1.0f / 60.0f;
-        static float current_time = 0.0f;
         static uint8_t mouse_look = 0;
         static int8_t move_backward = 0;
         static int8_t move_down = 0;
@@ -701,12 +736,13 @@ void _start()
         static int8_t move_right = 0;
         static int8_t move_up = 0;
         static int8_t time_delta = 0;
+        static bool fast = false;
+        int time_add_seconds = 0;
         int mouse_look_x = 0;
         int mouse_look_y = 0;
         bool quit = false;
 #endif
         SDL_Event event;
-        int curr_ticks;
 
 #if defined(USE_LD)
         while(SDL_PollEvent(&event))
@@ -745,7 +781,7 @@ void _start()
 
                 case SDLK_LSHIFT:
                 case SDLK_RSHIFT:
-                    move_speed = 1.0f / 5.0f;
+                    fast = true;
                     break;
 
                 case SDLK_LALT:
@@ -755,6 +791,22 @@ void _start()
                 case SDLK_MODE:
                 case SDLK_RALT:
                     time_delta = 1;
+                    break;
+
+                case SDLK_LEFT:
+                    time_add_seconds = -5;
+                    break;
+
+                case SDLK_RIGHT:
+                    time_add_seconds = 5;
+                    break;
+
+                case SDLK_UP:
+                    time_add_seconds = 30;
+                    break;
+
+                case SDLK_DOWN:
+                    time_add_seconds = -30;
                     break;
 
                 case SDLK_F5:
@@ -769,6 +821,22 @@ void _start()
                     glBindProgramPipeline(program.getId());
                     g_program_fragment = program.getProgramId(GL_FRAGMENT_SHADER);
 #endif
+                    break;
+
+                case SDLK_p:
+                    {
+                        SDL_AudioStatus audio_status = SDL_GetAudioStatus();
+                        if(audio_status == SDL_AUDIO_PLAYING)
+                        {
+                            SDL_PauseAudio(1);
+                        }
+                        else
+                        {
+                            set_audio_position(g_audio_position);
+                            start_ticks = get_start_ticks();
+                            SDL_PauseAudio(0);
+                        }
+                    }
                     break;
 
                 case SDLK_ESCAPE:
@@ -809,7 +877,7 @@ void _start()
 
                 case SDLK_LSHIFT:
                 case SDLK_RSHIFT:
-                    move_speed = 1.0f / 60.0f;
+                    fast = false;
                     break;
 
                 case SDLK_MODE:
@@ -853,8 +921,18 @@ void _start()
             }
         }
 
+        curr_ticks = static_cast<int>(SDL_GetTicks());
+        auto print_fps = fps_counter.appendTimestamp(static_cast<unsigned>(curr_ticks));
+        if(print_fps)
+        {
+            printf("FPS: %1.1f\n", *print_fps);
+        }
+
+        double tick_diff = static_cast<double>(curr_ticks - last_ticks) / 1000.0 * static_cast<double>(AUDIO_BYTERATE);
+
         if(g_flag_developer)
         {
+            float move_speed = (fast ? 0.0015f : 0.0003f) * static_cast<float>(tick_diff);
             float uplen = sqrtf(g_up_x * g_up_x + g_up_y * g_up_y + g_up_z * g_up_z);
             float fwlen = sqrtf(g_fw_x * g_fw_x + g_fw_y * g_fw_y + g_fw_z * g_fw_z);
             float rt_x;
@@ -920,17 +998,30 @@ void _start()
             g_pos_z += movement_rt * rt_z + movement_up * g_up_z + movement_fw * g_fw_z;
         }
 
-        if(g_flag_developer)
+        SDL_AudioStatus audio_status = SDL_GetAudioStatus();
+        if(audio_status == SDL_AUDIO_PLAYING)
         {
-            current_time += static_cast<float>(AUDIO_BYTERATE) / 60.0f * static_cast<float>(time_delta);
-
-            curr_ticks = static_cast<int>(current_time);
+            if(time_add_seconds)
+            {
+                SDL_PauseAudio(1);
+                int apos = std::max(std::min(g_audio_position + (AUDIO_BYTERATE * time_add_seconds), INTRO_LENGTH), 0);
+                set_audio_position(apos);
+                start_ticks = get_start_ticks();
+                curr_ticks = start_ticks;
+                SDL_PauseAudio(0);
+            }
+            else
+            {
+                double seconds_elapsed = static_cast<double>(SDL_GetTicks() - static_cast<unsigned>(start_ticks)) / 1000.0;
+                curr_ticks = static_cast<int>(seconds_elapsed * static_cast<double>(AUDIO_BYTERATE)) + INTRO_START;
+            }
         }
         else
         {
-            float seconds_elapsed = static_cast<float>(SDL_GetTicks() - start_ticks) / 1000.0f;
-
-            curr_ticks = static_cast<int>(seconds_elapsed * static_cast<float>(AUDIO_BYTERATE)) + INTRO_START;
+            int dtime = static_cast<int>(time_delta * (fast ? 5.0f : 1.0f) * tick_diff) + time_add_seconds * AUDIO_BYTERATE;
+            g_audio_position = std::max(std::min(g_audio_position + dtime, INTRO_LENGTH), 0);
+            last_ticks = curr_ticks;
+            curr_ticks = g_audio_position;
         }
 
         if((curr_ticks >= static_cast<int>(INTRO_LENGTH)) || quit)

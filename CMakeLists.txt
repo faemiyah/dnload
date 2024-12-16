@@ -44,6 +44,8 @@ set(EXECUTABLE_NAME "intro")
 add_executable("${EXECUTABLE_NAME}"
     "src/bsd_rand.c"
     "src/bsd_rand.h"
+    "src/fps_counter.cpp"
+    "src/fps_counter.hpp"
     "src/glsl_pipeline.cpp"
     "src/glsl_pipeline.hpp"
     "src/glsl_program.cpp"
