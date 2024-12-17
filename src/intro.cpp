@@ -555,7 +555,8 @@ void update_window_position()
 /// \param screen_h Screen height.
 /// \param flag_fullscreen Fullscreen toggle.
 /// \param flag_record Record toggle.
-void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_record)
+/// \param flag_vsync Vsync toggle.
+void intro(unsigned screen_w, unsigned screen_h, bool flag_fullscreen, bool flag_record, bool flag_vsync)
 #else
 #define screen_w static_cast<unsigned>(SCREEN_W)
 #define screen_h static_cast<unsigned>(SCREEN_H)
@@ -593,14 +594,16 @@ void _start()
 
 #if defined(USE_LD)
     {
-        int err = SDL_GL_SetSwapInterval(-1);
-        if (err == -1)
+        int swap_interval = flag_vsync ? -1 : 0;
+        int err = SDL_GL_SetSwapInterval(swap_interval);
+        if(err && (swap_interval < 0))
         {
-            err = SDL_GL_SetSwapInterval(0);
-            if (err)
-            {
-                std::cerr << "SDL_GL_SetSwapInterval(): " << SDL_GetError() << std::endl;
-            }
+            swap_interval = 1;
+            err = SDL_GL_SetSwapInterval(swap_interval);
+        }
+        if (err)
+        {
+            std::cerr << "SDL_GL_SetSwapInterval(" << swap_interval << "): " << SDL_GetError() << std::endl;
         }
     }
 #if !defined(DNLOAD_GLESV2)
@@ -1064,8 +1067,9 @@ int DNLOAD_MAIN(int argc, char **argv)
     unsigned screen_w = SCREEN_W;
     unsigned screen_h = SCREEN_H;
     bool flag_fullscreen = false;
-    bool flag_window = false;
     bool flag_record = false;
+    bool flag_vsync = false;
+    bool flag_window = false;
 
     try
     {
@@ -1078,6 +1082,7 @@ int DNLOAD_MAIN(int argc, char **argv)
                 ("help,h", "Print help text.")
                 ("record,R", "Do not play intro normally, instead save audio as .wav and frames as .png -files.")
                 ("resolution,r", po::value<std::string>(), "Resolution to use, specify as 'WIDTHxHEIGHT' or 'HEIGHTp'.")
+                ("vsync,y", "Enable vertical retrace synchronization.")
                 ("window,w", "Start in windowed mode as opposed to fullscreen mode.");
 
             po::variables_map vmap;
@@ -1107,6 +1112,10 @@ int DNLOAD_MAIN(int argc, char **argv)
                 screen_w = resolution.first;
                 screen_h = resolution.second;
             }
+            if(vmap.count("vsync"))
+            {
+                flag_vsync = true;
+            }
             if(vmap.count("window"))
             {
                 flag_window = true;
@@ -1119,7 +1128,7 @@ int DNLOAD_MAIN(int argc, char **argv)
         }
         bool fullscreen = flag_fullscreen || (!flag_window && !g_flag_developer);
 
-        intro(screen_w, screen_h, fullscreen, flag_record);
+        intro(screen_w, screen_h, fullscreen, flag_record, flag_vsync);
     }
     catch(const boost::exception &err)
     {
