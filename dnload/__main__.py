@@ -1252,10 +1252,10 @@ def main():
     if not no_glesv2:
         if os.path.exists(PATH_MALI):
             extra_libraries += ["EGL"]
-            definitions += ["DNLOAD_MALI"]
+            definitions += ["DNLOAD_USE_MALI"]
             gles_reason = "'%s' (Mali)" % (PATH_MALI)
         if os.path.exists(PATH_VIDEOCORE):
-            definitions += ["DNLOAD_VIDEOCORE"]
+            definitions += ["DNLOAD_USE_VIDEOCORE"]
             gles_reason = "'%s' (VideoCore)" % (PATH_VIDEOCORE)
             if 'armv7l' == g_osarch:
                 replace_osarch("armv6l", "Workaround (Raspberry Pi): ")
