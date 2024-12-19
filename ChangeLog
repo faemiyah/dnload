@@ -1,101 +1,121 @@
-r15 (2021-??-??)
-  * TODO
+r16 (20??-??-??)
+    *
+
+r15 (2024-12-19)
+    * Unify all CPP macro definitions to prefix with DNLOAD_.
+    * Add library support for opus.
+    * Add support for GL_NV_MESH_SHADER concepts in minification.
+    * Add example program console fps counter.
+    * Add example program vsync toggle.
+    * Add command line option to select GLES or regular OpenGL.
+    * New CMake configuration.
+    * ceilf and floorf are library functions on arm32l.
+    * Improve GLSL compressiong by storing byte frequency information of
+      non-shader parts of the binary. Repeat compile command to use.
+    * Improve integrification rules, slightly improving shader compression.
+    * &=, |= and ^= are shader operators.
+    * Fix shader integer division result parsing.
+    * Fix numerous shader simplification errors.
+    * Fix chained shader shader struct minification errors (geometry shader
+      minification was broken).
+    * Removed Windows SDL2.dll as unnecessary.
+    * FIXME: GLES minification can enter an infinite loop.
 
 r14 (2021-03-13)
-  * Add GLSL minifier.
-  * Allow use of GLSL minifier without other aspects of dnload.
-  * Library support for fftw3, libpng, ncurses, opusfile and sndfile.
-  * Full architecture support for armel.
-  * Add 32-bit cross compilation support for amd64 -> ia32.
-  * Fix operating system support for Linux (IFUNC, stack alignment).
-  * Fix operating system support for FreeBSD 12 after the late hardening.
-  * Add support for crc32 hash instruction on x86 and amd64.
-  * Add selectable option switches filedrop, hash, header, rand and symtab.
-  * Add __builtin_unreachable() as needed to aid the compiler.
-  * Use correct library directories based on gcc --version output.
-  * Fix library script detection.
-  * Fix crunching the assembler causing invalid alignment reads an stores.
-  * Fix bugs when using python3 as the python interpreter.
-  * Drop python2 support, but it might still work.
-  * Add pep8 rules.
-  * And a lot of little bugfixes and tweaks too many to list here.
-  * Thanks to lunasorcery, PoroCYon and Shiz.
+    * Add GLSL minifier.
+    * Allow use of GLSL minifier without other aspects of dnload.
+    * Library support for fftw3, libpng, ncurses, opusfile and sndfile.
+    * Full architecture support for armel.
+    * Add 32-bit cross compilation support for amd64 -> ia32.
+    * Fix operating system support for Linux (IFUNC, stack alignment).
+    * Fix operating system support for FreeBSD 12 after the late hardening.
+    * Add support for crc32 hash instruction on x86 and amd64.
+    * Add selectable option switches filedrop, hash, header, rand and symtab.
+    * Add __builtin_unreachable() as needed to aid the compiler.
+    * Use correct library directories based on gcc --version output.
+    * Fix library script detection.
+    * Fix crunching the assembler causing invalid alignment reads an stores.
+    * Fix bugs when using python3 as the python interpreter.
+    * Drop python2 support, but it might still work.
+    * Add pep8 rules.
+    * And a lot of little bugfixes and tweaks too many to list here.
+    * Thanks to lunasorcery, PoroCYon and Shiz.
 
 r13 (2016-11-25)
-  * Better LZMA compression parameters.
-  * Library support for Freetype.
-  * Add Mali support.
-  * Add SDL2 support.
-  * Use SDL2 as the default abstraction layer.
-  * Split link into multiple phases to allow adding missing symbols.
-  * Add very rudimentary (for now) missing symbols to enable armel build.
-  * Add template system to allow easier generation of source files.
+    * Better LZMA compression parameters.
+    * Library support for Freetype.
+    * Add Mali support.
+    * Add SDL2 support.
+    * Use SDL2 as the default abstraction layer.
+    * Split link into multiple phases to allow adding missing symbols.
+    * Add very rudimentary (for now) missing symbols to enable armel build.
+    * Add template system to allow easier generation of source files.
 
 r12 (2015-06-24)
-  * Move to GitHub.
-  * Change revision numbering due to GitHub.
-  * Better Raspberry Pi support via VideoCore / EGL specifics.
-  * Better control of symbol visibility.
-  * Display alignment adjustments in a less floody fashion.
-  * Allow autodetection of required libraries from symbols used.
-  * Improve CMake configuration, support automatic MSVS project generation.
-  * Python style fixes.
+    * Move to GitHub.
+    * Change revision numbering due to GitHub.
+    * Better Raspberry Pi support via VideoCore / EGL specifics.
+    * Better control of symbol visibility.
+    * Display alignment adjustments in a less floody fashion.
+    * Allow autodetection of required libraries from symbols used.
+    * Improve CMake configuration, support automatic MSVS project generation.
+    * Python style fixes.
 
 r11 (2015-02-11)
-  * Raspberry Pi (Linux-armel) support.
-  * Bugfixes (works on Python 3 again).
+    * Raspberry Pi (Linux-armel) support.
+    * Bugfixes (works on Python 3 again).
 
 r10 (2015-02-04)
-  * Use 'unsafe' DT_SYMTAB / DT_HASH location assumption from minas/Calodox.
-  * Only treat d_un pointers as offsets on FreeBSD.
-  * Make hashed symbol table order stable, decreases compressed size.
-  * Fix bugs that had crept into legacy compilation modes.
-  * Minor Python style improvements.
+    * Use 'unsafe' DT_SYMTAB / DT_HASH location assumption from minas/Calodox.
+    * Only treat d_un pointers as offsets on FreeBSD.
+    * Make hashed symbol table order stable, decreases compressed size.
+    * Fix bugs that had crept into legacy compilation modes.
+    * Minor Python style improvements.
 
 r9 (2015-02-03)
-  * Default to debugger trap for terminating to save some space.
-  * Use fixed r_debug address trick from minas/Calodox.
-  * Preliminary support for using elfling by minas/Calodox for two-stage
+    * Default to debugger trap for terminating to save some space.
+    * Use fixed r_debug address trick from minas/Calodox.
+    * Preliminary support for using elfling by minas/Calodox for two-stage
     compression. Actual elfling source not yet included.
-  * Do not create unnecessary .bss fields for required UND symbols.
-  * Fix errors in entry point crunching.
-  * Less offensively bad Python coding conventions.
+    * Do not create unnecessary .bss fields for required UND symbols.
+    * Fix errors in entry point crunching.
+    * Less offensively bad Python coding conventions.
 
 r8 (2014-09-24)
-  * Platform-dependant pick on compression header.
-  * Fix byte-by-byte section merging bug.
-  * Make quad example simpler and intro example more complex.
-  * Default to filedump header that does not look 'nice' to save some space.
+    * Platform-dependant pick on compression header.
+    * Fix byte-by-byte section merging bug.
+    * Make quad example simpler and intro example more complex.
+    * Default to filedump header that does not look 'nice' to save some space.
 
 r7 (2014-08-17)
-  * Support DT_GNU_HASH in addition to DT_HASH on Linux.
-  * Add symbol definitions.
-  * New bsd_rand from up-to-date FreeBSD.
+    * Support DT_GNU_HASH in addition to DT_HASH on Linux.
+    * Add symbol definitions.
+    * New bsd_rand from up-to-date FreeBSD.
 
 r6 (2014-06-21)
-  * Additional GL function definitions (can now compile flow2).
-  * Better handling of GLAPIENTRY.
-  * Add NOMINMAX define so windows.h does not clobber std namespace max/min.
+    * Additional GL function definitions (can now compile flow2).
+    * Better handling of GLAPIENTRY.
+    * Add NOMINMAX define so windows.h does not clobber std namespace max/min.
 
 r5 (2014-06-06)
-  * Allow compiler to assign values for system calls.
-  * Better header crunching on 64-bit.
+    * Allow compiler to assign values for system calls.
+    * Better header crunching on 64-bit.
 
 r4 (2014-06-05)
-  * Remove also unnecessary symbol definitions on non-FreeBSD platforms.
-  * Properly crunch amd64 entry point.
-  * Create DT_HASH in a generic manner.
+    * Remove also unnecessary symbol definitions on non-FreeBSD platforms.
+    * Properly crunch amd64 entry point.
+    * Create DT_HASH in a generic manner.
 
 r3 (2014-06-04)
-  * Elf64 / amd64 support.
-  * Use empty DT_SYMTAB trick on Linux.
-  * Bugfixes.
+    * Elf64 / amd64 support.
+    * Use empty DT_SYMTAB trick on Linux.
+    * Bugfixes.
 
 r2 (2014-05-31)
-  * Omit unnecessary 'environ' and '__progname' symbols on non-FreeBSD platforms.
-  * Construct .hash, .strtab and .symtab as needed.
-  * Enable changing entry point, use a better compressable one.
-  * Added README that points to the online documentation.
+    * Omit unnecessary 'environ' and '__progname' symbols on non-FreeBSD platforms.
+    * Construct .hash, .strtab and .symtab as needed.
+    * Enable changing entry point, use a better compressable one.
+    * Added README that points to the online documentation.
 
 r1 (2014-05-30)
-  * First public version.
+    * First public version.

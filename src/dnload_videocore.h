@@ -49,7 +49,7 @@ static void videocore_open_native_window(const VC_RECT_T *dst_rect, const VC_REC
   g_egl_native_window.element = element;
 
   result = dnload_vc_dispmanx_update_submit_sync(dispman_update);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(result)
   {
     fprintf(stderr, "vc_dispmanx_update_submit_sync() failed: %i", result);
@@ -83,7 +83,7 @@ static void videocore_create_native_window_extended(int screen_width, int screen
   dnload_bcm_host_init();
 
   result = dnload_graphics_get_display_size(0, &native_width, &native_height);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(result)
   {
     fprintf(stderr, "graphics_get_display_size() failed: %i", result);
@@ -148,7 +148,7 @@ static void videocore_create_native_window(int screen_width, int screen_height)
   videocore_create_native_window_extended(screen_width, screen_height, MODE_KEEP_ASPECT);
 }
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 /// Move videocore window on screen.
 ///
 /// \param px X position.

@@ -1,7 +1,7 @@
 #ifndef GLSL_PROGRAM_HPP
 #define GLSL_PROGRAM_HPP
 
-#if !defined(DNLOAD_GLESV2)
+#if !defined(DNLOAD_USE_GLES)
 
 #include "glsl_shader_program.hpp"
 

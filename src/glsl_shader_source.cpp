@@ -341,7 +341,7 @@ std::string GlslShaderSource::read() const
   }
 
   std::string preprocessed = glsl_wave_preprocess(ret);
-#if !defined(DNLOAD_GLESV2)
+#if !defined(DNLOAD_USE_GLES)
   return convert_glesv2_gl(preprocessed);
 #else
   return preprocessed;

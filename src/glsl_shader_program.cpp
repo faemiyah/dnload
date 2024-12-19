@@ -7,7 +7,7 @@
 #include <iostream>
 #include <sstream>
 
-#if !defined(DNLOAD_GLESV2)
+#if !defined(DNLOAD_USE_GLES)
 
 //######################################
 // Global ##############################

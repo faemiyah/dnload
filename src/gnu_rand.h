@@ -26,7 +26,7 @@ int gnu_rand(void);
 /// \param seed Initializing seed for the random number generator.
 void gnu_srand(unsigned int seed);
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 /// Testing wrapper for gnu_rand().
 ///
