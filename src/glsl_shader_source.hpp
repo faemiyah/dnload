@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 #include "GLES2/gl2.h"
 #else
 #include "GL/glew.h"

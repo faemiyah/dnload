@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
+cmake_policy(VERSION 3.30) # Boost
 
 function(check_c_flag flag var)
     include(CheckCCompilerFlag)

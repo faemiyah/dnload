@@ -25,7 +25,7 @@ EGLSurface g_egl_surface;
 static void egl_terminate(EGLDisplay egl_display)
 {
   EGLBoolean result = dnload_eglTerminate(egl_display);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(!result)
   {
     fprintf(stderr, "eglTerminate(): %i\n", eglGetError());
@@ -67,7 +67,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
   EGLBoolean result;
 
   display = dnload_eglGetDisplay(EGL_DEFAULT_DISPLAY);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(EGL_NO_DISPLAY == display)
   {
     fprintf(stderr, "eglGetDisplay(): %p\n", display);
@@ -78,7 +78,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
 #endif
 
   result =   dnload_eglInitialize(display, NULL, NULL);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(!result)
   {
     egl_terminate(display);
@@ -90,7 +90,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
 #endif
 
   result =   dnload_eglChooseConfig(display, desired_config, &acquired_config, 1, &config_count);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(!result || (0 >= config_count))
   {
     egl_terminate(display);
@@ -102,7 +102,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
 #endif
 
   surface =   dnload_eglCreateWindowSurface(display, acquired_config, native_window, NULL);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(EGL_NO_SURFACE == surface)
   {
     egl_terminate(display);
@@ -114,7 +114,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
 #endif
 
   context =   dnload_eglCreateContext(display, acquired_config, EGL_NO_CONTEXT, context_attributes);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(EGL_NO_CONTEXT == context)
   {
     egl_terminate(display);
@@ -126,7 +126,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
 #endif
 
   result =   dnload_eglMakeCurrent(display, surface, surface, context);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(!result)
   {
     egl_terminate(display);
@@ -148,7 +148,7 @@ static EGLBoolean egl_init(EGLNativeWindowType native_window, EGLDisplay *out_di
 static void egl_quit(EGLDisplay display)
 {
   EGLBoolean result =  dnload_eglMakeCurrent(display, EGL_NO_CONTEXT, EGL_NO_CONTEXT, EGL_NO_CONTEXT);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
   if(!result)
   {
     fprintf(stderr, "eglMakeCurrent(): %i\n", eglGetError());

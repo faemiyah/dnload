@@ -146,7 +146,7 @@ void gnu_srand(unsigned int seed)
     }
 }
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 #include <stdio.h>
 #include <stdlib.h>

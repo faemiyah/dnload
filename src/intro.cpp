@@ -7,8 +7,8 @@
 
 #include "dnload.h"
 
-#if defined(USE_LD)
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_LD)
+#if defined(DNLOAD_USE_GLES)
 #include "glsl_program.hpp"
 #else
 #include "glsl_pipeline.hpp"
@@ -109,7 +109,7 @@ static uint8_t g_audio_buffer[INTRO_LENGTH * 9 / 8];
 /// Current audio position.
 static int g_audio_position = INTRO_START;
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 /// \cond
 static float g_pos_x = STARTING_POS_X;
@@ -145,7 +145,7 @@ static const char *usage = ""
 /// Global SDL window storage.
 SDL_Window *g_sdl_window;
 
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
 #include "dnload_egl.h"
 #include "dnload_videocore.h"
 #endif
@@ -155,7 +155,7 @@ SDL_Window *g_sdl_window;
 /// Uses global data.
 static void swap_buffers()
 {
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
     dnload_eglSwapBuffers(g_egl_display, g_egl_surface);
 #else
     dnload_SDL_GL_SwapWindow(g_sdl_window);
@@ -167,7 +167,7 @@ static void swap_buffers()
 /// Uses global data.
 static void teardown()
 {
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
     egl_quit(g_egl_display);
     dnload_bcm_host_deinit();
 #endif
@@ -218,7 +218,7 @@ static SDL_AudioSpec audio_spec =
     AUDIO_SAMPLE_TYPE_SDL,
     AUDIO_CHANNELS,
     0,
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     4096,
 #else
     256, // ~172.3Hz, lower values seem to cause underruns
@@ -229,7 +229,7 @@ static SDL_AudioSpec audio_spec =
     NULL
 };
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 /// Set the audio position, avoiding misalignment.
 ///
@@ -256,7 +256,7 @@ int get_start_ticks()
 // Shaders #############################
 //######################################
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 
 #include "quad_glesv2.vert.glsl.hpp" // g_shader_vertex_quad
 #include "quad_glesv2.frag.glsl.hpp" // g_shader_fragment_quad
@@ -276,7 +276,7 @@ static const GLint g_uniform_u = 0;
 /// Shader program.
 GLuint g_program_fragment;
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 
 /// \brief Create shader.
 ///
@@ -310,7 +310,7 @@ GLuint create_program(const char *vertex, const char *fragment)
     return ret;
 }
 
-#elif defined(USE_LD) && 0
+#elif defined(DNLOAD_USE_LD) && 0
 
 /// \brief Create a shader.
 ///
@@ -393,7 +393,7 @@ static void draw(int ticks)
 {
     //dnload_glDisable(GL_DEPTH_TEST);
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     if(g_flag_developer)
     {
         g_uniform_array[0] = g_pos_x;
@@ -409,7 +409,7 @@ static void draw(int ticks)
 #endif
     g_uniform_array[9] = static_cast<float>(ticks);
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
     dnload_glUniform3fv(g_uniform_u, 4, g_uniform_array);
     {
         int8_t array[] =
@@ -433,7 +433,7 @@ static void draw(int ticks)
 // Utility #############################
 //######################################
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 /// Parse resolution from string input.
 ///
@@ -510,7 +510,7 @@ void write_frame(std::string_view basename, unsigned screen_w, unsigned screen_h
 /// May be NOP depending on platform.
 void update_window_position()
 {
-#if defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_VIDEOCORE)
     static int window_x = INT_MIN;
     static int window_y = INT_MIN;
     static int window_width = INT_MIN;
@@ -541,14 +541,14 @@ void update_window_position()
 //######################################
 
 /// \cond
-#if defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_VIDEOCORE)
 #define DEFAULT_SDL_WINDOW_FLAGS SDL_WINDOW_BORDERLESS
 #else
 #define DEFAULT_SDL_WINDOW_FLAGS SDL_WINDOW_OPENGL
 #endif
 /// \endcond
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 /// \brief Intro body function.
 ///
 /// \param screen_w Screen width.
@@ -566,7 +566,7 @@ void _start()
 {
     dnload();
     dnload_SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-#if defined(DNLOAD_GLESV2) && !defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && !defined(DNLOAD_USE_VIDEOCORE)
     dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
@@ -574,11 +574,11 @@ void _start()
     g_sdl_window = dnload_SDL_CreateWindow(NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
             static_cast<int>(screen_w), static_cast<int>(screen_h),
             DEFAULT_SDL_WINDOW_FLAGS | (flag_fullscreen ? SDL_WINDOW_FULLSCREEN : 0));
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
     videocore_create_native_window(screen_w, screen_h);
     bool egl_result = egl_init(reinterpret_cast<NativeWindowType>(&g_egl_native_window), &g_egl_display,
             &g_egl_surface);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     if(!egl_result)
     {
         teardown();
@@ -592,7 +592,7 @@ void _start()
 #endif
     dnload_SDL_ShowCursor(g_flag_developer);
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     {
         int swap_interval = flag_vsync ? -1 : 0;
         int err = SDL_GL_SetSwapInterval(swap_interval);
@@ -606,7 +606,7 @@ void _start()
             std::cerr << "SDL_GL_SetSwapInterval(" << swap_interval << "): " << SDL_GetError() << std::endl;
         }
     }
-#if !defined(DNLOAD_GLESV2)
+#if !defined(DNLOAD_USE_GLES)
     {
         GLenum err = glewInit();
         if(GLEW_OK != err)
@@ -623,8 +623,8 @@ void _start()
     }
 #endif
 
-#if defined(DNLOAD_GLESV2)
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_GLES)
+#if defined(DNLOAD_USE_LD)
     GlslProgram program;
     program.addShader(GL_VERTEX_SHADER, g_shader_vertex_quad);
     program.addShader(GL_FRAGMENT_SHADER, g_shader_fragment_quad);
@@ -639,7 +639,7 @@ void _start()
     dnload_glUseProgram(g_program_fragment);
     g_uniform_u = dnload_glGetUniformLocation(g_program_fragment, g_shader_fragment_quad_uniform_uniform_array);
 #else
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     GlslPipeline program;
     program.addShader(GL_VERTEX_SHADER, g_shader_vertex_quad);
     program.addShader(GL_FRAGMENT_SHADER, g_shader_fragment_quad);
@@ -676,7 +676,7 @@ void _start()
         }
     }
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     if(flag_record)
     {
         SDL_Event event;
@@ -714,14 +714,14 @@ void _start()
 #endif
 
     dnload_SDL_OpenAudio(&audio_spec, NULL);
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     if(!g_flag_developer)
 #endif
     {
         dnload_SDL_PauseAudio(0);
     }
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     FpsCounter fps_counter;
     int start_ticks = static_cast<int>(SDL_GetTicks());
     int last_ticks = start_ticks;
@@ -730,7 +730,7 @@ void _start()
 
     for(;;)
     {
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
         static uint8_t mouse_look = 0;
         static int8_t move_backward = 0;
         static int8_t move_down = 0;
@@ -747,7 +747,7 @@ void _start()
 #endif
         SDL_Event event;
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
         while(SDL_PollEvent(&event))
         {
             if(SDL_QUIT == event.type)
@@ -817,7 +817,7 @@ void _start()
                     {
                         BOOST_THROW_EXCEPTION(std::runtime_error("program recreation failure"));
                     }
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
                     g_program_fragment = program.getId();
                     glUseProgram(g_program_fragment);
 #else
@@ -1047,7 +1047,7 @@ void _start()
     }
 
     teardown();
-#if !defined(USE_LD)
+#if !defined(DNLOAD_USE_LD)
     asm_exit();
 #endif
 }
@@ -1056,7 +1056,7 @@ void _start()
 // Main ################################
 //######################################
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 /// Main function.
 ///
 /// \param argc Argument count.

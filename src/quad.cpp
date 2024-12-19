@@ -47,7 +47,7 @@
 /// Global SDL window storage.
 static SDL_Window *g_sdl_window;
 
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
 #include "dnload_egl.h"
 #include "dnload_videocore.h"
 #endif
@@ -57,7 +57,7 @@ static SDL_Window *g_sdl_window;
 /// Uses global data.
 static void swap_buffers()
 {
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
     dnload_eglSwapBuffers(g_egl_display, g_egl_surface);
 #else
     dnload_SDL_GL_SwapWindow(g_sdl_window);
@@ -69,7 +69,7 @@ static void swap_buffers()
 /// Uses global data.
 static void teardown()
 {
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
     egl_quit(g_egl_display);
     dnload_bcm_host_deinit();
 #endif
@@ -80,7 +80,7 @@ static void teardown()
 // Shaders #############################
 //######################################
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 
 /// Quad vertex shader.
 static const char *g_shader_vertex_quad = ""
@@ -140,7 +140,7 @@ static const char *g_shader_fragment_quad = ""
 static GLuint g_program_fragment;
 /// \endcond
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 
 /// \brief Create shader.
 ///
@@ -184,7 +184,7 @@ GLuint create_program(const char *vertex, const char *fragment)
 /// \param ticks Milliseconds.
 static void draw(unsigned ticks)
 {
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
     dnload_glUniform1f(g_uniform_t, ticks);
     {
         int8_t array[] =
@@ -209,7 +209,7 @@ static void draw(unsigned ticks)
 // Main ################################
 //######################################
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 int main()
 #else
 void _start()
@@ -217,14 +217,14 @@ void _start()
 {
     dnload();
     dnload_SDL_Init(SDL_INIT_VIDEO);
-#if defined(DNLOAD_GLESV2) && !defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && !defined(DNLOAD_USE_VIDEOCORE)
     dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     dnload_SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 #endif
     g_sdl_window = dnload_SDL_CreateWindow(NULL, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_W,
             SCREEN_H, SDL_WINDOW_OPENGL | (FLAG_FULLSCREEN ? SDL_WINDOW_FULLSCREEN : 0));
-#if defined(DNLOAD_GLESV2) && defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_GLES) && defined(DNLOAD_USE_VIDEOCORE)
     videocore_create_native_window(SCREEN_W, SCREEN_H);
     egl_init(reinterpret_cast<NativeWindowType>(&g_egl_native_window), &g_egl_display, &g_egl_surface);
 #else
@@ -232,11 +232,11 @@ void _start()
 #endif
     dnload_SDL_ShowCursor(0);
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     glewInit();
 #endif
 
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
     g_program_fragment = create_program(g_shader_vertex_quad, g_shader_fragment_quad);
     dnload_glUseProgram(g_program_fragment);
     g_uniform_t = dnload_glGetUniformLocation(g_program_fragment, "t");
@@ -271,7 +271,7 @@ void _start()
     }
 
     teardown();
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     return 0;
 #else
     asm_exit();

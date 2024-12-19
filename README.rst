@@ -101,7 +101,7 @@ The checked out repository will have the ``dnload.py`` script in the root folder
 
     #include "dnload.h"
 
-    #if defined(USE_LD)
+    #if defined(DNLOAD_USE_LD)
     int main()
     #else
     void _start()
@@ -109,7 +109,7 @@ The checked out repository will have the ``dnload.py`` script in the root folder
     {
       dnload();
       dnload_puts("Hello World!");
-    #if defined(USE_LD)
+    #if defined(DNLOAD_USE_LD)
       return 0;
     #else
       asm_exit();
@@ -137,13 +137,13 @@ Building the example without size optimizations
 
 Even when developing an intro, the programmer is hardly interested in building a size-optimized binary every time. For this purpose, everything in the generated header file is wrapped to compile-time guards that allow us to compile the program as normal from Makefiles, Autotools scripts, CMake or even Visual Studio projects.
 
-By default this separation is done with the preprocessor definition ``USE_LD`` not being present for size-limited builts. So, for normal operation, the user needs to compile with it enabled. For example
+By default this separation is done with the preprocessor definition ``DNLOAD_USE_LD`` not being present for size-limited builts. So, for normal operation, the user needs to compile with it enabled. For example
 (replace with your favorite compiler)::
 
-    > clang++ -o src/hello_world src/hello_world.cpp -DUSE_LD -O2 -s -lc && ./src/hello_world
+    > clang++ -o src/hello_world src/hello_world.cpp -DDNLOAD_USE_LD -O2 -s -lc && ./src/hello_world
 Hello World!
 
-When ``USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and all calls made with the reserved ``dnload_`` prefix will simply call the functions as normal. You can change this definition to anything you want.
+When ``DNLOAD_USE_LD`` is turned on, all "tricks" will essentially evaluate to NOP, and all calls made with the reserved ``dnload_`` prefix will simply call the functions as normal. You can change this definition to anything you want.
 
 Compiling the example as a size-optimized binary
 ~~~~
@@ -211,7 +211,7 @@ This will internally include the relevant loader and some other header(s) presen
 
 To understand what the script does, we will look at the main function::
 
-    #if defined(USE_LD)
+    #if defined(DNLOAD_USE_LD)
     int main()
     #else
     void _start()
@@ -219,14 +219,14 @@ To understand what the script does, we will look at the main function::
     {
       dnload();
       dnload_puts("Hello World!");
-    #if defined(USE_LD)
+    #if defined(DNLOAD_USE_LD)
       return 0;
     #else
       asm_exit();
     #endif
     }
 
-If the macro ``USE_LD`` would be defined, all this would simply evaluate to a self-explanatory hello world program::
+If the macro ``DNLOAD_USE_LD`` would be defined, all this would simply evaluate to a self-explanatory hello world program::
 
     int main()
     {
@@ -234,7 +234,7 @@ If the macro ``USE_LD`` would be defined, all this would simply evaluate to a se
       return 0;
     }
 
-If ``USE_LD`` is not defined, this would evaluate to a minified version instead::
+If ``DNLOAD_USE_LD`` is not defined, this would evaluate to a minified version instead::
 
     void _start()
     {
@@ -437,7 +437,7 @@ This produces the following loader (using `intro.cpp` example)::
 
 The code snippet reveals a "fake" symbol table with the name ``g_symbol_table``. It is simply a list of function pointers constructed from the prefixed function names found when preprocessing the source file earlier. Depending on the build mode, we will either select the regular function call or redirect to our table. For the hello world example, the code would look like this::
 
-    #if defined(USE_LD)
+    #if defined(DNLOAD_USE_LD)
     #define dnload_puts puts
     #else
     #define dnload_puts g_symbol_table.puts
@@ -1072,10 +1072,10 @@ Even on a 64-bit system, you should be able to execute the result file if the co
 
 There are probably easy ways to do the same on Linux, but they are out of the scope of this document.
 
-What does ``USE_LD`` stand for?
+What does ``DNLOAD_USE_LD`` stand for?
 ----
 
-The name ``USE_LD`` is legacy, which has preserved unchanged from earlier Faemiyah prods. You may change the definition with the ``-d`` or ``--definition`` command line argument when invoking the script.
+The macro ``USE_LD`` was used in Faemiyah prods to signify that the linker was being used properly and no minification trickery should be attempted. That definition is quite short and uninformative, so nowadays the definition (along all other definitions) is prefixed with the program name. You may change the definition with the ``-d`` or ``--definition`` command line argument when invoking the script.
 
 Do I need to use ``_start``?
 ----

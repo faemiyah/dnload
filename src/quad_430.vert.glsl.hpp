@@ -1,7 +1,7 @@
 #ifndef __g_shader_vertex_quad_header__
 #define __g_shader_vertex_quad_header__
 static const char *g_shader_vertex_quad = ""
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 "quad_430.vert.glsl"
 #else
 "#version 430\n"
@@ -26,7 +26,7 @@ static const char *g_shader_vertex_quad = ""
 #endif
 #endif
 static const char* g_shader_vertex_quad_attribute_vertex DNLOAD_RENAME_UNUSED = ""
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 "vertex"
 #else
 "i"

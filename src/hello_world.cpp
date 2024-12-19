@@ -11,7 +11,7 @@
 // Main ################################
 //######################################
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 int main()
 #else
 void _start()
@@ -20,7 +20,7 @@ void _start()
     dnload();
     dnload_puts("Hello World!");
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
     return 0;
 #else
     asm_exit();

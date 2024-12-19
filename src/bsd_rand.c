@@ -33,7 +33,7 @@ void bsd_srand(bsd_u_int seed)
     bsd_rand_next = (seed % 0x7ffffffe) + 1;
 }
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -27,7 +27,7 @@ int bsd_rand(void);
 /// \param seed Initializing seed for the random number generator.
 void bsd_srand(bsd_u_int seed);
 
-#if defined(USE_LD)
+#if defined(DNLOAD_USE_LD)
 
 /// Testing wrapper for bsd_rand().
 ///

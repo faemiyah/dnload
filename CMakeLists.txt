@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.13)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 project(dnload)
 
@@ -6,25 +6,24 @@ enable_language(C)
 enable_language(CXX)
 
 include("defaults.cmake")
-
 find_boost("filesystem" "program_options" "system" "wave")
 find_png()
 find_sdl2()
 find_threads()
 
-option(USE_GLES "Use OpenGL ES as opposed to OpenGL without testing" OFF)
-if(USE_GLES)
+option(DNLOAD_USE_GLES "Use OpenGL ES as opposed to OpenGL without testing" OFF)
+if(DNLOAD_USE_GLES)
     set(MALI_FOUND TRUE)
 else()
     check_mali()
     check_videocore()
 endif()
 if(MALI_FOUND)
-    add_definitions(-DDNLOAD_GLESV2)
+    add_definitions(-DDNLOAD_USE_GLES)
     set(EGL_LIBRARY "EGL")
     set(OPENGL_gl_LIBRARY "GLESv2")
 elseif(VIDEOCORE_FOUND)
-    add_definitions(-DDNLOAD_VIDEOCORE -DDNLOAD_GLESV2)
+    add_definitions(-DDNLOAD_USE_VIDEOCORE -DDNLOAD_USE_GLES)
     set(BCM_HOST_LIBRARY "bcm_host")
     set(EGL_LIBRARY "EGL")
     set(OPENGL_gl_LIBRARY "GLESv2")
@@ -35,8 +34,8 @@ endif()
 
 output_flags("DEBUG" on)
 
-add_definitions(-DUSE_LD)
-add_definitions(-DVERSION="r14")
+add_definitions(-DDNLOAD_USE_LD)
+add_definitions(-DDNLOAD_VERSION="r15")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 

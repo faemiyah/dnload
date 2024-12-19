@@ -63,7 +63,7 @@ PATH_MALI = "/usr/lib/arm-linux-gnueabihf/mali-egl"
 PATH_VIDEOCORE = "/opt/vc"
 
 VERSION_REVISION = "r15"
-VERSION_DATE = "20210313"
+VERSION_DATE = "20241219"
 
 g_assembler_ehdr = (
     "ehdr",
@@ -281,7 +281,7 @@ g_template_header = Template("""#ifndef DNLOAD_H
 #define DNLOAD_MACRO_STR_HELPER(op) #op
 /// Macro stringification.
 #define DNLOAD_MACRO_STR(op) DNLOAD_MACRO_STR_HELPER(op)\n
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 /// Apientry definition (OpenGL ES 2.0).
 #define DNLOAD_APIENTRY GL_APIENTRY
 #else
@@ -422,7 +422,7 @@ g_template_include_ncurses = Template("""
 """)
 
 g_template_include_opengl = Template("""
-#if defined(DNLOAD_VIDEOCORE)
+#if defined(DNLOAD_USE_VIDEOCORE)
 #include \"bcm_host.h\"
 #include \"EGL/egl.h\"
 #endif\n
@@ -435,7 +435,7 @@ g_template_include_opengl = Template("""
 #include \"GL/glew.h\"
 #include <OpenGL/glu.h>
 #else
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 #include \"GLES2/gl2.h\"
 #include \"GLES2/gl2ext.h\"
 #else
@@ -449,7 +449,7 @@ g_template_include_opengl = Template("""
 #include <OpenGL/glext.h>
 #include <OpenGL/glu.h>
 #else
-#if defined(DNLOAD_GLESV2)
+#if defined(DNLOAD_USE_GLES)
 #include \"GLES2/gl2.h\"
 #include \"GLES2/gl2ext.h\"
 #else
@@ -1115,7 +1115,7 @@ def main():
     parser.add_argument("-A", "--assembler", default=None, help="Try to use given assembler executable as opposed to autodetect.")
     parser.add_argument("-B", "--objcopy", default=None, help="Try to use given objcopy executable as opposed to autodetect.")
     parser.add_argument("-C", "--compiler", default=None, help="Try to use given compiler executable as opposed to autodetect.")
-    parser.add_argument("-d", "--definition-ld", default="USE_LD", help="Definition to use for checking whether to use 'safe' mechanism instead of dynamic loading.\n(default: %(default)s)")
+    parser.add_argument("-d", "--definition-ld", default="DNLOAD_USE_LD", help="Definition to use for checking whether to use 'safe' mechanism instead of dynamic loading.\n(default: %(default)s)")
     parser.add_argument("-D", "--define", default=[], action="append", help="Additional preprocessor definition.")
     parser.add_argument("-e", "--elfling", action="store_true", help="Use elfling packer if available.")
     parser.add_argument("-E", "--preprocess-only", action="store_true", help="Preprocess only, do not generate compiled output.")

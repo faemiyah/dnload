@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#if !defined(DNLOAD_GLESV2)
+#if !defined(DNLOAD_USE_GLES)
 
 // Forward declaration.
 class GlslShaderProgram;
