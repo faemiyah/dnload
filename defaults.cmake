@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-cmake_policy(VERSION 3.30) # Boost
+cmake_policy(SET CMP0167 NEW) # Boost, CMake 3.30
 
 function(check_c_flag flag var)
     include(CheckCCompilerFlag)
