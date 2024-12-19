@@ -17,6 +17,7 @@ r15 (2024-12-19)
     * Fix numerous shader simplification errors.
     * Fix chained shader shader struct minification errors (geometry shader
       minification was broken).
+    * Removed Windows SDL2.dll as unnecessary.
 
 r14 (2021-03-13)
     * Add GLSL minifier.
