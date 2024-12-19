@@ -62,7 +62,7 @@ from dnload.template import Template
 PATH_MALI = "/usr/lib/arm-linux-gnueabihf/mali-egl"
 PATH_VIDEOCORE = "/opt/vc"
 
-VERSION_REVISION = "r15"
+VERSION_REVISION = "r16"
 VERSION_DATE = "20241219"
 
 g_assembler_ehdr = (

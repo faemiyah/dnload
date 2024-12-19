@@ -35,7 +35,7 @@ endif()
 output_flags("DEBUG" on)
 
 add_definitions(-DDNLOAD_USE_LD)
-add_definitions(-DDNLOAD_VERSION="r15")
+add_definitions(-DDNLOAD_VERSION="r16")
 
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
