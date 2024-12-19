@@ -1120,6 +1120,7 @@ def main():
     parser.add_argument("-e", "--elfling", action="store_true", help="Use elfling packer if available.")
     parser.add_argument("-E", "--preprocess-only", action="store_true", help="Preprocess only, do not generate compiled output.")
     parser.add_argument("-F", "--filedrop-mode", default="auto", choices=("header", "native", "cross", "auto"), help="File dropping and interpreter calling mode.\n\theader:\n\t\tAdd explicit PT_INTERP header into the binary.\n\tnative:\n\t\tCall dynamic linker for the native platform.\n\tcross:\n\t\tCall dynamic linker assuming cross-platform emulation.\n\tauto:\n\t\tTry to autodetect and create the smallest binary to be ran on current machine.\n(default: %(default)s)")
+    parser.add_argument("--gles", default="auto", choices=("yes", "no", "auto"), help="OpenGL ES, detection override:\n\tyes:\n\t\tAssume GLES as opposed to regular OpenGL.\n\tyes:\n\t\tAssume regular OpenGL.\n\tauto:\n\t\tTry to autodetect if platform uses GLES.\n(default: %(default)s)")
     parser.add_argument("-h", "--help", action="store_true", help="Print this help string and exit.")
     parser.add_argument("-H", "--hash-function", default="auto", choices=("crc32", "sdbm", "auto"), help="Hash function to use for hashing function names:\n\tcrc32:\n\t\tCRC32 intrisic hash.\n\tsdbm:\n\t\tSDBM hash.\n\tauto:\n\t\tUse smallest implementation.\n(default: %(default)s)")
     parser.add_argument("-I", "--include-directory", default=[], action="append", help="Add an include directory to be searched for header files.")
@@ -1131,7 +1132,6 @@ def main():
     parser.add_argument("--march", type=str, help="When compiling code, use given architecture as opposed to autodetect.")
     parser.add_argument("--nice-exit", action="store_true", help="Do not use debugger trap, exit with proper system call.")
     parser.add_argument("--nice-filedump", action="store_true", help="Do not use dirty tricks in compression header, also remove filedumped binary when done.")
-    parser.add_argument("--no-glesv2", action="store_true", help="Do not probe for OpenGL ES 2.0, always assume regular GL.")
     parser.add_argument("--merge-headers", default="auto", choices=("yes", "no", "auto"), help="ELF header merging policy:\n\tno:\n\t\tHeaders concatenated sequentially.\n\tyes:\n\t\tTry to interleave headers to decrease file size.\n\tauto:\n\t\tUse interleaving if target platform allows.\n(default: %(default)s)")
     parser.add_argument("--glsl-mode", default="full", choices=("none", "nosquash", "full"), help="GLSL crunching mode.\n\tnone:\n\t\tJust remove whitespace.\n\tnosquash:\n\t\tRefrain from squashing statements together, otherwise same as full.\n\tfull:\n\t\tTry to minimize file size by any means necessary.\n(default: %(default)s)")
     parser.add_argument("--glsl-inlines", default=-1, type=int, help="Maximum number of inline operations to do for GLSL.\n(default: unlimited)")
@@ -1173,6 +1173,7 @@ def main():
     compilation_mode = args.method
     compression = args.unpack_header
     elfling = args.elfling
+    gles_mode = args.gles
     glsl_inlines = args.glsl_inlines
     glsl_renames = args.glsl_renames
     glsl_simplifys = args.glsl_simplifys
@@ -1182,7 +1183,6 @@ def main():
     library_directories += args.library_directory
     linker = args.linker
     nice_filedump = args.nice_filedump
-    no_glesv2 = args.no_glesv2
     objcopy = args.objcopy
     output_file_list = args.output_file
     preprocessor = args.preprocessor
@@ -1249,7 +1249,7 @@ def main():
 
     # GLES check (as opposed to plain desktop GL)
     gles_reason = None
-    if not no_glesv2:
+    if gles_mode == "auto":
         if os.path.exists(PATH_MALI):
             extra_libraries += ["EGL"]
             definitions += ["DNLOAD_USE_MALI"]
@@ -1259,11 +1259,13 @@ def main():
             gles_reason = "'%s' (VideoCore)" % (PATH_VIDEOCORE)
             if 'armv7l' == g_osarch:
                 replace_osarch("armv6l", "Workaround (Raspberry Pi): ")
+    elif gles_mode == "yes":
+        gles_reason = "'force'"
     if gles_reason:
         definitions += ["DNLOAD_USE_GLES"]
         replace_platform_variable("gl_library", "GLESv2")
         if is_verbose():
-            print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
+            print("Assuming OpenGL ES: %s" % (gles_reason))
 
     # Find preprocessor.
     preprocessor_list = default_preprocessor_list
