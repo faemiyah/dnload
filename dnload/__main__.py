@@ -1260,7 +1260,7 @@ def main():
             if 'armv7l' == g_osarch:
                 replace_osarch("armv6l", "Workaround (Raspberry Pi): ")
     if gles_reason:
-        definitions += ["DNLOAD_GLESV2"]
+        definitions += ["DNLOAD_USE_GLES"]
         replace_platform_variable("gl_library", "GLESv2")
         if is_verbose():
             print("Assuming OpenGL ES 2.0: %s" % (gles_reason))
