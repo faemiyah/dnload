@@ -1091,7 +1091,7 @@ def main():
     global g_osname
     compression = str(PlatformVar("compression"))
     default_assembler_list = ["/usr/local/bin/as", "as"]
-    default_compiler_list = ["g++12", "g++-12", "g++9", "g++-9", "g++", "c++"]
+    default_compiler_list = ["g++11", "g++-11", "g++9", "g++-9", "g++", "clang++"]
     default_linker_list = ["/usr/local/bin/ld", "ld"]
     default_preprocessor_list = ["cpp", "clang-cpp"]
     default_objcopy_list = ["/usr/local/bin/objcopy", "objcopy"]

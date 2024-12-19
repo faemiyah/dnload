@@ -1032,7 +1032,7 @@ void _start()
             break;
         }
 #else
-        curr_ticks = g_audio_position;
+        int curr_ticks = g_audio_position;
 
         dnload_SDL_PollEvent(&event);
 

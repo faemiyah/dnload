@@ -8,7 +8,7 @@ static const char *g_shader_vertex_quad = ""
 "varying vec2 e;"
 "void main()"
 "{"
-"e=i,gl_Position=vec4(i,.0,1.);"
+"e=i,gl_Position=vec4(i,0,1);"
 "}"
 #endif
 "";
