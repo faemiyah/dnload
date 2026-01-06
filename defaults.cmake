@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 # Boost, CMake 3.30
-if(CMP0167)
+if(POLICY CMP0167)
     cmake_policy(SET CMP0167 NEW)
 endif()
 
