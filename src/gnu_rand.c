@@ -27,34 +27,7 @@ static int32_t randtbl[DEG_3 + 1] =
     -205601318,
 };
 
-/// Random data structure.
-///
-/// Taken directly from GNU libc's stdlib.h.
-///
-/// https://sourceware.org/git/?p=glibc.git;a=blob;f=stdlib/stdlib.h;hb=HEAD
-struct random_data
-{
-    /// Front pointer.
-    int32_t *fptr;
-
-    /// Rear pointer.
-    int32_t *rptr;
-
-    /// Array of state values.
-    int32_t *state;
-
-    /// Type of random number generator.
-    int rand_type;
-
-    /// Degree of random number generator.
-    int rand_deg;
-
-    /// Distance between front and rear.
-    int rand_sep;
-
-    /// Pointer behind state table.
-    int32_t *end_ptr;
-} g_rand_state =
+struct random_data g_rand_state =
 {
     .fptr = &randtbl[SEP_3 + 1],
     .rptr = &randtbl[1],
@@ -149,7 +122,6 @@ void gnu_srand(unsigned int seed)
 #if defined(DNLOAD_USE_LD)
 
 #include <stdio.h>
-#include <stdlib.h>
 
 int gnu_rand_wrapper(void)
 {

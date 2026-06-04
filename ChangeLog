@@ -1,5 +1,7 @@
 r16 (20??-??-??)
-    *
+    * Fix gnu_rand.c/.h build errors on modern gcc.
+    * Require CMake 3.27.
+    * ???
 
 r15 (2024-12-19)
     * Unify all CPP macro definitions to prefix with DNLOAD_.
