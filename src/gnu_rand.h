@@ -6,6 +6,9 @@
 #include <stdlib.h>
 
 #else
+
+#include <stdint.h>
+
 /// Random data structure.
 ///
 /// Taken directly from GNU libc's stdlib.h.

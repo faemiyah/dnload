@@ -38,7 +38,8 @@ boost::tuple<std::string, std::string> glsl_split(const std::string &source)
       ii = boost::trim_copy(ii.substr(1));
 
       if(boost::starts_with(ii, "define") ||
-          boost::starts_with(ii, "version"))
+              boost::starts_with(ii, "extension") ||
+              boost::starts_with(ii, "version"))
       {
         glsl_list.push_back(vv);
         continue;
