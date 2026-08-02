@@ -1,6 +1,45 @@
 #ifndef GNU_RAND_H
 #define GNU_RAND_H
 
+#if defined(DNLOAD_USE_LD)
+
+#include <stdlib.h>
+
+#else
+
+#include <stdint.h>
+
+/// Random data structure.
+///
+/// Taken directly from GNU libc's stdlib.h.
+///
+/// https://sourceware.org/git/?p=glibc.git;a=blob;f=stdlib/stdlib.h;hb=HEAD
+struct random_data
+{
+    /// Front pointer.
+    int32_t *fptr;
+
+    /// Rear pointer.
+    int32_t *rptr;
+
+    /// Array of state values.
+    int32_t *state;
+
+    /// Type of random number generator.
+    int rand_type;
+
+    /// Degree of random number generator.
+    int rand_deg;
+
+    /// Distance between front and rear.
+    int rand_sep;
+
+    /// Pointer behind state table.
+    int32_t *end_ptr;
+};
+
+#endif
+
 #if defined(__cplusplus)
 extern "C"
 {

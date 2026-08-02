@@ -5,6 +5,7 @@ static const char *g_shader_vertex_quad = ""
 "quad_430.vert.glsl"
 #else
 "#version 430\n"
+"\n"
 "in vec2 i;"
 "out vec2 e;"
 "out gl_PerVertex"

@@ -5,6 +5,7 @@ static const char *g_shader_fragment_quad = ""
 "quad_430.frag.glsl"
 #else
 "#version 430\n"
+"\n"
 "layout(location=0)uniform vec3 i[4];"
 "in vec2 e;"
 "out vec4 g;"
